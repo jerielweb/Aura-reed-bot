@@ -6,8 +6,33 @@ import pino from 'pino';
 import chalk from 'chalk';
 import antilinkCmd from './commands/group/antilink.js';
 
-const getDB = () => JSON.parse(fs.readFileSync('./database.json', 'utf-8'));
-const saveDB = (data) => fs.writeFileSync('./database.json', JSON.stringify(data, null, 2));
+const DB_PATH = './database.json';
+const DEFAULT_DB = {
+  prefix: '.',
+  owners: [],
+  groups: {}
+};
+
+const ensureDB = () => {
+  if (!fs.existsSync(DB_PATH)) {
+    fs.writeFileSync(DB_PATH, JSON.stringify(DEFAULT_DB, null, 2));
+  }
+};
+
+const getDB = () => {
+  ensureDB();
+  try {
+    return JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
+  } catch (error) {
+    console.error('Error leyendo database.json, creando archivo nuevo:', error);
+    fs.writeFileSync(DB_PATH, JSON.stringify(DEFAULT_DB, null, 2));
+    return { ...DEFAULT_DB };
+  }
+};
+
+const saveDB = (data) => {
+  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
+};
 
 const processedMessages = new Set();
 const categories = ['owner', 'system', 'group'];
