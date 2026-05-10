@@ -1,0 +1,21 @@
+# Dependencias
+node_modules/
+
+# Sesión de WhatsApp (¡MUY IMPORTANTE!)
+# Si tu carpeta de sesión se llama 'session' o 'auth', cámbialo aquí
+session/
+auth/
+auth_info_baileys/
+
+# Variables de entorno (Claves de API, DB, etc.)
+.env
+
+# Logs y multimedia temporal
+*.log
+temp/
+tmp/
+database.json
+
+# Sistema
+.DS_Store
+Thumbs.db
