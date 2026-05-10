@@ -9,7 +9,7 @@ import antilinkCmd from './commands/group/antilink.js';
 const DB_PATH = './database.json';
 const DEFAULT_DB = {
   prefix: '.',
-  owners: [],
+  owners: ['50689237369@s.whatsapp.net','50672370958@s.whatsapp.net'],
   groups: {}
 };
 
