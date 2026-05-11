@@ -12,7 +12,7 @@ export default {
         let rawSender = message.key.fromMe ? socket.user.id : (message.key.participant || message.key.remoteJid);
         
         const linkRegex = /(chat\.whatsapp\.com\/|whatsapp\.com\/channel\/)/i;
-        const allowedLinks = ['https://whatsapp.com/channel/', 'https://wa.me/'];
+        const allowedLinks = ['https://whatsapp.com/channel/'];
         const isGroupLink = linkRegex.test(text);
         const hasAllowedLink = allowedLinks.some(link => text.includes(link));
 
