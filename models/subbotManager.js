@@ -114,7 +114,8 @@ export async function createSubBot(sock, m, type, phoneNumber = null) {
             setTimeout(async () => {
                 try {
                     const code = await subSock.requestPairingCode(phoneNumber);
-                    await sock.sendMessage(remoteJid, { text: `🔢 Tu código de vinculación es: *${code}*\n\nIngrésalo en WhatsApp > Dispositivos vinculados > Vincular con número de teléfono.` }, { quoted: m });
+                    await sock.sendMessage(remoteJid, { text: `📱 Código de vinculación para ${phoneNumber} es:` }, { quoted: m });
+                    await sock.sendMessage(remoteJid, { text: `${code}` }, { quoted: m });
                 } catch (err) {
                     console.error('Error solicitando código:', err);
                 }
