@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "bun --watch index.js",
-    "postinstall": "node -e \"const fs=require('fs'); if(!fs.existsSync('./database.json')) fs.writeFileSync('./database.json', JSON.stringify({ prefix: '.', owners: ['50689237369@s.whatsapp.net', '50672370958@s.whatsapp.net'], groups: {} }, null, 2));\""
+    "postinstall": "node -e \"const fs=require('fs'); if(!fs.existsSync('./database.json')) fs.writeFileSync('./database.json', JSON.stringify({ prefix: '.', owners: ['50689237369@s.whatsapp.net', '50672370958@s.whatsapp.net'], groups: {}, users: {} }, null, 2)); if(!fs.existsSync('./sessions/subbots')) fs.mkdirSync('./sessions/subbots', { recursive: true });\""
   },
   "keywords": [],
   "author": "Jeriel A.",

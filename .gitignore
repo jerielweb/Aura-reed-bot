@@ -16,6 +16,9 @@ temp/
 tmp/
 database.json
 
+# Sesiones de sub-bots
+sessions/
+
 # Sistema
 .DS_Store
 Thumbs.db
