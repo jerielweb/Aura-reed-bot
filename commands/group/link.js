@@ -1,17 +1,33 @@
-export default {
+﻿export default {
     name: ['link', 'linkgroup', 'grouplink', 'grupo'],
     category: 'group',
-    description: 'Extraer el link del grupo para compartir.',
+    description: 'Extraer el link del grupo o comunidad para compartir.',
     adminOnly: true,
     execute: async (socket, message, args) => {
         const remoteJid = message.key.remoteJid;
-        if (!remoteJid.endsWith('@g.us')) return socket.sendMessage(remoteJid, { text: '❌ Este comando solo funciona en grupos.' }, { quoted: message });
+        if (!remoteJid.endsWith('@g.us')) return socket.sendMessage(remoteJid, { text: 'Este comando solo funciona en grupos o comunidades.' }, { quoted: message });
+
+        let code = null;
 
         try {
-            const code = await socket.groupInviteCode(remoteJid);
-            await socket.sendMessage(remoteJid, { text: `🔗 *Enlace del grupo:*\nhttps://chat.whatsapp.com/${code}` }, { quoted: message });
-        } catch (e) {
-            await socket.sendMessage(remoteJid, { text: '❌ No pude obtener el enlace. Asegúrate de que soy administrador del grupo.' }, { quoted: message });
+            code = await socket.groupInviteCode(remoteJid);
+        } catch (error) {
+            // Intentamos fallback para comunidades.
         }
+
+        if (!code) {
+            try {
+                const metadata = await socket.groupMetadata(remoteJid);
+                code = metadata?.inviteCode || metadata?.invite?.code || metadata?.inviteCodeV2 || metadata?.groupInviteCode;
+            } catch (error) {
+                // Ignorar y seguir al mensaje de error.
+            }
+        }
+
+        if (code) {
+            return await socket.sendMessage(remoteJid, { text: `Link del grupo/comunidad:\nhttps://chat.whatsapp.com/${code}` }, { quoted: message });
+        }
+
+        await socket.sendMessage(remoteJid, { text: 'No pude obtener el enlace. Asegurate de que soy administrador del grupo o comunidad.' }, { quoted: message });
     }
 };

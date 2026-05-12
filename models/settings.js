@@ -5,4 +5,4 @@ const settingsSchema = new mongoose.Schema({
     prefix: { type: String, default: '!' }        // Prefijo por defecto
 });
 
-export default mongoose.model('Settings', settingsSchema);
+export default mongoose.model('Settings', settingsSchema); 

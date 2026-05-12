@@ -1,5 +1,5 @@
 export default {
-    name: ['tag'],
+    name: ['tag', 'tg'],
     category: 'group',
     description: 'Mencionar a todos con un simple mensaje.',
     adminOnly: true,

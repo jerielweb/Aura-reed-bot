@@ -2,35 +2,64 @@ export default {
     name: ['topactivos', 'activos'],
     category: 'group',
     description: 'Ver usuarios más activos en el grupo.',
+    adminOnly: true,
     execute: async (socket, message, args, { db }) => {
         const remoteJid = message.key.remoteJid;
         if (!remoteJid.endsWith('@g.us')) return socket.sendMessage(remoteJid, { text: '❌ Este comando solo funciona en grupos.' }, { quoted: message });
 
         const groupMetadata = await socket.groupMetadata(remoteJid);
-        const participants = groupMetadata.participants;
-        const currentParticipantIds = participants.map(p => p.id);
-        
+        const participants = groupMetadata.participants || [];
+        const participantBaseMap = new Map();
+        const participantJids = [];
+
+        participants.forEach(p => {
+            const jid = p?.id;
+            const base = jid?.split('@')[0]?.split(':')[0];
+            if (base && jid) {
+                participantBaseMap.set(base, jid);
+                participantJids.push(jid);
+            }
+        });
+
         const activity = db.groups?.[remoteJid]?.activity || {};
-        
-        // Filter out users not in group anymore, then sort by messages
-        let users = Object.entries(activity)
-            .filter(([id]) => currentParticipantIds.includes(id))
+        const monthKey = new Date().toISOString().slice(0, 7);
+        const monthlyActivity = activity[monthKey] && typeof activity[monthKey] === 'object' ? activity[monthKey] : activity;
+
+        const counts = {};
+        Object.entries(monthlyActivity).forEach(([key, value]) => {
+            const base = key?.split('@')[0]?.split(':')[0];
+            if (!base) return;
+            const resolved = participantBaseMap.get(base) || (key.endsWith('@s.whatsapp.net') ? `${base}@s.whatsapp.net` : null);
+            if (!resolved || !participantBaseMap.has(base)) return;
+            counts[resolved] = (counts[resolved] || 0) + Number(value || 0);
+        });
+
+        const users = Object.entries(counts)
             .map(([id, count]) => ({ id, count }))
             .sort((a, b) => b.count - a.count);
 
-        // Get top 10 most active
-        const top = users.slice(0, 10);
-        if (top.length === 0) {
-            return socket.sendMessage(remoteJid, { text: 'Aún no hay suficiente actividad registrada en este grupo.' }, { quoted: message });
+        if (users.length === 0) {
+            return socket.sendMessage(remoteJid, { text: 'Aún no hay suficiente actividad registrada en este mes.' }, { quoted: message });
         }
 
-        let text = `🔥 *TOP ACTIVOS DEL GRUPO* 🔥\n\n`;
+        const pageSize = Math.min(Math.max(parseInt(args[0], 20) || 20, 1), 50);
+        const page = Math.max(parseInt(args[1], 10) || 1, 1);
+        const totalPages = Math.max(Math.ceil(users.length / pageSize), 1);
+        const currentPage = Math.min(page, totalPages);
+        const startIndex = (currentPage - 1) * pageSize;
+        const pageUsers = users.slice(startIndex, startIndex + pageSize);
+
+        const monthLabel = new Date().toLocaleString('es-ES', { month: 'long', year: 'numeric' });
+        let text = `🔥 *TOP ACTIVOS DEL MES (${monthLabel})* 🔥\n`;
+        text += `📄 Página ${currentPage}/${totalPages} • ${pageSize} por página\n\n`;
+
         const mentions = [];
-        top.forEach((u, i) => {
-            text += `${i + 1}. @${u.id.split('@')[0]} - ${u.count} mensajes\n`;
+        pageUsers.forEach((u, i) => {
+            text += `${startIndex + i + 1}. @${u.id.split('@')[0]} - ${u.count} mensajes\n`;
             mentions.push(u.id);
         });
 
+        text += `\nUsa: ${db.prefix}activos [cantidad] [página]`;
         await socket.sendMessage(remoteJid, { text, mentions }, { quoted: message });
     }
 };

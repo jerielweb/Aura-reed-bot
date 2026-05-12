@@ -3,50 +3,64 @@ export default {
     category: 'group',
     description: 'Activar o desactivar el sistema antilink en el grupo.',
     adminOnly: true,
-    middleware: async (socket, message, { db, owners }) => {
+    middleware: async (socket, message, { db, owners, isAdmin, isBotAdmin, isOwner, groupMetadata }) => {
         const remoteJid = message.key.remoteJid;
         if (!remoteJid.endsWith('@g.us')) return;
 
+        // Verificar si antilink está activado para este grupo
+        if (!db.groups[remoteJid]?.antilink) return;
+
         const text = message.message?.conversation || message.message?.extendedTextMessage?.text || message.message?.imageMessage?.caption || message.message?.videoMessage?.caption || "";
+        if (!text) return;
         
-        let rawSender = message.key.fromMe ? socket.user.id : (message.key.participant || message.key.remoteJid);
+        // Detectar enlaces de grupos de WhatsApp (NO canales)
+        const groupLinkRegex = /chat\.whatsapp\.com\//i;
+        const isGroupLink = groupLinkRegex.test(text);
+
+        if (!isGroupLink) return;
+
+        console.log(`[ANTILINK] Enlace de grupo detectado en: ${remoteJid}`);
         
-        const linkRegex = /(chat\.whatsapp\.com\/|whatsapp\.com\/channel\/)/i;
-        const allowedLinks = ['https://whatsapp.com/channel/'];
-        const isGroupLink = linkRegex.test(text);
-        const hasAllowedLink = allowedLinks.some(link => text.includes(link));
+        // El sender raw es necesario para eliminar al participante del grupo
+        const rawSender = message.key.fromMe ? socket.user.id : (message.key.participant || message.key.remoteJid);
 
-        if (db.groups[remoteJid]?.antilink && isGroupLink && !hasAllowedLink) {
-            console.log(`[ANTILINK] Enlace detectado en el grupo: ${remoteJid}`);
-            try {
-                const groupMetadata = await socket.groupMetadata(remoteJid);
-                const participants = groupMetadata.participants || [];
-                const groupAdmins = participants.filter(p => p.admin === 'admin' || p.admin === 'superadmin').map(p => p.id);
-                
-                const getNormalizedJid = (jid) => jid ? (jid.includes(':') ? jid.split(':')[0] + jid.substring(jid.indexOf('@')) : jid) : "";
-                
-                const normalizedSender = getNormalizedJid(rawSender);
-                const senderIsAdmin = groupAdmins.includes(normalizedSender);
-                
-                const normalizedBotJid = getNormalizedJid(socket.user.id);
-                const botLid = socket.user.lid ? getNormalizedJid(socket.user.lid) : null;
-                const botIsAdmin = groupAdmins.includes(normalizedBotJid) || (botLid && groupAdmins.includes(botLid));
-                const isOwner = owners.includes(normalizedSender);
+        // Si es admin, owner o el propio bot, ignorar
+        if (isAdmin || isOwner || message.key.fromMe) {
+            console.log(`[ANTILINK] Sender es admin/owner/bot, ignorando.`);
+            return;
+        }
 
-                if (senderIsAdmin || isOwner || message.key.fromMe) {
-                    return;
-                }
+        // El bot necesita ser admin para poder eliminar mensajes y usuarios
+        if (!isBotAdmin) {
+            console.log(`[ANTILINK] El bot no es admin, no puede actuar.`);
+            return;
+        }
 
-                if (botIsAdmin) {
-                    const deleteKey = { remoteJid: remoteJid, fromMe: false, id: message.key.id, participant: message.key.participant };
-                    await socket.sendMessage(remoteJid, { delete: deleteKey });
-                    
-                    const isChannelLink = /whatsapp\.com\/channel\//i.test(text);
-                    const userName = message.pushName || 'Usuario';
-                    await socket.sendMessage(remoteJid, { text: `🚫 Se ha eliminado a *${userName}* del grupo por \`Anti-Link\`. No permitimos enlaces de *${isChannelLink ? 'canales' : 'otros grupos'}*.`, mentions: [normalizedSender] });
-                    await socket.groupParticipantsUpdate(remoteJid, [normalizedSender], "remove");
-                }
-            } catch (err) { console.error("Error en antilink:", err); }
+        try {
+            // 1. Eliminar el mensaje con el enlace
+            const deleteKey = {
+                remoteJid: remoteJid,
+                fromMe: false,
+                id: message.key.id,
+                participant: message.key.participant
+            };
+            await socket.sendMessage(remoteJid, { delete: deleteKey });
+            console.log(`[ANTILINK] Mensaje eliminado.`);
+
+            // 2. Notificar al grupo
+            const userName = message.pushName || 'Usuario';
+            await socket.sendMessage(remoteJid, {
+                text: `🚫 *Anti-Link Activado*\n\nSe ha eliminado a *${userName}* del grupo por enviar un enlace de otro grupo.\n\n⚠️ Los enlaces de grupos no están permitidos.`,
+                quoted: message,
+                mentions: [rawSender]
+            });
+
+            // 3. Expulsar al usuario (usar el JID raw del participante, tal como aparece en el grupo)
+            await socket.groupParticipantsUpdate(remoteJid, [rawSender], "remove");
+            console.log(`[ANTILINK] Usuario ${rawSender} expulsado.`);
+
+        } catch (err) {
+            console.error("[ANTILINK] Error ejecutando acción:", err);
         }
     },
     execute: async (socket, message, args, { db, saveDB }) => {
