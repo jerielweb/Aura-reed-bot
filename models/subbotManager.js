@@ -1,4 +1,4 @@
-import makeWASocket, { useMultiFileAuthState, makeCacheableSignalKeyStore } from '@whiskeysockets/baileys';
+import makeWASocket, { useMultiFileAuthState, makeCacheableSignalKeyStore, DisconnectReason } from '@whiskeysockets/baileys';
 import pino from 'pino';
 import fs from 'fs';
 import QRCode from 'qrcode';
