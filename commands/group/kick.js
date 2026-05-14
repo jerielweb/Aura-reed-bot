@@ -1,5 +1,5 @@
 export default {
-    name: ['kick', 'expulsar', 'sacar', 'quitar', 'hechar'],
+    name: ['kick', 'sacar', 'quitar'],
     category: 'group',
     description: 'Expulsa a un integrante del grupo.',
     adminOnly: true,

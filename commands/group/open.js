@@ -1,7 +1,7 @@
 export default {
     name: ['open', 'abrir'],
     category: 'group',
-    description: 'Abrir el grupo para que todos puedan escribir.',
+    description: 'Abrir el grupo.',
     adminOnly: true,
     execute: async (socket, message, args) => {
         const remoteJid = message.key.remoteJid;

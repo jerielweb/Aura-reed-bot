@@ -1,7 +1,7 @@
 export default {
     name: ['topinactivos', 'fantasmas'],
     category: 'group',
-    description: 'Ver usuarios más inactivos en el grupo.',
+    description: 'Ver inactivos.',
     adminOnly: true,
     execute: async (socket, message, args, { db }) => {
         const remoteJid = message.key.remoteJid;

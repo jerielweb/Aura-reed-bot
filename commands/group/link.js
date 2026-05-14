@@ -1,7 +1,7 @@
 ﻿export default {
-    name: ['link', 'linkgroup', 'grouplink', 'grupo'],
+    name: ['link', 'linkgroup', 'grupo'],
     category: 'group',
-    description: 'Extraer el link del grupo o comunidad para compartir.',
+    description: 'Link del grupo.',
     adminOnly: true,
     execute: async (socket, message, args) => {
         const remoteJid = message.key.remoteJid;

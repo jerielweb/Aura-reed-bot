@@ -1,7 +1,7 @@
 export default {
     name: ['close', 'cerrar'],
     category: 'group',
-    description: 'Cerrar el grupo para que solo los admins puedan escribir.',
+    description: 'Cerrar el grupo.',
     adminOnly: true,
     execute: async (socket, message, args) => {
         const remoteJid = message.key.remoteJid;

@@ -1,7 +1,7 @@
 export default {
     name: ['tag', 'tg'],
     category: 'group',
-    description: 'Mencionar a todos con un simple mensaje.',
+    description: 'Mención invisible',
     adminOnly: true,
     execute: async (socket, message, args) => {
         const remoteJid = message.key.remoteJid;

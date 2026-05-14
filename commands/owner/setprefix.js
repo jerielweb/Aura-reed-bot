@@ -1,7 +1,7 @@
 import Settings from '../../models/settings.js';
 export default {
     name: [ 'setprefix', 'prefix' ],
-    description: 'Cambia el prefijo de los comandos',
+    description: 'Modifica prefijo.',
     async execute(sock, m, args, { db, saveDB }) {
         const newPrefix = args[0];
         if (!newPrefix) return sock.sendMessage(m.key.remoteJid, {

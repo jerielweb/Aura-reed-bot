@@ -1,7 +1,7 @@
 export default {
     name: ['demote', 'descender', 'quitardadmin'],
     category: 'group',
-    description: 'Quitar admin a un miembro del grupo.',
+    description: 'Quitar admin.',
     adminOnly: true,
     execute: async (socket, message, args) => {
         const remoteJid = message.key.remoteJid;

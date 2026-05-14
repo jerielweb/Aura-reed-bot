@@ -2,15 +2,13 @@ import fs from 'fs';
 import chalk from 'chalk';
 import { resolveLidToRealJid } from '../models/utils.js';
 import { cmdLog } from './cmdLog.js';
-
-import { Rstr } from '../controllers/textBots.js'; // IMPORTANTE
+import { Rstr } from '../controllers/textBots.js';
 
 const categories = ['owner', 'system', 'group'];
 
-// Cache de middlewares para no recargar en cada mensaje
 let middlewareCache = null;
 let middlewareCacheTime = 0;
-const MIDDLEWARE_CACHE_TTL = 30000; // 30 segundos
+const MIDDLEWARE_CACHE_TTL = 30000;
 
 async function loadMiddlewares() {
     const now = Date.now();
@@ -35,7 +33,6 @@ async function loadMiddlewares() {
             }
         }
     }
-
     middlewareCache = middlewares;
     middlewareCacheTime = now;
     return middlewares;
@@ -48,7 +45,7 @@ export async function handleMessage(sock, m, db, saveDB) {
     const isGroup = remoteJid.endsWith('@g.us');
     const senderRaw = m.key.participant || remoteJid;
 
-    // 1. RESOLVER IDENTIDAD (Corrección para número real en privado)
+    // 1. RESOLVER IDENTIDAD
     const jidResuelto = await resolveLidToRealJid(senderRaw, sock, remoteJid);
     const numeroReal = jidResuelto.split('@')[0].split(':')[0];
     const jidRemitente = `${numeroReal}@s.whatsapp.net`;
@@ -58,6 +55,7 @@ export async function handleMessage(sock, m, db, saveDB) {
     const botId = sock.user.id.split('@')[0].split(':')[0] + '@s.whatsapp.net';
     const sender = m.key.fromMe ? botId : jidRemitente;
     const isOwner = owners.includes(sender);
+    const rangoLog = isOwner ? 'OWNER 👑' : 'USUARIO 👤';
 
     let isAdmin = false;
     let isBotAdmin = false;
@@ -75,12 +73,20 @@ export async function handleMessage(sock, m, db, saveDB) {
         } catch (e) { }
     }
 
-    // 3. EJECUTAR MIDDLEWARES (antes del filtro de prefix, para que antilink funcione en TODOS los mensajes)
+    const text = m.message.conversation || m.message.extendedTextMessage?.text || m.message.imageMessage?.caption || "";
+
+    await sock.readMessages([m.key]);
+
+    if (!text.startsWith(db.prefix)) {
+        cmdLog({ numeroReal, rango: rangoLog, isGroup, text });
+    }
+
+    // 3. EJECUTAR MIDDLEWARES
     try {
         const middlewares = await loadMiddlewares();
         for (const cmd of middlewares) {
             try {
-                await cmd.middleware(sock, m, { db, saveDB, owners, isAdmin, isBotAdmin, isOwner, groupMetadata });
+                await cmd.middleware(sock, m, { db, saveDB, owners, isAdmin, isBotAdmin, isOwner, groupMetadata, text });
             } catch (err) {
                 console.error(chalk.red(`Error en middleware [${cmd.name}]:`), err.message);
             }
@@ -89,15 +95,12 @@ export async function handleMessage(sock, m, db, saveDB) {
         console.error(chalk.red("Error cargando middlewares:"), e);
     }
 
-    // 4. FILTRO DE PREFIX (solo comandos pasan de aquí)
+    // 4. FILTRO DE PREFIX (Solo los comandos pasan de aquí)
     const prefix = db.prefix;
-    const text = m.message.conversation || m.message.extendedTextMessage?.text || m.message.imageMessage?.caption || "";
-
     if (!text.startsWith(prefix)) return;
 
     const args = text.slice(prefix.length).trim().split(/ +/);
     const commandName = args.shift().toLowerCase();
-
     const rango = isOwner ? 'OWNER 👑' : (isAdmin ? 'ADMIN 🛡️' : 'USUARIO 👤');
 
     cmdLog({ numeroReal, rango, commandName, isGroup });
@@ -112,7 +115,6 @@ export async function handleMessage(sock, m, db, saveDB) {
 
             for (const file of files) {
                 const { default: cmd } = await import(`../commands/${cat}/${file}?update=${Date.now()}`);
-
 
                 if (!cmd || !cmd.name) continue;
 
@@ -148,7 +150,7 @@ export async function handleMessage(sock, m, db, saveDB) {
         }
 
         if (!commandFound) {
-            await sock.sendMessage(remoteJid, { text: `El comando \`${commandName}\` no existe usa \`${db.prefix}help\` para ver la lista de comandos disponibles.` }, { quoted: m });
+            await sock.sendMessage(remoteJid, { text: `╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐂𝐎𝐌𝐀𝐍𝐃𝐎 𝐍𝐎 𝐄𝐗𝐈𝐒𝐓𝐄\n╰━━━━━━━━━━━━⬣\n┃ > El comando que intentaste usar no existe.\n┃ > Usa el menú con ${db.prefix}menu para ver los comandos disponibles.` }, { quoted: m });
         }
 
     } catch (e) {

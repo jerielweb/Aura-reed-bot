@@ -1,7 +1,7 @@
 export default {
     name: ['promote', 'ascender', 'haceradmin'],
     category: 'group',
-    description: 'Dar admin a un miembro del grupo.',
+    description: 'Dar admin',
     adminOnly: true,
     execute: async (socket, message, args) => {
         const remoteJid = message.key.remoteJid;

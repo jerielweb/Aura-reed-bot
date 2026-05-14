@@ -8,8 +8,23 @@ import { handleMessage } from '../controllers/msgHandler.js';
 const sessionsDir = './sessions/subbots';
 if (!fs.existsSync(sessionsDir)) fs.mkdirSync(sessionsDir, { recursive: true });
 
-const getDB = () => JSON.parse(fs.readFileSync('./database.json', 'utf-8'));
-const saveDB = (data) => fs.writeFileSync('./database.json', JSON.stringify(data, null, 2));
+const getDB = () => {
+    const dbData = JSON.parse(fs.readFileSync('./database/database.json', 'utf-8'));
+    const usersData = JSON.parse(fs.readFileSync('./database/users.json', 'utf-8'));
+    const groupsData = JSON.parse(fs.readFileSync('./database/groups.json', 'utf-8'));
+    return {
+        prefix: dbData.prefix,
+        owners: dbData.owners,
+        users: usersData.users || {},
+        groups: groupsData.groups || {}
+    };
+};
+
+const saveDB = (data) => {
+    fs.writeFileSync('./database/database.json', JSON.stringify({ prefix: data.prefix, owners: data.owners }, null, 2));
+    fs.writeFileSync('./database/users.json', JSON.stringify({ users: data.users }, null, 2));
+    fs.writeFileSync('./database/groups.json', JSON.stringify({ groups: data.groups }, null, 2));
+};
 
 // Mapa para rastrear sockets activos de sub-bots
 const activeSubBots = new Map();
@@ -89,7 +104,7 @@ export async function createSubBot(sock, m, type, phoneNumber = null) {
 
             if (qr && type === 'qr' && !isConnected) {
                 const qrBuffer = await QRCode.toBuffer(qr);
-                await sock.sendMessage(remoteJid, { image: qrBuffer, caption: '✨ Escanea este código QR para vincular tu sub-bot.\n\n⚠️ Tienes 60 segundos antes de que expire.' }, { quoted: m });
+                await sock.sendMessage(remoteJid, { image: qrBuffer, caption: '〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐀𝐂𝐓𝐈𝐕𝐄 〕⬣' }, { quoted: m });
             }
 
             if (connection === 'close') {

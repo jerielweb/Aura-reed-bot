@@ -1,9 +1,9 @@
 import { Rstr } from './../../controllers/textBots.js';
 
 export default {
-    name: ['tagall', 'tagtodos', 'tgat', 'invocar'],
+    name: ['tagall', 'todos', 'invocar'],
     category: 'group',
-    description: 'Mencionar a todos con un simple mensaje.',
+    description: 'Menciona todos',
     adminOnly: true,
     execute: async (socket, message, args) => {
         const remoteJid = message.key.remoteJid;

@@ -1,7 +1,7 @@
 export default {
     name: ['delwarn', 'unwarn'],
     category: 'group',
-    description: 'Eliminar la advertencia de un integrante.',
+    description: 'Quitar advertencia.',
     adminOnly: true,
     execute: async (socket, message, args, { db, saveDB }) => {
         const remoteJid = message.key.remoteJid;

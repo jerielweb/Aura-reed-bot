@@ -5,7 +5,7 @@ import path from 'path';
 export default {
     name: ['code', 'qr'],
     category: 'system',
-    description: 'Vincula un sub-bot usando código o QR.',
+    description: 'Vincula sub-bot con código o QR.',
     execute: async (socket, message, args, { db, saveDB, numeroReal, jidRemitente }) => {
         const remoteJid = message.key.remoteJid;
         const sender = jidRemitente; // Usar el jid resuelto
@@ -37,8 +37,8 @@ export default {
         }
 
         // Instrucciones
-        const rtx = '`✤` Vincula tu *cuenta* usando el *codigo.*\n\n> ✥ Sigue las *instrucciones*\n\n*›* Click en los *3 puntos*\n*›* Toque *dispositivos vinculados*\n*›* Vincular *nuevo dispositivo*\n*›* Selecciona *Vincular con el número de teléfono*\n\nꕤ *`Importante`*\n> ₊·( 🜸 ) ➭ Este *Código* solo funciona en el *número que lo solicito*';
-        const rtx2 = "`✤` Vincula tu *cuenta* usando *codigo qr.*\n\n> ✥ Sigue las *instrucciones*\n\n*›* Click en los *3 puntos*\n*›* Toque *dispositivos vinculados*\n*›* Vincular *nuevo dispositivo*\n*›* Escanea el código *QR.*\n\n> ₊·( 🜸 ) ➭ Recuerda que no es recomendable usar tu cuenta principal para registrar un socket.";
+        const rtx = '╭〔 🔗 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ 🤖 𝐕𝐈𝐍𝐂𝐔𝐋𝐀𝐂𝐈𝐎́𝐍 𝐃𝐄 𝐃𝐈𝐒𝐏𝐎𝐒𝐈𝐓𝐈𝐕𝐎\n╰━━━━━━━━━━━━⬣\n\n╭〔 ⚡ 𝐏𝐑𝐄𝐏𝐀𝐑𝐀𝐂𝐈𝐎́𝐍 〕⬣\n┃ 📱 𝐄𝐥 𝐛𝐨𝐭 𝐞𝐬𝐭𝐚́ 𝐥𝐢𝐬𝐭𝐨 𝐩𝐚𝐫𝐚 𝐯𝐢𝐧𝐜𝐮𝐥𝐚𝐫𝐬𝐞\n┃ 🔐 𝐒𝐢𝐬𝐭𝐞𝐦𝐚 𝐚𝐜𝐭𝐢𝐯𝐨\n┃ ⚡ 𝐄𝐬𝐩𝐞𝐫𝐚𝐧𝐝𝐨 𝐜𝐨𝐧𝐟𝐢𝐫𝐦𝐚𝐜𝐢𝐨́𝐧\n╰━━━━━━━━━━━━⬣\n\n╭〔 📲 𝐈𝐍𝐒𝐓𝐑𝐔𝐂𝐂𝐈𝐎𝐍𝐄𝐒 〕⬣\n┃ ➪ 𝐀𝐛𝐫𝐞 “𝐝𝐢𝐬𝐩𝐨𝐬𝐢𝐭𝐢𝐯𝐨 𝐯𝐢𝐧𝐜𝐮𝐥𝐚𝐝𝐨”\n┃ ➪ 𝐏𝐫𝐞𝐬𝐢𝐨𝐧𝐚 𝐥𝐨𝐬 𝐭𝐫𝐞𝐬 𝐩𝐮𝐧𝐭𝐨𝐬\n┃ ➪ 𝐈𝐧𝐠𝐫𝐞𝐬𝐚 𝐞𝐥 𝐜𝐨́𝐝𝐢𝐠𝐨\n┃ ➪ 𝐂𝐨𝐧𝐟𝐢𝐫𝐦𝐚 𝐥𝐚 𝐯𝐢𝐧𝐜𝐮𝐥𝐚𝐜𝐢𝐨́𝐧\n╰━━━━━━━━━━━━⬣\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐀𝐂𝐓𝐈𝐕𝐄 〕⬣';
+        const rtx2 = '╭〔 🔗 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ 🤖 𝐕𝐈𝐍𝐂𝐔𝐋𝐀𝐂𝐈𝐎́𝐍 𝐃𝐄 𝐃𝐈𝐒𝐏𝐎𝐒𝐈𝐓𝐈𝐕𝐎\n╰━━━━━━━━━━━━⬣\n\n╭〔 ⚡ 𝐏𝐑𝐄𝐏𝐀𝐑𝐀𝐂𝐈𝐎́𝐍 〕⬣\n┃ 📱 𝐄𝐥 𝐛𝐨𝐭 𝐞𝐬𝐭𝐚́ 𝐥𝐢𝐬𝐭𝐨 𝐩𝐚𝐫𝐚 𝐯𝐢𝐧𝐜𝐮𝐥𝐚𝐫𝐬𝐞\n┃ 🔐 𝐒𝐢𝐬𝐭𝐞𝐦𝐚 𝐚𝐜𝐭𝐢𝐯𝐨\n┃ ⚡ 𝐄𝐬𝐩𝐞𝐫𝐚𝐧𝐝𝐨 𝐜𝐨𝐧𝐟𝐢𝐫𝐦𝐚𝐜𝐢𝐨́𝐧\n╰━━━━━━━━━━━━⬣\n\n╭〔 📲 𝐈𝐍𝐒𝐓𝐑𝐔𝐂𝐂𝐈𝐎𝐍𝐄𝐒 〕⬣\n┃ ➪ 𝐀𝐛𝐫𝐞 “𝐝𝐢𝐬𝐩𝐨𝐬𝐢𝐭𝐢𝐯𝐨 𝐯𝐢𝐧𝐜𝐮𝐥𝐚𝐝𝐨”\n┃ ➪ 𝐏𝐫𝐞𝐬𝐢𝐨𝐧𝐚 𝐥𝐨𝐬 𝐭𝐫𝐞𝐬 𝐩𝐮𝐧𝐭𝐨𝐬\n┃ ➪ 𝐈𝐧𝐠𝐫𝐞𝐬𝐚 𝐞𝐥 𝐜𝐨́𝐝𝐢𝐠𝐨\n┃ ➪ 𝐂𝐨𝐧𝐟𝐢𝐫𝐦𝐚 𝐥𝐚 𝐯𝐢𝐧𝐜𝐮𝐥𝐚𝐜𝐢𝐨́𝐧\n╰━━━━━━━━━━━━⬣\n\n';
 
         const command = message.message?.conversation?.split(' ')[0].slice(1) || 
                         message.message?.extendedTextMessage?.text?.split(' ')[0].slice(1) || "";

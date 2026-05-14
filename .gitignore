@@ -3,7 +3,7 @@ node_modules/
 
 # Sesión de WhatsApp (¡MUY IMPORTANTE!)
 # Si tu carpeta de sesión se llama 'session' o 'auth', cámbialo aquí
-session/
+sessions/
 auth/
 auth_info_baileys/
 
@@ -14,7 +14,7 @@ auth_info_baileys/
 *.log
 temp/
 tmp/
-database.json
+database/
 
 # Sesiones de sub-bots
 sessions/

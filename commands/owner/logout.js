@@ -3,7 +3,7 @@ import path from 'path';
 
 export default {
     name: ['logout', 'cerrarsesion', 'desconectar'],
-    description: 'Cierra la sesión del bot y elimina las credenciales guardadas',
+    description: 'Cierra sesión actual',
     ownerOnly: true,
     async execute(sock, m, args, { isOwner }) {
         const remoteJid = m.key.remoteJid;

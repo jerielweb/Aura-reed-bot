@@ -6,9 +6,23 @@ import pino from 'pino';
 import chalk from 'chalk';
 import { handleMessage } from './controllers/msgHandler.js';
 
-const DB_PATH = './database.json';
-const getDB = () => JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
-const saveDB = (data) => fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
+const getDB = () => {
+    const dbData = JSON.parse(fs.readFileSync('./database/database.json', 'utf-8'));
+    const usersData = JSON.parse(fs.readFileSync('./database/users.json', 'utf-8'));
+    const groupsData = JSON.parse(fs.readFileSync('./database/groups.json', 'utf-8'));
+    return {
+        prefix: dbData.prefix,
+        owners: dbData.owners,
+        users: usersData.users || {},
+        groups: groupsData.groups || {}
+    };
+};
+
+const saveDB = (data) => {
+    fs.writeFileSync('./database/database.json', JSON.stringify({ prefix: data.prefix, owners: data.owners }, null, 2));
+    fs.writeFileSync('./database/users.json', JSON.stringify({ users: data.users }, null, 2));
+    fs.writeFileSync('./database/groups.json', JSON.stringify({ groups: data.groups }, null, 2));
+};
 
 async function connectToWhatsApp() {
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');

@@ -3,7 +3,7 @@ import { Rstr } from '../../controllers/textBots.js';
 export default {
     name: ['onlyadmin', 'soloadmin', 'adminonly'],
     category: 'group',
-    description: 'Activar o desactivar el modo "solo administradores" en el grupo.',
+    description: 'Solo admins usan el Bot.',
     adminOnly: true,
     execute: async (socket, message, args, { db, saveDB }) => {
         const remoteJid = message.key.remoteJid;

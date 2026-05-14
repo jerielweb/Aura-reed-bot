@@ -1,7 +1,7 @@
 export default {
     name: ['topactivos', 'activos'],
     category: 'group',
-    description: 'Ver usuarios más activos en el grupo.',
+    description: 'Usuarios activos.',
     adminOnly: true,
     execute: async (socket, message, args, { db }) => {
         const remoteJid = message.key.remoteJid;

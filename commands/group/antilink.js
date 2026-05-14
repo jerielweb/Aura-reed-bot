@@ -1,7 +1,7 @@
 export default {
     name: ['antilink', 'antienlace', 'antigp'],
     category: 'group',
-    description: 'Activar o desactivar el sistema antilink en el grupo.',
+    description: 'Bloquea enlaces de otros grupos',
     adminOnly: true,
     middleware: async (socket, message, { db, owners, isAdmin, isBotAdmin, isOwner, groupMetadata }) => {
         const remoteJid = message.key.remoteJid;
