@@ -38,8 +38,8 @@ export default {
             .map(id => ({ id, count: counts[id] || 0 }))
             .sort((a, b) => a.count - b.count || a.id.localeCompare(b.id));
 
-        if (users.length === 0) {
-            return socket.sendMessage(remoteJid, { text: 'No se encontraron participantes válidos en este grupo.' }, { quoted: message });
+        if (Object.keys(monthlyActivity).length === 0) {
+            return socket.sendMessage(remoteJid, { text: 'Aún no hay suficiente actividad registrada en este mes.' }, { quoted: message });
         }
 
         const pageSize = Math.min(Math.max(parseInt(args[0], 10) || 10, 1), 50);
@@ -49,17 +49,21 @@ export default {
         const startIndex = (currentPage - 1) * pageSize;
         const pageUsers = users.slice(startIndex, startIndex + pageSize);
 
-        const monthLabel = new Date().toLocaleString('es-ES', { month: 'long', year: 'numeric' });
-        let text = `👻 *TOP INACTIVOS DEL MES (${monthLabel})* 👻\n`;
-        text += `📄 Página ${currentPage}/${totalPages} • ${pageSize} por página\n\n`;
+        let text = `╭〔 👻 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
+        text += `┃ 📉 𝐅𝐀𝐍𝐓𝐀𝐒𝐌𝐀𝐒 𝐃𝐄𝐋 𝐆𝐑𝐔𝐏𝐎\n`;
+        text += `╰━━━━━━━━━━━━⬣\n\n`;
+        text += `┃ ⚠️ 𝐔𝐬𝐮𝐚𝐫𝐢𝐨𝐬 𝐢𝐧𝐚𝐜𝐭𝐢𝐯𝐨𝐬\n`;
+        text += `┃ ⚠️ 𝐪𝐮𝐞 𝐧𝐨 𝐩𝐚𝐫𝐭𝐢𝐜𝐢𝐩𝐚𝐧\n\n`;
+        text += `┣━━━━━━━━━━━━⬣\n\n`;
 
         const mentions = [];
         pageUsers.forEach((u, i) => {
-            text += `${startIndex + i + 1}. @${u.id.split('@')[0]} - ${u.count} mensajes\n`;
+            text += `┃ ➪ @${u.id.split('@')[0]}\n`;
             mentions.push(u.id);
         });
 
-        text += `\nUsa: ${db.prefix}fantasmas [cantidad] [página]`;
+        text += `\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
+
         await socket.sendMessage(remoteJid, { text, mentions }, { quoted: message });
     }
 };

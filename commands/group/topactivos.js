@@ -49,17 +49,27 @@ export default {
         const startIndex = (currentPage - 1) * pageSize;
         const pageUsers = users.slice(startIndex, startIndex + pageSize);
 
-        const monthLabel = new Date().toLocaleString('es-ES', { month: 'long', year: 'numeric' });
-        let text = `🔥 *TOP ACTIVOS DEL MES (${monthLabel})* 🔥\n`;
-        text += `📄 Página ${currentPage}/${totalPages} • ${pageSize} por página\n\n`;
+        let text = `╭〔 🔥 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
+        text += `┃ 📈 𝐔𝐒𝐔𝐀𝐑𝐈𝐎𝐒 𝐀𝐂𝐓𝐈𝐕𝐎𝐒\n`;
+        text += `╰━━━━━━━━━━━━⬣\n\n`;
+        text += `┃ ⚡ 𝐌𝐢𝐞𝐦𝐛𝐫𝐨𝐬 𝐦𝐚́𝐬\n`;
+        text += `┃ ⚡ 𝐚𝐜𝐭𝐢𝐯𝐨𝐬 𝐝𝐞𝐥 𝐠𝐫𝐮𝐩𝐨\n\n`;
+        text += `┣━━━━━━━━━━━━⬣\n\n`;
 
         const mentions = [];
         pageUsers.forEach((u, i) => {
-            text += `${startIndex + i + 1}. @${u.id.split('@')[0]} - ${u.count} mensajes\n`;
+            const rank = startIndex + i + 1;
+            let emoji = '➪';
+            if (rank === 1) emoji = '🥇';
+            else if (rank === 2) emoji = '🥈';
+            else if (rank === 3) emoji = '🥉';
+
+            text += `┃ ${emoji} @${u.id.split('@')[0]}\n`;
             mentions.push(u.id);
         });
 
-        text += `\nUsa: ${db.prefix}activos [cantidad] [página]`;
+        text += `\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
+
         await socket.sendMessage(remoteJid, { text, mentions }, { quoted: message });
     }
 };

@@ -65,7 +65,7 @@ export default {
     },
     execute: async (socket, message, args, { db, saveDB }) => {
         const remoteJid = message.key.remoteJid;
-        if (!remoteJid.endsWith('@g.us')) return socket.sendMessage(remoteJid, { text: '❌ Este comando solo funciona en grupos.' }, { quoted: message });
+        if (!remoteJid.endsWith('@g.us')) return socket.sendMessage(remoteJid, { text: '╭〔 ⚠️ 𝐀𝐃𝐌𝐈𝐍 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣\n\n┃ ❌ 𝐀𝐂𝐂𝐈𝐎́𝐍 𝐃𝐄𝐍𝐄𝐆𝐀𝐃𝐀\n┃ > solo funciona en grupos\n\n╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣' }, { quoted: message });
 
         if (!db.groups[remoteJid]) db.groups[remoteJid] = { antilink: false, warnLimit: 3, warns: {}, activity: {} };
 
@@ -73,13 +73,36 @@ export default {
         if (status === 'on' || status === '1' || status === 'true') {
             db.groups[remoteJid].antilink = true;
             saveDB(db);
-            await socket.sendMessage(remoteJid, { text: '✅ Sistema *Antilink* activado.\nCualquier enlace de grupo enviado será eliminado y el usuario será expulsado.' }, { quoted: message });
+            let text = `╭〔 ✅ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
+            text += `┃ 🛡️ 𝐒𝐈𝐒𝐓𝐄𝐌𝐀 𝐀𝐍𝐓𝐈𝐋𝐈𝐍𝐊\n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ > El sistema Antilink ha\n`;
+            text += `┃ > sido activado con éxito.\n\n`;
+            text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
+            await socket.sendMessage(remoteJid, { text }, { quoted: message });
         } else if (status === 'off' || status === '0' || status === 'false') {
             db.groups[remoteJid].antilink = false;
             saveDB(db);
-            await socket.sendMessage(remoteJid, { text: '❌ Sistema *Antilink* desactivado.' }, { quoted: message });
+            let text = `╭〔 ❌ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
+            text += `┃ 🛡️ 𝐒𝐈𝐒𝐓𝐄𝐌𝐀 𝐀𝐍𝐓𝐈𝐋𝐈𝐍𝐊\n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ > El sistema Antilink ha\n`;
+            text += `┃ > sido desactivado con éxito.\n\n`;
+            text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
+            await socket.sendMessage(remoteJid, { text }, { quoted: message });
         } else {
-            await socket.sendMessage(remoteJid, { text: `⚠️ Uso incorrecto. Usa:\n*.antilink on* - Para activar\n*.antilink off* - Para desactivar` }, { quoted: message });
+            const currentStatus = db.groups[remoteJid]?.antilink ? '✅ Activado' : '❌ Desactivado';
+            let text = `╭〔 🛡️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
+            text += `┃ ⚙️ 𝐒𝐈𝐒𝐓𝐄𝐌𝐀 𝐀𝐍𝐓𝐈𝐋𝐈𝐍𝐊\n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ ℹ️ Estado actual: ${currentStatus}\n\n`;
+            text += `┣━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ ➪ .antilink on\n`;
+            text += `┃ ✦ Activar sistema antilink\n\n`;
+            text += `┃ ➪ .antilink off\n`;
+            text += `┃ ✦ Desactivar sistema antilink\n\n`;
+            text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
+            await socket.sendMessage(remoteJid, { text }, { quoted: message });
         }
     }
 };

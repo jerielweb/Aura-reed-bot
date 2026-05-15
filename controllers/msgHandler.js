@@ -3,8 +3,9 @@ import chalk from 'chalk';
 import { resolveLidToRealJid } from '../models/utils.js';
 import { cmdLog } from './cmdLog.js';
 import { Rstr } from '../controllers/textBots.js';
+import { isCategoryEnabled, default as cmdManagerCmd } from './cmdManager.js';
 
-const categories = ['owner', 'system', 'group'];
+const categories = ['owner', 'system', 'group', 'downloads']
 
 let middlewareCache = null;
 let middlewareCacheTime = 0;
@@ -108,6 +109,8 @@ export async function handleMessage(sock, m, db, saveDB) {
     let commandFound = false;
 
     try {
+        const allCommands = [];
+        // Cargar comandos dinámicos
         for (const cat of categories) {
             const folderPath = `./commands/${cat}`;
             if (!fs.existsSync(folderPath)) continue;
@@ -115,13 +118,19 @@ export async function handleMessage(sock, m, db, saveDB) {
 
             for (const file of files) {
                 const { default: cmd } = await import(`../commands/${cat}/${file}?update=${Date.now()}`);
-
                 if (!cmd || !cmd.name) continue;
+                allCommands.push(cmd);
+            }
+        }
 
-                const match = Array.isArray(cmd.name) ? cmd.name.includes(commandName) : cmd.name === commandName;
+        // Agregar el cmdManager que ahora está en controllers
+        allCommands.push(cmdManagerCmd);
 
-                if (match) {
-                    commandFound = true;
+        for (const cmd of allCommands) {
+            const match = Array.isArray(cmd.name) ? cmd.name.includes(commandName) : cmd.name === commandName;
+            if (match) {
+                commandFound = true;
+                const cat = cmd.category;
 
                     if (cat === 'owner' && !isOwner) {
                         return await sock.sendMessage(remoteJid, { text: Rstr.onlyOwner }, { quoted: m });
@@ -131,8 +140,8 @@ export async function handleMessage(sock, m, db, saveDB) {
                         return await sock.sendMessage(remoteJid, { text: Rstr.onlyGroup }, { quoted: m });
                     }
 
-                    if (isGroup && db.groups[remoteJid]?.onlyAdmin && !isAdmin) {
-                        return;
+                    if (isGroup && !isCategoryEnabled(remoteJid, cat, db) && !isAdmin && !isOwner) {
+                        return await sock.sendMessage(remoteJid, { text: `╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐂𝐀𝐓𝐄𝐆𝐎𝐑𝐈́𝐀 𝐃𝐄𝐒𝐀𝐂𝐓𝐈𝐕𝐀𝐃𝐀\n╰━━━━━━━━━━━━⬣\n\n┃ > La categoría *${cat}* está\n┃ > desactivada en este grupo.\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣` }, { quoted: m });
                     }
 
                     if (cmd.adminOnly && !isAdmin) {
@@ -146,7 +155,6 @@ export async function handleMessage(sock, m, db, saveDB) {
                     }
                     return;
                 }
-            }
         }
 
         if (!commandFound) {

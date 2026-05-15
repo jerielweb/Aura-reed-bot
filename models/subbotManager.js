@@ -31,11 +31,17 @@ const activeSubBots = new Map();
 
 export async function stopSubBot(senderId) {
     const sessionPath = `${sessionsDir}/${senderId}`;
+    let handled = false;
     if (activeSubBots.has(senderId)) {
         try {
             const subSock = activeSubBots.get(senderId);
-            await subSock.logout(); // Esto cierra la sesión en WhatsApp
-            subSock.ws.close();
+            // Intentar cerrar de forma segura
+            if (subSock.ws?.isOpen) {
+                await subSock.logout().catch(() => {}); 
+            }
+            subSock.ev.removeAllListeners();
+            if (subSock.ws) subSock.ws.close();
+            handled = true;
         } catch (e) {
             console.error(`Error cerrando socket de sub-bot ${senderId}:`, e.message);
         }
@@ -44,9 +50,9 @@ export async function stopSubBot(senderId) {
     
     if (fs.existsSync(sessionPath)) {
         fs.rmSync(sessionPath, { recursive: true, force: true });
-        return true;
+        handled = true;
     }
-    return false;
+    return handled;
 }
 
 export async function createSubBot(sock, m, type, phoneNumber = null) {
@@ -121,7 +127,7 @@ export async function createSubBot(sock, m, type, phoneNumber = null) {
             } else if (connection === 'open') {
                 isConnected = true;
                 clearTimeout(timeout);
-                await sock.sendMessage(remoteJid, { text: '✅ ¡Sub-bot vinculado con éxito! Ahora el bot está activo en tu cuenta.' }, { quoted: m });
+                await sock.sendMessage(remoteJid, { text: '╭〔 ✅ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n\n┃ 🤖 ¡𝐒𝐮𝐛-𝐛𝐨𝐭 𝐯𝐢𝐧𝐜𝐮𝐥𝐚𝐝𝐨 𝐜𝐨𝐧 𝐞́𝐱𝐢𝐭𝐨!\n┃ ⚡ Ahora el bot está activo en tu cuenta\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣' }, { quoted: m });
             }
         });
 
@@ -129,7 +135,6 @@ export async function createSubBot(sock, m, type, phoneNumber = null) {
             setTimeout(async () => {
                 try {
                     const code = await subSock.requestPairingCode(phoneNumber);
-                    await sock.sendMessage(remoteJid, { text: `📱 Código de vinculación para ${phoneNumber} es:` }, { quoted: m });
                     await sock.sendMessage(remoteJid, { text: `${code}` }, { quoted: m });
                 } catch (err) {
                     console.error('Error solicitando código:', err);

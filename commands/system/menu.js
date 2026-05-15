@@ -8,17 +8,20 @@ export default {
         const BannerBot = './assets/img/BotBanner.png'
         const remoteJid = m.key.remoteJid;
         const pushName = m.pushName || 'Usuario';
-        const categories = ['system', 'owner', 'group', 'fun', 'utility'];
+        const categories = ['system', 'owner', 'group', 'fun', 'utility', 'downloads'];
         const tituloEstilizado = fyt('AURA REED BOT');
+        const chanellink = global.chanellink;
 
         let textoMenu = `
 ╭━━〔 ${tituloEstilizado} 〕━━⬣
 
 ┃ 👤 𝐔𝐬𝐮𝐚𝐫𝐢𝐨: @${m.pushName}
 ┃ 🤖 𝐁𝐨𝐭: 𝐀𝐮𝐫𝐚 𝐑𝐞𝐞𝐝
+┃ ⚡ 𝐕𝐞𝐫𝐬𝐢𝐨́𝐧: ${global.version}
 ┃ 👑 𝐎𝐰𝐧𝐞𝐫: 𝐎𝐛𝐨𝐞 𝐁𝐨𝐲
 ┃ ⚡ 𝐏𝐫𝐞𝐟𝐢𝐱: [ ${prefix} ]
 ┃ 📆 𝐅𝐞𝐜𝐡𝐚: ${new Date().toLocaleDateString('es-CR')}
+┃ 💬 𝐂𝐡𝐚𝐧𝐧𝐞𝐥: ${chanellink}
 \n`;
         for (const cat of categories) {
             const folderPath = `./commands/${cat}`;
@@ -50,8 +53,6 @@ export default {
                 }
             }
         }
-
-        textoMenu += `> Usa el prefijo antes de cada comando.`;
 
         await sock.sendMessage(remoteJid, {
             image: { url: BannerBot },

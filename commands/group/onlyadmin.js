@@ -18,14 +18,36 @@ export default {
         if (status === 'on' || status === '1' || status === 'true') {
             db.groups[remoteJid].onlyAdmin = true;
             saveDB(db);
-            await socket.sendMessage(remoteJid, { text: '✅ Modo *Solo Administradores* activado.\n\nAhora solo los administradores y owners podran usar los comandos del grupo.' }, { quoted: message });
+            let text = `╭〔 🛡️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
+            text += `┃ ✅ 𝐀𝐂𝐂𝐈𝐎́𝐍 𝐄𝐌𝐏𝐋𝐄𝐌𝐄𝐍𝐓𝐀𝐃𝐀\n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ > Modo Solo Admins\n`;
+            text += `┃ > activado con éxito.\n\n`;
+            text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
+            await socket.sendMessage(remoteJid, { text }, { quoted: message });
         } else if (status === 'off' || status === '0' || status === 'false') {
             db.groups[remoteJid].onlyAdmin = false;
             saveDB(db);
-            await socket.sendMessage(remoteJid, { text: '❌ Modo *Solo Administradores* desactivado.\n\nTodos los miembros (excepto para comandos que requieren admin) podran usar comandos.' }, { quoted: message });
+            let text = `╭〔 🛡️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
+            text += `┃ ❌ 𝐀𝐂𝐂𝐈𝐎́𝐍 𝐄𝐌𝐏𝐋𝐄𝐌𝐄𝐍𝐓𝐀𝐃𝐀\n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ > Modo Solo Admins\n`;
+            text += `┃ > desactivado con éxito.\n\n`;
+            text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
+            await socket.sendMessage(remoteJid, { text }, { quoted: message });
         } else {
             const currentStatus = db.groups[remoteJid].onlyAdmin ? '✅ Activado' : '❌ Desactivado';
-            await socket.sendMessage(remoteJid, { text: `ℹ️ Modo *Solo Administradores*: ${currentStatus}\n\nUso:\n*.onlyadmin on* - Para activar\n*.onlyadmin off* - Para desactivar` }, { quoted: message });
+            let text = `╭〔 🛡️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
+            text += `┃ ⚙️ 𝐌𝐎𝐃𝐎 𝐒𝐎𝐋𝐎 𝐀𝐃𝐌𝐈𝐍𝐒\n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ ℹ️ Estado actual: ${currentStatus}\n\n`;
+            text += `┣━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ ➪ .onlyadmin on\n`;
+            text += `┃ ✦ Activar modo admins\n\n`;
+            text += `┃ ➪ .onlyadmin off\n`;
+            text += `┃ ✦ Desactivar modo admins\n\n`;
+            text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
+            await socket.sendMessage(remoteJid, { text }, { quoted: message });
         }
     }
 };

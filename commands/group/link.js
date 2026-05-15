@@ -1,11 +1,11 @@
-﻿export default {
+export default {
     name: ['link', 'linkgroup', 'grupo'],
     category: 'group',
     description: 'Link del grupo.',
     adminOnly: true,
     execute: async (socket, message, args) => {
         const remoteJid = message.key.remoteJid;
-        if (!remoteJid.endsWith('@g.us')) return socket.sendMessage(remoteJid, { text: 'Este comando solo funciona en grupos o comunidades.' }, { quoted: message });
+        if (!remoteJid.endsWith('@g.us')) return socket.sendMessage(remoteJid, { text: '╭〔 ⚠️ 𝐀𝐃𝐌𝐈𝐍 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣\n\n┃ ❌ 𝐀𝐂𝐂𝐈𝐎́𝐍 𝐃𝐄𝐍𝐄𝐆𝐀𝐃𝐀\n┃ > solo funciona en grupos\n\n╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣' }, { quoted: message });
 
         let code = null;
 

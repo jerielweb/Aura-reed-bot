@@ -1,7 +1,7 @@
 import { Rstr } from './../../controllers/textBots.js';
 
 export default {
-    name: ['tagall', 'todos', 'invocar'],
+    name: ['all', 'todos', 'invocar'],
     category: 'group',
     description: 'Menciona todos',
     adminOnly: true,
@@ -20,18 +20,19 @@ export default {
             return socket.sendMessage(remoteJid, { text: '⚠️ No se han encontrado participantes válidos en el grupo.' }, { quoted: message });
         }
 
-        const mentionNames = memberJids.map(jid => `@${jid.split('@')[0]}`);
         const totalMembers = memberJids.length;
-        const groupHeader = `👥 Miembros totales: ${totalMembers}\n\n`;
-        const mentionList = mentionNames.join('\n');
-
         const quotedMsg = message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
-        const quotedText = quotedMsg?.conversation || quotedMsg?.extendedTextMessage?.text || 'Llamando a Todo el equipo *Activense* 🔔';
+        const quotedText = quotedMsg?.conversation || quotedMsg?.extendedTextMessage?.text || '𝐀𝐜𝐭𝐢́𝐯𝐞𝐧𝐬𝐞';
         const customMessage = args.join(' ') || quotedText;
 
-        const text = customMessage
-            ? `${customMessage}\n\n${groupHeader}\n${mentionList}`
-            : `${groupHeader}${mentionList}`;
+        let text = `╭〔 📢 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
+        text += `┃ 🔔 𝐋𝐋𝐀𝐌𝐀𝐍𝐃𝐎 𝐀 𝐓𝐎𝐃𝐎 𝐄𝐋 𝐄𝐐𝐔𝐈𝐏𝐎\n`;
+        text += `╰━━━━━━━━━━━━⬣\n\n`;
+        text += `┃ ✨ ${customMessage}\n`;
+        text += `┃ 👥 𝐌𝐢𝐞𝐦𝐛𝐫𝐨𝐬: ${totalMembers}\n\n`;
+        text += `┣━━━━━━━━━━━━⬣\n\n`;
+        text += memberJids.map(jid => `┃ ➪ @${jid.split('@')[0]}`).join('\n');
+        text += `\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
 
         await socket.sendMessage(remoteJid, { text, mentions: memberJids });
     }

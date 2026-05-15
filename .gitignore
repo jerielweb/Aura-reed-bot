@@ -14,7 +14,12 @@ auth_info_baileys/
 *.log
 temp/
 tmp/
-database/
+database/groups.json
+database/database.json
+database/users.json
+
+
+
 
 # Sesiones de sub-bots
 sessions/

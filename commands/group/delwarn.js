@@ -20,6 +20,9 @@ export default {
         const limit = db.groups[remoteJid].warnLimit || 3;
         const count = db.groups[remoteJid].warns[userToUnwarn].length;
 
-        await socket.sendMessage(remoteJid, { text: `✅ Se le ha quitado una advertencia a @${userToUnwarn.split('@')[0]}.\nAdvertencias actuales: ${count}/${limit}`, mentions: [userToUnwarn] }, { quoted: message });
+        await socket.sendMessage(remoteJid, { 
+            text: `╭〔 👑 𝐀𝐃𝐌𝐈𝐍 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣\n\n┃ ✅ @${userToUnwarn.split('@')[0]}\n┃ > se le quito una advertencia\n┃ > Warns: [ ${count}/${limit} ]\n\n╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣`,
+            mentions: [userToUnwarn] 
+        }, { quoted: message });
     }
 };

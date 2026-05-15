@@ -12,7 +12,8 @@ export default {
 
         try {
             await socket.groupParticipantsUpdate(remoteJid, [userToPromote], "promote");
-            await socket.sendMessage(remoteJid, { text: `✅ @${userToPromote.split('@')[0]} ahora es administrador.`, mentions: [userToPromote] }, { quoted: message });
+            const text = `╭〔 👑 𝐀𝐃𝐌𝐈𝐍 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣\n\n┃ ✅ @${userToPromote.split('@')[0]}\n┃ > ahora es administrador del grupo\n\n╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣`;
+            await socket.sendMessage(remoteJid, { text, mentions: [userToPromote] }, { quoted: message });
         } catch (e) {
             await socket.sendMessage(remoteJid, { text: '❌ Ocurrió un error. Asegúrate de que soy admin.' }, { quoted: message });
         }

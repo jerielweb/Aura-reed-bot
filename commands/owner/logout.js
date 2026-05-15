@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { Rstr } from '../../controllers/textBots.js';
 
 export default {
     name: ['logout', 'cerrarsesion', 'desconectar'],
@@ -13,15 +14,18 @@ export default {
             (m.key.participant || m.key.remoteJid)?.replace(/:\d+@/, '@') === sock.user?.id?.replace(/:\d+@/, '@');
 
         if (!isSelf) {
-            return sock.sendMessage(remoteJid, {
-                text: '❌ Este comando solo puede ser ejecutado desde el número del bot.'
-            }, { quoted: m });
+            let text = `╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
+            text += `┃ ❌ 𝐀𝐂𝐂𝐈𝐎́𝐍 𝐃𝐄𝐍𝐄𝐆𝐀𝐃𝐎\n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ > Este comando solo puede\n`;
+            text += `┃ > ser ejecutado desde el\n`;
+            text += `┃ > número principal del bot.\n\n`;
+            text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
+            return sock.sendMessage(remoteJid, { text }, { quoted: m });
         }
 
         if (!isOwner) {
-            return sock.sendMessage(remoteJid, {
-                text: '❌ Solo el dueño puede cerrar la sesión del bot.'
-            }, { quoted: m });
+            return sock.sendMessage(remoteJid, { text: Rstr.onlyOwner }, { quoted: m });
         }
 
         await sock.sendMessage(remoteJid, {
