@@ -9,7 +9,7 @@ export default {
         const BannerBotMp3 = './assets/audio/menu_music.opus'
         const remoteJid = m.key.remoteJid;
         const pushName = m.pushName || 'Usuario';
-        const categories = ['system', 'owner', 'group', 'fun', 'utility', 'downloads', 'search'];
+        const categories = ['system', 'owner', 'group', 'fun', 'utility', 'downloads', 'search', 'economy'];
         const tituloEstilizado = fyt('AURA REED BOT');
         const chanellink = global.chanellink;
 
