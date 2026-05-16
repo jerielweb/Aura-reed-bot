@@ -5,6 +5,7 @@ import fs from 'fs';
 import pino from 'pino';
 import chalk from 'chalk';
 import { handleMessage } from './controllers/msgHandler.js';
+import { handleGroupUpdate } from './controllers/groupEvents.js';
 
 const getDB = () => {
     const dbData = JSON.parse(fs.readFileSync('./database/database.json', 'utf-8'));
@@ -42,6 +43,10 @@ async function connectToWhatsApp() {
         const m = messages[0];
         const db = getDB();
         await handleMessage(sock, m, db, saveDB);
+    });
+
+    sock.ev.on('group-participants.update', async (update) => {
+        await handleGroupUpdate(sock, update, getDB);
     });
 
     sock.ev.on('connection.update', (u) => {

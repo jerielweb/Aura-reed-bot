@@ -5,15 +5,17 @@ import { cmdLog } from './cmdLog.js';
 import { Rstr } from '../controllers/textBots.js';
 import { isCategoryEnabled, default as cmdManagerCmd } from './cmdManager.js';
 
-const categories = ['owner', 'system', 'group', 'downloads']
+const categories = ['owner', 'system', 'group', 'downloads', 'economy', 'search', 'fun', 'utilities'];
 
 let middlewareCache = null;
 let middlewareCacheTime = 0;
-const MIDDLEWARE_CACHE_TTL = 30000;
+let commandCache = null;
+let commandCacheTime = 0;
+const CACHE_TTL = 30000; // 30 segundos
 
 async function loadMiddlewares() {
     const now = Date.now();
-    if (middlewareCache && (now - middlewareCacheTime) < MIDDLEWARE_CACHE_TTL) {
+    if (middlewareCache && (now - middlewareCacheTime) < CACHE_TTL) {
         return middlewareCache;
     }
 
@@ -37,6 +39,35 @@ async function loadMiddlewares() {
     middlewareCache = middlewares;
     middlewareCacheTime = now;
     return middlewares;
+}
+
+async function loadCommands() {
+    const now = Date.now();
+    if (commandCache && (now - commandCacheTime) < CACHE_TTL) {
+        return commandCache;
+    }
+
+    const allCommands = [];
+    for (const cat of categories) {
+        const folderPath = `./commands/${cat}`;
+        if (!fs.existsSync(folderPath)) continue;
+        const files = fs.readdirSync(folderPath).filter(f => f.endsWith('.js'));
+
+        for (const file of files) {
+            try {
+                const { default: cmd } = await import(`../commands/${cat}/${file}?update=${now}`);
+                if (cmd && cmd.name) {
+                    allCommands.push(cmd);
+                }
+            } catch (e) {
+                console.error(chalk.red(`Error cargando comando ${file}:`), e.message);
+            }
+        }
+    }
+    allCommands.push(cmdManagerCmd);
+    commandCache = allCommands;
+    commandCacheTime = now;
+    return allCommands;
 }
 
 export async function handleMessage(sock, m, db, saveDB) {
@@ -66,12 +97,22 @@ export async function handleMessage(sock, m, db, saveDB) {
         try {
             groupMetadata = await sock.groupMetadata(remoteJid);
             const participants = groupMetadata.participants || [];
-            const userParticipant = participants.find(p => p.id === senderRaw);
+            
+            // Búsqueda robusta del participante (por ID directo o por JID resuelto)
+            const userParticipant = participants.find(p => 
+                p.id === senderRaw || 
+                p.id === jidRemitente || 
+                p.id.split(':')[0] === numeroReal
+            );
+            
             const botParticipant = participants.find(p => p.id.includes(sock.user.id.split(':')[0]));
 
-            isAdmin = userParticipant?.admin === 'admin' || userParticipant?.admin === 'superadmin' || isOwner;
+            const isGroupAdmin = userParticipant?.admin === 'admin' || userParticipant?.admin === 'superadmin';
+            isAdmin = isGroupAdmin; // El rango de admin ahora es estrictamente para admins de grupo
             isBotAdmin = botParticipant?.admin === 'admin' || botParticipant?.admin === 'superadmin';
-        } catch (e) { }
+        } catch (e) { 
+            isAdmin = false;
+        }
     }
 
     const text = m.message.conversation || m.message.extendedTextMessage?.text || m.message.imageMessage?.caption || "";
@@ -93,10 +134,10 @@ export async function handleMessage(sock, m, db, saveDB) {
             }
         }
     } catch (e) {
-        console.error(chalk.red("Error cargando middlewares:"), e);
+        console.error(chalk.red("Error ejecutando middlewares:"), e);
     }
 
-    // 4. FILTRO DE PREFIX (Solo los comandos pasan de aquí)
+    // 4. FILTRO DE PREFIX
     const prefix = db.prefix;
     if (!text.startsWith(prefix)) return;
 
@@ -106,25 +147,9 @@ export async function handleMessage(sock, m, db, saveDB) {
 
     cmdLog({ numeroReal, rango, commandName, isGroup });
 
-    let commandFound = false;
-
     try {
-        const allCommands = [];
-        // Cargar comandos dinámicos
-        for (const cat of categories) {
-            const folderPath = `./commands/${cat}`;
-            if (!fs.existsSync(folderPath)) continue;
-            const files = fs.readdirSync(folderPath).filter(f => f.endsWith('.js'));
-
-            for (const file of files) {
-                const { default: cmd } = await import(`../commands/${cat}/${file}?update=${Date.now()}`);
-                if (!cmd || !cmd.name) continue;
-                allCommands.push(cmd);
-            }
-        }
-
-        // Agregar el cmdManager que ahora está en controllers
-        allCommands.push(cmdManagerCmd);
+        const allCommands = await loadCommands();
+        let commandFound = false;
 
         for (const cmd of allCommands) {
             const match = Array.isArray(cmd.name) ? cmd.name.includes(commandName) : cmd.name === commandName;
@@ -132,29 +157,30 @@ export async function handleMessage(sock, m, db, saveDB) {
                 commandFound = true;
                 const cat = cmd.category;
 
-                    if (cat === 'owner' && !isOwner) {
-                        return await sock.sendMessage(remoteJid, { text: Rstr.onlyOwner }, { quoted: m });
-                    }
-
-                    if (cat === 'group' && !isGroup) {
-                        return await sock.sendMessage(remoteJid, { text: Rstr.onlyGroup }, { quoted: m });
-                    }
-
-                    if (isGroup && !isCategoryEnabled(remoteJid, cat, db) && !isAdmin && !isOwner) {
-                        return await sock.sendMessage(remoteJid, { text: `╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐂𝐀𝐓𝐄𝐆𝐎𝐑𝐈́𝐀 𝐃𝐄𝐒𝐀𝐂𝐓𝐈𝐕𝐀𝐃𝐀\n╰━━━━━━━━━━━━⬣\n\n┃ > La categoría *${cat}* está\n┃ > desactivada en este grupo.\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣` }, { quoted: m });
-                    }
-
-                    if (cmd.adminOnly && !isAdmin) {
-                        return await sock.sendMessage(remoteJid, { text: Rstr.onlyAdmin }, { quoted: m });
-                    }
-
-                    try {
-                        await cmd.execute(sock, m, args, { prefix, db, saveDB, isOwner, isAdmin, isBotAdmin, owners, groupMetadata, numeroReal, jidRemitente });
-                    } catch (error) {
-                        await sock.sendMessage(remoteJid, { text: `⚠️ Error: ${error.message}` }, { quoted: m });
-                    }
-                    return;
+                if (cat === 'owner' && !isOwner) {
+                    return await sock.sendMessage(remoteJid, { text: Rstr.onlyOwner }, { quoted: m });
                 }
+
+                if (cat === 'group' && !isGroup) {
+                    return await sock.sendMessage(remoteJid, { text: Rstr.onlyGroup }, { quoted: m });
+                }
+
+                if (isGroup && !isCategoryEnabled(remoteJid, cat, db)) {
+                    return await sock.sendMessage(remoteJid, { text: `╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐂𝐀𝐓𝐄𝐆𝐎𝐑𝐈́𝐀 𝐃𝐄𝐒𝐀𝐂𝐓𝐈𝐕𝐀𝐃𝐀\n╰━━━━━━━━━━━━⬣\n\n┃ > La categoría *${cat}* está\n┃ > desactivada en este grupo.\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣` }, { quoted: m });
+                }
+
+                if (cmd.adminOnly && !isAdmin) {
+                    return await sock.sendMessage(remoteJid, { text: Rstr.onlyAdmin }, { quoted: m });
+                }
+
+                try {
+                    await cmd.execute(sock, m, args, { prefix, db, saveDB, isOwner, isAdmin, isBotAdmin, owners, groupMetadata, numeroReal, jidRemitente });
+                } catch (error) {
+                    console.error(chalk.red(`Error ejecutando comando [${commandName}]:`), error);
+                    await sock.sendMessage(remoteJid, { text: `⚠️ Error: ${error.message}` }, { quoted: m });
+                }
+                return;
+            }
         }
 
         if (!commandFound) {
@@ -162,6 +188,6 @@ export async function handleMessage(sock, m, db, saveDB) {
         }
 
     } catch (e) {
-        console.error(chalk.red("Error crítico:"), e);
+        console.error(chalk.red("Error crítico en el procesador de comandos:"), e);
     }
 }

@@ -6,6 +6,7 @@ export default {
     description: 'Muestra el menú completo.',
     async execute(sock, m, args, { prefix }) {
         const BannerBot = './assets/img/BotBanner.png'
+        const BannerBotMp3 = './assets/audio/menu_music.opus'
         const remoteJid = m.key.remoteJid;
         const pushName = m.pushName || 'Usuario';
         const categories = ['system', 'owner', 'group', 'fun', 'utility', 'downloads'];
@@ -59,5 +60,11 @@ export default {
             caption: textoMenu,
             mentions: [m.key.participant || remoteJid]
         }, { quoted: m });
+
+        await sock.sendMessage(remoteJid, {
+            audio: fs.readFileSync(BannerBotMp3),
+            ptt: true,
+            mimetype: 'audio/ogg; codecs=opus'
+        }, { quoted: m });
     }
-};
+}; 

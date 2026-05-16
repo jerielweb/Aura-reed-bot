@@ -1,0 +1,87 @@
+export const economyTexts = {
+    work: [
+        "Trabajaste como programador y ganaste",
+        "Vendiste limonada y ganaste",
+        "Ayudaste a una anciana a cruzar la calle y te dio",
+        "Reparaste una computadora y cobraste",
+        "Trabajaste de mesero y ganaste en propinas",
+        "Encontraste dinero en la calle:",
+        "Lavaste autos todo el día y conseguiste",
+        "Hiciste streaming y recibiste donaciones por",
+        "Paseaste perros en el parque y ganaste",
+        "Diste clases particulares y cobraste",
+        "Trabajaste en la construcción y ganaste",
+        "Vendiste cosas que ya no usabas y conseguiste",
+        "Hiciste trabajos freelance y ganaste",
+        "Ayudaste a un vecino con su jardín y te pagó",
+        "Trabajaste en una granja y ganaste",
+        "Hiciste entregas en bicicleta y ganaste",
+        "Vendiste comida casera y conseguiste",
+        "Trabajaste como DJ en una fiesta y ganaste",
+        "Hiciste de niñera y cobraste",
+        "Vendiste tus dibujos y ganaste"
+    ],
+    crime: {
+        success: [
+            "Asaltaste un banco y escapaste con",
+            "Robaste la billetera de un millonario y obtuviste",
+            "Hackeaste una cuenta de banco y transferiste",
+            "Vendiste mercancía dudosa y ganaste",
+            "Asaltaste una tienda de conveniencia y huiste con",
+            "Robaste un auto deportivo, lo vendiste y ganaste",
+            "Hiciste un fraude en línea y obtuviste",
+            "Robaste un camión de carga y conseguiste",
+            "Asaltaste una joyería y escapaste con",
+            "Hackeaste un cajero automático y sacaste",
+            "Vendiste información confidencial y ganaste",
+            "Robaste un yate de lujo, lo vendiste y ganaste",
+            "Hiciste un atraco a mano armada y conseguiste",
+            "Asaltaste una mansión y escapaste con",
+            "Hackeaste una criptomoneda y obtuviste",
+            "Vendiste objetos robados y ganaste",
+            "Robaste un avión privado, lo vendiste y ganaste",
+            "Asaltaste un casino y escapaste con",
+            "Hackeaste una cuenta de PayPal y transferiste",
+            "Vendiste drogas ilegales y ganaste",
+            "Robaste un banco de sangre y vendiste los órganos por",
+            "Asaltaste un museo y escapaste con una obra de arte valiosa que vendiste por"
+        ],
+        fail: [
+            "Te atrapó la policía y tuviste que pagar una fianza de",
+            "Una anciana te golpeó con su bolso y perdiste",
+            "Te resbalaste mientras huías y se te cayeron",
+            "Te estafaron intentando estafar y perdiste",
+            "El banco estaba vacío, en el enojo rompiste algo y pagaste",
+            "Un perro te persiguió, rasgó tu pantalón y reparar eso costó",
+            "Te atrapó un guardia de seguridad y tuviste que pagarle",
+            "Te caíste de la bicicleta mientras huías y te rompiste algo que costó",
+            "Una cámara de seguridad te grabó, te identificaron y tuviste que pagar una multa de",
+            "Te atrapó la policía, te llevaron a la estación y pagaste una multa de",
+            "Un transeúnte te vio, llamó a la policía y tuviste que pagar una multa de",
+            "Te atrapó un guardia de seguridad, te golpeó y perdiste",
+            "Te resbalaste con una cáscara de plátano mientras huías y perdiste",
+            "Una anciana te vio intentando robarle, gritó y se asustó tanto que se desmayó, ahora tienes que pagarle su hospitalización por",
+            "Te atrapó la policía, te llevaron a la estación y pagaste una multa de",
+            "Un transeúnte te vio, llamó a la policía y tuviste que pagar una multa de",
+            "Te atrapó un guardia de seguridad, te golpeó y perdiste",
+            "Te resbalaste con una cáscara de plátano mientras huías y perdiste"
+        ]
+    },
+    slut: {
+        success: [
+            "Te fuiste con un anciano millonario y te pagó",
+            "Bailaste en un club VIP y ganaste",
+            "Vendiste fotos de tus pies y conseguiste",
+            "Tuviste una cita con tu Sugar Daddy/Mommy y te dio",
+            "Trabajaste en la calle roja y conseguiste",
+            "Te pagaron por compañía privada y ganaste",
+        ],
+        fail: [
+            "Tu cliente huyó sin pagarte, y el taxi de regreso te costó",
+            "La policía hizo una redada y pagaste una multa de",
+            "Te robaron en el callejón oscuro perdiendo",
+            "Atrapaste una enfermedad y la medicina costó",
+            "El Sugar Daddy resultó ser pobre, invitaste la cena y gastaste"
+        ]
+    }
+};

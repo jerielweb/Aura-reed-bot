@@ -9,7 +9,7 @@ export default {
         //Mensaje de carga
         const { key } = await sock.sendMessage(m.key.remoteJid, {
             text: '⚡ 𝐂𝐀𝐋𝐂𝐔𝐋𝐀𝐍𝐃𝐎 𝐕𝐄𝐋𝐎𝐂𝐈𝐃𝐀𝐃 𝐃𝐄𝐋 𝐁𝐎𝐓 ⚡\n\n╭━━〔 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 𝐒𝐘𝐒𝐓𝐄𝐌 〕━━⬣\n┃ 🚀 𝐄𝐬𝐩𝐞𝐫𝐚 𝐮𝐧 𝐦𝐨𝐦𝐞𝐧𝐭𝐨...\n┃ 📡 𝐀𝐧𝐚𝐥𝐢𝐳𝐚𝐧𝐝𝐨 𝐥𝐚𝐭𝐞𝐧𝐜𝐢𝐚\n┃ 💻 𝐂𝐨𝐦𝐩𝐫𝐨𝐛𝐚𝐧𝐝𝐨 𝐬𝐞𝐫𝐯𝐢𝐝𝐨𝐫\n┃ ⚙️ 𝐎𝐩𝐭𝐢𝐦𝐢𝐳𝐚𝐧𝐝𝐨 𝐫𝐞𝐧𝐝𝐢𝐦𝐢𝐞𝐧𝐭𝐨\n╰━━━━━━━━━━━━━━━━⬣\n'
-        }, { quoted: m });        
+        }, { quoted: m });
         const end = Date.now();
         const latency = end - start;
 

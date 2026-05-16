@@ -34,4 +34,26 @@ global.Apis = {
         apikey: null,
         url: 'https://api.delirius.store/'
     },
-}
+};
+
+// YouTube Search APIs
+global.youtubeApis = {
+    alyacore: {
+        url: 'https://api.alyacore.xyz/search/yt',
+        apikey: 'oboe'
+    },
+    delirius: {
+        url: 'https://api.delirius.store/search/ytsearch'
+    }
+};
+
+// TikTok Search APIs
+global.tiktokApis = {
+    alyacore: {
+        url: 'https://api.alyacore.xyz/search/tiktok',
+        apikey: 'oboe'
+    },
+    delirius: {
+        url: 'https://api.delirius.store/search/tiktoksearch'
+    }
+};
