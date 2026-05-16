@@ -54,7 +54,7 @@ export default {
             text += `┃ ⚖️ 𝐂𝐑𝐈𝐌𝐄𝐍 𝐅𝐀𝐋𝐋𝐈𝐃𝐎\n`;
             text += `╰━━━━━━━━━━━━⬣\n\n`;
             text += `┃ 👋 *${message.pushName || 'Usuario'}*\n`;
-            text += `┃ ${randomPhrase} ₡*${penalty}* \n`;
+            text += `┃ ${randomPhrase} *₡${penalty}* \n`;
             text += `┃ 💵 𝐒𝐚𝐥𝐝𝐨 𝐚𝐜𝐭𝐮𝐚𝐥: ₡${user.coins} \n\n`;
             text += `╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣`;
 
