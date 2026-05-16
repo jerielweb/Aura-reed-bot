@@ -13,7 +13,7 @@ export default {
 
         const user = db.users[jidRemitente];
         const now = Date.now();
-        const cooldown = 30 * 60 * 1000; // 30 minutos
+        const cooldown = 10 * 60 * 1000; // 1 minutos
 
         if (user.lastWork && now - user.lastWork < cooldown) {
             const timeLeft = cooldown - (now - user.lastWork);
