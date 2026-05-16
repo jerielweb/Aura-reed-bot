@@ -47,7 +47,7 @@ export default {
         } else {
             const phrases = economyTexts.slut.fail;
             const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
-            const penalty = Math.floor(Math.random() * 200) + 50; // 50 a 250
+            const penalty = Math.floor(Math.random() * 2000) + 500; // 50 a 250
             user.coins = Math.max(0, (user.coins || 0) - penalty);
 
             let text = `╭〔 💔 𝐌𝐀𝐋𝐀 𝐒𝐔𝐄𝐑𝐓𝐄 〕⬣\n`;
