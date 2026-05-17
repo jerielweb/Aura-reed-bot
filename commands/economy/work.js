@@ -13,7 +13,7 @@ export default {
 
         const user = db.users[jidRemitente];
         const now = Date.now();
-        const cooldown = 30 * 60 * 1000; // 30 minutos
+        const cooldown = 10 * 60 * 1000; // 1 minutos
 
         if (user.lastWork && now - user.lastWork < cooldown) {
             const timeLeft = cooldown - (now - user.lastWork);
@@ -27,7 +27,7 @@ export default {
 
         const works = economyTexts.work;
         const randomWork = works[Math.floor(Math.random() * works.length)];
-        const reward = Math.floor(Math.random() * 200) + 50; // Entre 50 y 250
+        const reward = Math.floor(Math.random() * 2000) + 5000; // Entre 50 y 250
 
         user.coins = (user.coins || 0) + reward;
         user.lastWork = now;
