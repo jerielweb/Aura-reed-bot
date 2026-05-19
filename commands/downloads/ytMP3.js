@@ -26,6 +26,7 @@ export default {
 
         if (!text) {
             return await socket.sendMessage(remoteJid, { text: '╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐅𝐀𝐋𝐓𝐀 𝐁𝐔́𝐒𝐐𝐔𝐄𝐃𝐀\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, proporciona un\n┃ > nombre o enlace de canción.\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣' }, { quoted: message });
+            await socket.sendMessage(remoteJid, { react: { text: '❓', key: message.key } });
         }
 
         await socket.sendMessage(remoteJid, { react: { text: '⏳', key: message.key } });

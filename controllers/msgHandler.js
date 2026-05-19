@@ -5,7 +5,7 @@ import { cmdLog } from './cmdLog.js';
 import { Rstr } from '../controllers/textBots.js';
 import { isCategoryEnabled, default as cmdManagerCmd } from './cmdManager.js';
 
-const categories = ['owner', 'system', 'group', 'downloads', 'economy', 'search', 'fun', 'utilities'];
+const categories = ['owner', 'system', 'group', 'downloads', 'economy', 'search', 'fun', 'utilities', 'sticker'];
 
 let middlewareCache = null;
 let middlewareCacheTime = 0;

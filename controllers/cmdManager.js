@@ -36,7 +36,7 @@ export default {
         const category = args[1]?.toLowerCase();
 
         const protectedCategories = ['owner', 'group', 'system'];
-        const validCategories = ['fun', 'utility', 'downloads', 'search', 'economy'];
+        const validCategories = ['fun', 'utility', 'downloads', 'search', 'economy', 'sticker'];
 
         if (!action || !category) {
             let text = `╭〔 ⚙️ 𝐂𝐌𝐃 𝐌𝐀𝐍𝐀𝐆𝐄𝐑 〕⬣\n`;
