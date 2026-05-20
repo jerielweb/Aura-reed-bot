@@ -18,36 +18,34 @@ export default {
         // Funciones para ambas APIs
         const searchAlyacore = async () => {
             try {
-                console.log('[TikTok API] Intentando Alyacore...');
-                const res = await axios.get('https://api.alyacore.xyz/search/tiktok', {
+                console.log('[TikTok API] Intentando Faa...');
+                const res = await axios.get('https://api-faa.my.id/faa/tiktok-search', {
                     params: {
-                        query: query,
-                        key: 'oboe'
+                        q: query
                     },
                     timeout: 10000
                 });
 
-                console.log(`[Alyacore Response] Status: ${res.status}, Resultados: ${res.data?.data?.length || 0}`);
+                console.log(`[Faa Response] Status: ${res.status}, Resultados: ${res.data?.result?.length || 0}`);
 
-                if (res.data?.status && res.data?.data?.length > 0) {
+                if (res.data?.status && res.data?.result?.length > 0) {
                     return {
-                        source: 'Alyacore API',
-                        results: res.data.data.slice(0, 5).map(video => ({
+                        source: 'Faa TikTok API',
+                        results: res.data.result.slice(0, 5).map(video => ({
                             title: video.title,
                             author: video.author.nickname,
-                            username: video.author.unique_id,
-                            views: formatNumber(video.stats.views),
-                            likes: formatNumber(video.stats.likes),
-                            duration: video.duration,
-                            music: video.music.title,
-                            url: video.dl,
-                            tiktok_url: `https://www.tiktok.com/video/${video.id}`,
+                            username: video.author.username,
+                            views: video.stats?.views || '0',
+                            likes: video.stats?.likes || '0',
+                            duration: video.duration || 'N/A',
+                            music: video.music?.title || 'Desconocido',
+                            tiktok_url: `https://www.tiktok.com/@${video.author.username}/video/${video.id}`,
                             cover: video.cover
                         }))
                     };
                 }
             } catch (err) {
-                console.log('[Alyacore Error]:', err.message);
+                console.log('[Faa Error]:', err.message);
             }
             return null;
         };
@@ -75,7 +73,6 @@ export default {
                             likes: formatNumber(video.like),
                             duration: formatDuration(video.duration),
                             music: video.music.title,
-                            url: video.hd,
                             tiktok_url: video.url,
                             cover: video.hd
                         }))

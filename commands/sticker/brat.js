@@ -1,4 +1,11 @@
 import axios from 'axios'
+import fs from 'fs'
+import path from 'path'
+import os from 'os'
+import ffmpeg from 'fluent-ffmpeg'
+import ffmpegPath from '@ffmpeg-installer/ffmpeg'
+
+ffmpeg.setFfmpegPath(ffmpegPath.path)
 
 function buildUrl(base, path) {
   return `${base.replace(/\/+$|\s+$/, '')}/${path.replace(/^\/+/, '')}`
@@ -119,8 +126,36 @@ export default {
 
     try {
       const stickerBuffer = await raceStickerApis(apis)
-      await sock.sendMessage(remoteJid, { react: { text: '✅', key: message.key } });
-      await sock.sendMessage(remoteJid, { sticker: stickerBuffer }, { quoted: message })
+      const tempId = Date.now()
+      const inputPath = path.join(os.tmpdir(), `aura-brat-input-${tempId}`)
+      const outputPath = path.join(os.tmpdir(), `aura-brat-output-${tempId}.webp`)
+
+      await fs.promises.writeFile(inputPath, stickerBuffer)
+
+      await new Promise((resolve, reject) => {
+        ffmpeg(inputPath)
+          .outputOptions([
+            '-vcodec libwebp',
+            '-vf scale=512:512:force_original_aspect_ratio=decrease,fps=15',
+            '-loop 0',
+            '-preset default',
+            '-an',
+            '-vsync 0'
+          ])
+          .toFormat('webp')
+          .save(outputPath)
+          .on('end', resolve)
+          .on('error', reject)
+      })
+
+      const webpStickerBuffer = await fs.promises.readFile(outputPath)
+      await sock.sendMessage(remoteJid, { react: { text: '✅', key: message.key } })
+      await sock.sendMessage(remoteJid, { sticker: webpStickerBuffer, mimetype: 'image/webp' }, { quoted: message })
+
+      await Promise.allSettled([
+        fs.promises.unlink(inputPath),
+        fs.promises.unlink(outputPath)
+      ])
     } catch (error) {
       console.error('Error al crear sticker brat:', error)
       return await sock.sendMessage(remoteJid, {

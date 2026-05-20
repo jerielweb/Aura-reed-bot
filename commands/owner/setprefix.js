@@ -1,7 +1,9 @@
-import Settings from '../../models/settings.js';
 export default {
     name: [ 'setprefix', 'prefix' ],
     description: 'Modifica prefijo.',
+    ownerOnly: true,
+    category: 'owner',
+
     async execute(sock, m, args, { db, saveDB }) {
         const newPrefix = args[0];
         if (!newPrefix) {

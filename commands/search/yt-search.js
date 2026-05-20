@@ -15,24 +15,24 @@ export default {
         await socket.sendMessage(remoteJid, { text: '🔍 Buscando en YouTube...' }, { quoted: message });
 
         // Funciones para ambas APIs
-        const searchAlyacore = async () => {
+        const searchApifaa = async () => {
             try {
-                const res = await axios.get(`${global.youtubeApis.alyacore.url}?query=${encodeURIComponent(query)}&key=${global.youtubeApis.alyacore.apikey}`);
-                if (res.data?.result?.length > 0) {
+                const res = await axios.get(`https://api-faa.my.id/faa/youtube?q=${encodeURIComponent(query)}`);
+                if (res.data?.status && res.data?.result?.length > 0) {
                     return {
-                        source: 'Alyacore API',
+                        source: 'Faa YouTube API',
                         results: res.data.result.slice(0, 5).map(item => ({
                             title: item.title,
-                            author: item.autor,
-                            duration: item.duration,
-                            views: item.views,
-                            image: item.banner,
-                            url: item.url
+                            author: item.channel || 'Desconocido',
+                            duration: item.duration || 'N/A',
+                            views: item.views?.toLocaleString() || 'N/A',
+                            image: item.imageUrl,
+                            url: item.link
                         }))
                     };
                 }
             } catch (err) {
-                console.log('Error Alyacore:', err.message);
+                console.log('Error Faa YouTube API:', err.message);
             }
             return null;
         };
@@ -61,7 +61,7 @@ export default {
 
         // Carrera: el primero que responda gana
         const result = await Promise.race([
-            searchAlyacore().catch(() => null),
+            searchApifaa().catch(() => null),
             searchDelirius().catch(() => null)
         ]);
 

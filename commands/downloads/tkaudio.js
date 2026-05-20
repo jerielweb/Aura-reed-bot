@@ -3,9 +3,9 @@ import downloader from '../../controllers/tiktokDownloader.js';
 const TIKTOK_REGEX = /^(https?:\/\/)?(www\.|vm\.|vt\.)?tiktok\.com\/.*$/i;
 
 export default {
-    name: ['tiktok', 'tt', 'tk'],
+    name: ['tkaudio', 'ttaudio', 'tta'],
     category: 'downloads',
-    description: 'Busca y descarga videos de TikTok. Usa: .tiktok [enlace/búsqueda]',
+    description: 'Busca y descarga audios de TikTok. Usa: .tkaudio [enlace/búsqueda]',
     execute: async (socket, message, args) => {
         const remoteJid = message.key.remoteJid;
         const text = args.join(' ').trim();
@@ -27,7 +27,7 @@ export default {
                 const searchResult = await downloader.search(text);
                 finalUrl = searchResult.url;
                 videoData = {
-                    title: searchResult.title || 'Video de TikTok',
+                    title: searchResult.title || 'Audio de TikTok',
                     author: searchResult.author || 'TikTok User',
                     duration: 'N/A',
                     views: searchResult.views || 0,
@@ -38,7 +38,7 @@ export default {
                 // Enlace directo, resolvemos metadatos
                 const info = await downloader.getDownloadInfo(finalUrl);
                 videoData = {
-                    title: info.title || 'Video de TikTok',
+                    title: info.title || 'Audio de TikTok',
                     author: info.author || 'TikTok User',
                     duration: info.duration ? `${info.duration}s` : 'N/A',
                     views: info.views || 0,
@@ -53,15 +53,15 @@ export default {
             const views = typeof videoData.views === 'number' ? videoData.views : 0;
             const thumbnail = videoData.thumbnail;
 
-            let caption = `╭〔 🎬 𝐓𝐈𝐊𝐓𝐎𝐊 𝐕𝐈𝐃𝐄𝐎 〕━⬣\n\n`;
-            caption += `┃ 🎥 𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀𝐍𝐃𝐎 𝐀𝐑𝐂𝐇𝐈𝐕𝐎\n`;
+            let caption = `╭〔 🎵 𝐓𝐈𝐊𝐓𝐎𝐊 𝐀𝐔𝐃𝐈𝐎 〕━⬣\n\n`;
+            caption += `┃ 🔊 𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀𝐍𝐃𝐎 𝐀𝐑𝐂𝐇𝐈𝐕𝐎\n`;
             caption += `┃ ⏳ 𝐄𝐬𝐩𝐞𝐫𝐞 𝐮𝐧 𝐦𝐨𝐦𝐞𝐧𝐭𝐨...\n\n`;
             caption += `┣━━━━━━━━━━━━⬣\n\n`;
             caption += `┃ ➥ 𝐃𝐞𝐬𝐜𝐚𝐫𝐠𝐚𝐧𝐝𝐨 › ${title}\n\n`;
             caption += `┃ > ✿⃘࣪◌ ֪ 𝐀𝐮𝐭𝐨𝐫 › ${author}\n`;
             caption += `┃ > ✿⃘࣪◌ ֪ 𝐃𝐮𝐫𝐚𝐜𝐢𝐨́𝐧 › ${duration}\n`;
             caption += `┃ > ✿⃘࣪◌ ֪ 𝐕𝐢𝐬𝐭𝐚𝐬 › ${views.toLocaleString()}\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ 𝐌𝐨𝐝𝐨 › Video (MP4)\n`;
+            caption += `┃ > ✿⃘࣪◌ ֪ 𝐌𝐨𝐝𝐨 › Audio (MP3)\n`;
             caption += `┃ > ✿⃘࣪◌ ֪ 𝐄𝐧𝐥𝐚𝐜𝐞 › ${finalUrl}\n\n`;
             caption += `┣━━━━━━━━━━━━⬣\n\n`;
             caption += `┃ 𐙚 ❀ ｡ ↻ 𝐄𝐥 𝐚𝐫𝐜𝐡𝐢𝐯𝐨 𝐬𝐞 𝐞𝐬𝐭𝐚́\n`;
@@ -74,23 +74,22 @@ export default {
                 await socket.sendMessage(remoteJid, { text: caption }, { quoted: message });
             }
 
-            // Descargar y enviar video
-            const { path: videoPath } = await downloader.getVideo(finalUrl);
+            // Descargar y enviar audio
+            const { path: audioPath } = await downloader.getAudio(finalUrl);
             await socket.sendMessage(remoteJid, {
-                video: { url: videoPath },
-                mimetype: 'video/mp4',
-                fileName: `${title.replace(/[<>:"/\\|?*]/g, '')}.mp4`,
-                caption: `🎬 *𝐓𝐢́𝐭𝐮𝐥𝐨:* ${title}\n⚡ *𝐀𝐮𝐫𝐚 𝐑𝐞𝐞𝐝 𝐃𝐨𝐰𝐧𝐥𝐨𝐚𝐝𝐞𝐫*`
+                audio: { url: audioPath },
+                mimetype: 'audio/mpeg',
+                fileName: `${title.replace(/[<>:"/\\|?*]/g, '')}.mp3`
             }, { quoted: message });
 
             await socket.sendMessage(remoteJid, { react: { text: '✅', key: message.key } });
 
         } catch (error) {
-            console.error('Error en tiktok downloader command:', error);
+            console.error('Error en tkaudio downloader command:', error);
             await socket.sendMessage(remoteJid, { react: { text: '❌', key: message.key } });
             await socket.sendMessage(remoteJid, { 
                 text: `╭〔 ❌ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ⚠️ 𝐄𝐑𝐑𝐎𝐑 𝐃𝐄 𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message || 'Ocurrió un error inesperado.'}\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣` 
             }, { quoted: message });
         }
-}
+    }
 };
