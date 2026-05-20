@@ -16,7 +16,7 @@ export default {
         let textoMenu = `
 ╭━━〔 ${tituloEstilizado} 〕━━⬣
 
-┃ 👤 𝐔𝐬𝐮𝐚𝐫𝐢𝐨: @${m.pushName}
+┃ 👤 𝐔𝐬𝐮𝐚𝐫𝐢𝐨: @${pushName}
 ┃ 🤖 𝐁𝐨𝐭: 𝐀𝐮𝐫𝐚 𝐑𝐞𝐞𝐝
 ┃ ⚡ 𝐕𝐞𝐫𝐬𝐢𝐨́𝐧: ${global.version}
 ┃ 👑 𝐎𝐰𝐧𝐞𝐫: 𝐎𝐛𝐨𝐞 𝐁𝐨𝐲
@@ -50,7 +50,6 @@ export default {
                             console.error(`Error al cargar ${file} en el menú:`, err);
                         }
                     }
-                    textoMenu += `\n`;
                 }
             }
         }

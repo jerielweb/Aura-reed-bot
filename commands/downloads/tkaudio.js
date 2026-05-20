@@ -5,7 +5,7 @@ const TIKTOK_REGEX = /^(https?:\/\/)?(www\.|vm\.|vt\.)?tiktok\.com\/.*$/i;
 export default {
     name: ['tkaudio', 'ttaudio', 'tta'],
     category: 'downloads',
-    description: 'Busca y descarga audios de TikTok. Usa: .tkaudio [enlace/búsqueda]',
+    description: 'Busca y descarga audios de TikTok.',
     execute: async (socket, message, args) => {
         const remoteJid = message.key.remoteJid;
         const text = args.join(' ').trim();

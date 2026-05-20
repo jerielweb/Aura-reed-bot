@@ -115,7 +115,17 @@ export async function handleMessage(sock, m, db, saveDB) {
         }
     }
 
-    const text = m.message.conversation || m.message.extendedTextMessage?.text || m.message.imageMessage?.caption || "";
+    const text = m.message.conversation || 
+                 m.message.extendedTextMessage?.text || 
+                 m.message.imageMessage?.caption || 
+                 m.message.videoMessage?.caption || 
+                 m.message.documentMessage?.caption || 
+                 m.message.viewOnceMessageV2?.message?.imageMessage?.caption || 
+                 m.message.viewOnceMessageV2?.message?.videoMessage?.caption || 
+                 m.message.viewOnceMessage?.message?.imageMessage?.caption || 
+                 m.message.viewOnceMessage?.message?.videoMessage?.caption || 
+                 m.message.documentWithCaptionMessage?.message?.documentMessage?.caption || 
+                 "";
 
     await sock.readMessages([m.key]);
 

@@ -149,8 +149,24 @@ export default {
       })
 
       const webpStickerBuffer = await fs.promises.readFile(outputPath)
+
+      // Obtener el nombre del usuario y formatear metadatos
+      const pushName = message.pushName || 'Usuario'
+      const packName = '𝐀𝐮𝐫𝐚 𝐑𝐞𝐞𝐝 🧠 𝐖𝐚𝐁𝐨𝐭'
+      const author = `@${pushName}`
+
+      console.log(`[Brat] Inyectando metadatos para ${pushName}...`)
+      let finalStickerBuffer
+      try {
+        const { addStickerMetadata } = await import('../../controllers/stickerMetadata.js')
+        finalStickerBuffer = await addStickerMetadata(webpStickerBuffer, packName, author)
+      } catch (err) {
+        console.error('[Brat] Error al inyectar metadatos:', err)
+        finalStickerBuffer = webpStickerBuffer
+      }
+
       await sock.sendMessage(remoteJid, { react: { text: '✅', key: message.key } })
-      await sock.sendMessage(remoteJid, { sticker: webpStickerBuffer, mimetype: 'image/webp' }, { quoted: message })
+      await sock.sendMessage(remoteJid, { sticker: finalStickerBuffer, mimetype: 'image/webp' }, { quoted: message })
 
       await Promise.allSettled([
         fs.promises.unlink(inputPath),

@@ -6,6 +6,7 @@ node_modules/
 sessions/
 auth/
 auth_info_baileys/
+scratch/
 
 # Variables de entorno (Claves de API, DB, etc.)
 .env

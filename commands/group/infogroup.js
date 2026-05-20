@@ -1,5 +1,5 @@
 export default {
-    name: ['infogroup', 'infogp', 'ig'],
+    name: ['infogroup', 'infogp', 'ingp'],
     category: 'group',
     description: 'Muestra la información detallada del grupo.',
     execute: async (socket, message, args, { groupMetadata }) => {

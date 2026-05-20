@@ -1,4 +1,4 @@
-import axios from 'axios';
+import downloader from '../../controllers/spotifyDownloader.js';
 
 export default {
     name: ['spsearch', 'spotifysearch', 'sps'],
@@ -18,39 +18,34 @@ export default {
         await socket.sendMessage(remoteJid, { react: { text: '🔍', key: message.key } });
 
         try {
-            const res = await axios.get(`https://api.delirius.store/search/spotify`, {
-                params: {
-                    q: query,
-                    limit: 10
-                },
-                timeout: 60000
-            });
+            const tracks = await downloader.searchTracks(query);
 
-            if (!res.data?.status || !res.data.data?.length) {
+            if (!tracks || !tracks.length) {
                 await socket.sendMessage(remoteJid, { react: { text: '❌', key: message.key } });
                 return await socket.sendMessage(remoteJid, { 
                     text: `╭〔 ❌ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ⚠️ 𝐒𝐈𝐍 𝐑𝐄𝐒𝐔𝐋𝐓𝐀𝐃𝐎𝐒\n╰━━━━━━━━━━━━⬣\n\n┃ > No se encontraron resultados en Spotify.\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣` 
                 }, { quoted: message });
             }
 
-            const tracks = res.data.data.slice(0, 10);
+            const slicedTracks = tracks.slice(0, 10);
             
             let text = `╭━━〔 𝐒𝐏𝐎𝐓𝐈𝐅𝐘 𝐒𝐄𝐀𝐑𝐂𝐇 〕━━⬣\n`;
             text += `┃ 🔍 𝐁úsqueda: ${query}\n`;
+            text += `┃ ⚙️ 𝐌otor › ${slicedTracks[0].source || 'Desconocido'}\n`;
             text += `╰━━━━━━━━━━━━━━━━⬣\n\n`;
 
-            tracks.forEach((track, i) => {
+            slicedTracks.forEach((track, i) => {
                 text += `┃ ${i + 1}. ${track.title}\n`;
                 text += `┃ ├ 👤 Artista › ${track.artist || 'Desconocido'}\n`;
                 text += `┃ ├ 💿 Álbum › ${track.album || 'Desconocido'}\n`;
                 text += `┃ ├ ⏱️ Duración › ${track.duration || 'N/A'}\n`;
                 text += `┃ ├ 📅 Publicado › ${track.publish || 'N/A'}\n`;
-                text += `┃ └ 🔗 Enlace › ${track.url}\n\n`;
+                text += `┃ └ 🔗 Enlace › ${track.url || 'No disponible'}\n\n`;
             });
 
             text += `╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣`;
 
-            const coverUrl = tracks[0].image || 'https://open.spotify.com/favicon.ico';
+            const coverUrl = slicedTracks[0].image || 'https://open.spotify.com/favicon.ico';
 
             await socket.sendMessage(remoteJid, {
                 image: { url: coverUrl },
@@ -68,3 +63,4 @@ export default {
         }
     }
 };
+

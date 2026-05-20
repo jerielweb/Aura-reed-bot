@@ -3,7 +3,7 @@ import downloader from '../../controllers/spotifyDownloader.js';
 export default {
     name: ['spotify', 'sp', 'spotifydl'],
     category: 'downloads',
-    description: 'Busca y descarga canciones de Spotify. Usa: .spotify [enlace/búsqueda]',
+    description: 'Busca y descarga canciones de Spotify.',
     execute: async (socket, message, args) => {
         const remoteJid = message.key.remoteJid;
         const text = args.join(' ').trim();
@@ -18,7 +18,7 @@ export default {
 
         try {
             // Descargar y obtener la ruta del archivo + metadatos
-            const { metadata, path: audioPath } = await downloader.download(text);
+            const { metadata, path: audioPath, downloadSource } = await downloader.download(text);
 
             const title = metadata.title || 'Canción de Spotify';
             const artist = metadata.artist || 'Desconocido';
@@ -34,6 +34,7 @@ export default {
             caption += `┃ > ✿⃘࣪◌ ֪ 𝐀𝐫𝐭𝐢𝐬𝐭𝐚 › ${artist}\n`;
             caption += `┃ > ✿⃘࣪◌ ֪ 𝐃𝐮𝐫𝐚𝐜𝐢𝐨́𝐧 › ${duration}\n`;
             caption += `┃ > ✿⃘࣪◌ ֪ 𝐌𝐨𝐝𝐨 › Audio (MP3)\n`;
+            caption += `┃ > ✿⃘࣪◌ ֪ 𝐌𝐨𝐭𝐨𝐫 › ${downloadSource || 'Desconocido'}\n`;
             caption += `┃ > ✿⃘࣪◌ ֪ 𝐄𝐧𝐥𝐚𝐜𝐞 › ${finalUrl}\n\n`;
             caption += `┣━━━━━━━━━━━━⬣\n\n`;
             caption += `┃ 𐙚 ❀ ｡ ↻ 𝐄𝐥 𝐚𝐫𝐜𝐡𝐢𝐯𝐨 𝐬𝐞 𝐞𝐬𝐭𝐚́\n`;
