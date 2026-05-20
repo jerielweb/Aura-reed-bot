@@ -17,7 +17,7 @@ function extractVideoId(url) {
 }
 
 export default {
-    name: ['ytmp3', 'play', 'yta'],
+    name: ['ytmp3', 'play', 'playaudio'],
     category: 'downloads',
     description: 'Busca y descarga audio de YouTube.',
     execute: async (socket, message, args) => {
