@@ -4,6 +4,7 @@ import qrcodeTerminal from 'qrcode-terminal';
 import fs from 'fs';
 import pino from 'pino';
 import chalk from 'chalk';
+import './models/settings.js';
 import { handleMessage } from './controllers/msgHandler.js';
 import { handleGroupUpdate } from './controllers/groupEvents.js';
 
