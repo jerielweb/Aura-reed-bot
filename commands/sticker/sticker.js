@@ -51,13 +51,13 @@ async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
         ];
 
         if (isVideo) {
-            options.push(`-vf scale=512:512:force_original_aspect_ratio=decrease,fps=${fps}`);
+            options.push(`-vf scale=512:512:force_original_aspect_ratio=decrease,fps=${fps},pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0`);
             options.push('-loop 0');
             options.push(`-t ${duration}`);
             options.push(`-q:v ${quality}`);
         } else {
-            // Imagen estática: Redimensionar y optimizar calidad sin alterar aspecto
-            options.push('-vf scale=512:512:force_original_aspect_ratio=decrease');
+            // Imagen estática: Redimensionar, optimizar calidad y rellenar con transparente a 512x512
+            options.push('-vf scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0');
             options.push('-q:v 80');
         }
 
