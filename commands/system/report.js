@@ -19,14 +19,14 @@ export default {
 
         // Identificar origen
         const isGroup = remoteJid.endsWith('@g.us');
-        const origen = isGroup ? `Grupo: ${groupMetadata?.subject || 'Desconocido'} (${remoteJid})` : 'Chat Privado';
+        const origen = isGroup ? `Grupo: ${groupMetadata?.subject || 'Desconocido'}` : 'Chat Privado';
         const senderNumber = jidRemitente.split('@')[0];
         const pushName = m.pushName || 'Usuario';
 
         // Formatear mensaje para los propietarios
         let textForOwners = `╭〔 📢 𝐍𝐔𝐄𝐕𝐎 𝐑𝐄𝐏𝐎𝐑𝐓𝐄 〕━⬣\n\n`;
         textForOwners += `┃ 👤 𝐔𝐬𝐮𝐚𝐫𝐢𝐨 › @${senderNumber}\n`;
-        textForOwners += `┃ 📛 𝐍𝐨𝐦𝐛𝐫𝐞 › ${pushName}\n`;
+        textForOwners += `┃ ☎️ 𝐍𝐮𝐦𝐞𝐫𝐨 › +${jidRemitente.split('@')[0]}\n`;
         textForOwners += `┃ 📍 𝐎𝐫𝐢𝐠𝐞𝐧 › ${origen}\n`;
         textForOwners += `┃ 🕒 𝐅𝐞𝐜𝐡𝐚 › ${new Date().toLocaleString('es-CR')}\n\n`;
         textForOwners += `┣━━━━━━━━━━━━⬣\n\n`;
