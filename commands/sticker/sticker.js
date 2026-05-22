@@ -1,4 +1,5 @@
 import { downloadMediaMessage } from '@whiskeysockets/baileys';
+import { fytBold } from '../../models/TextStyle.js';
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegPath from '@ffmpeg-installer/ffmpeg';
 import ffprobePath from '@ffprobe-installer/ffprobe';
@@ -44,6 +45,7 @@ async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
             duration = 2.5;
         }
 
+        // 1. Opciones generales de salida (Separadas correctamente sin mezclar banderas)
         const options = [
             '-vcodec libwebp',
             '-an',
@@ -51,18 +53,22 @@ async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
         ];
 
         if (isVideo) {
-            options.push(`-vf scale=512:512:force_original_aspect_ratio=decrease,fps=${fps},pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0`);
             options.push('-loop 0');
             options.push(`-t ${duration}`);
             options.push(`-q:v ${quality}`);
         } else {
-            // Imagen estática: Redimensionar, optimizar calidad y rellenar con transparente a 512x512
-            options.push('-vf scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0');
             options.push('-q:v 80');
         }
 
+        // 2. Definir la cadena de filtros de video exacta
+        const filtroVideo = isVideo
+            ? `format=rgba,scale=512:512:force_original_aspect_ratio=decrease,fps=${fps},pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x000000@0`
+            : `format=rgba,scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x000000@0`;
+
+        // 3. Ejecutar FFmpeg usando .videoFilters() para evitar conflictos de argumentos
         ffmpeg(inputPath)
             .outputOptions(options)
+            .videoFilters(filtroVideo) // <--- Esto soluciona el "Option not found"
             .toFormat('webp')
             .save(outputPath)
             .on('end', resolve)
@@ -74,7 +80,7 @@ export default {
     name: ['s', 'sticker', 'stiker'],
     category: 'sticker',
     description: 'Convierte imágenes, videos o GIFs en stickers optimizados.',
-    execute: async (socket, message, args) => {
+    execute: async (socket, message, args, { prefix }) => {
         const remoteJid = message.key.remoteJid;
         
         // Determinar el mensaje multimedia objetivo (citado o directo)
@@ -83,7 +89,7 @@ export default {
 
         if (!targetMessage) {
             return await socket.sendMessage(remoteJid, { 
-                text: `╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐅𝐀𝐋𝐓𝐀 𝐌𝐄𝐃𝐈𝐎\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, envía una imagen/video\n┃ > con la descripción *#s* o responde\n┃ > a una imagen/video con *#s*.\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣` 
+                text: `╭〔 ⚠️ ${fytBold('AURA REED')} 〕⬣\n┃ ❌ ${fytBold('FALTA MEDIO')}\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, envía una imagen/video\n┃ > con la descripción *${prefix}s* o responde\n┃ > a una imagen/video con *${prefix}s*.\n\n╰〔 ⚡ ${fytBold('SYSTEM')} 〕⬣` 
             }, { quoted: message });
         }
 
@@ -142,7 +148,7 @@ export default {
 
             // Obtener el nombre del usuario y formatear metadatos
             const pushName = message.pushName || 'Usuario';
-            const packName = '𝐀𝐮𝐫𝐚 𝐑𝐞𝐞𝐝 🧠 𝐖𝐚𝐁𝐨𝐭';
+            const packName = `${fytBold('AURA REED')} 🧠 ${fytBold('BOT')}`;
             const author = `@${pushName}`;
 
             console.log(`[Sticker] Inyectando metadatos para ${pushName}...`);
@@ -166,7 +172,7 @@ export default {
             console.error('Error al generar sticker:', error);
             await socket.sendMessage(remoteJid, { react: { text: '❌', key: message.key } });
             await socket.sendMessage(remoteJid, { 
-                text: `╭〔 ❌ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ⚠️ 𝐄𝐑𝐑𝐎𝐑 𝐀𝐋 𝐂𝐑𝐄𝐀𝐑 𝐒𝐓𝐈𝐂𝐊𝐄𝐑\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message || 'No pude generar el sticker.'}\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣` 
+                text: `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n┃ ⚠️ ${fytBold('ERROR AL CREAR STICKER')}\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message || 'No pude generar el sticker.'}\n\n╰〔 ⚡ ${fytBold('SYSTEM')} 〕⬣` 
             }, { quoted: message });
         } finally {
             // Limpieza de archivos temporales
