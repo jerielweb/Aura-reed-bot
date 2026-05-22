@@ -1,6 +1,7 @@
 import fetch from 'node-fetch';
 import { generateWAMessageFromContent, generateWAMessage, jidNormalizedUser } from '@whiskeysockets/baileys';
 import crypto from 'crypto';
+import { fytBold } from '../../models/TextStyle.js';
 
 async function fetchJson(url) {
   const res = await fetch(url);
@@ -68,7 +69,7 @@ export default {
 
     if (!query) {
       return await socket.sendMessage(remoteJid, {
-        text: `╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐅𝐀𝐋𝐓𝐀 𝐁𝐔́𝐒𝐐𝐔𝐄𝐃𝐀\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, proporciona una consulta\n┃ > para buscar en Pinterest.\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`
+        text: `╭〔 ⚠️ ${fytBold('AURA REED')} 〕⬣\n┃ ❌ ${fytBold('FALTA BUSQUEDA')}\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, proporciona una consulta\n┃ > para buscar en Pinterest.\n\n╰〔 ⚡ ${fytBold('SYSTEM')} 〕⬣`
       }, { quoted: message });
     }
 
@@ -91,7 +92,7 @@ export default {
       console.error('Todas las APIs fallaron:', errs);
       await socket.sendMessage(remoteJid, { react: { text: '❌', key: message.key } });
       return await socket.sendMessage(remoteJid, {
-        text: `╭〔 ❌ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ⚠️ 𝐄𝐑𝐑𝐎𝐑 𝐃𝐄 𝐁𝐔́𝐒𝐐𝐔𝐄𝐃𝐀\n╰━━━━━━━━━━━━⬣\n\n┃ > No se pudieron obtener resultados de ninguna API.\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`
+        text: `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n┃ ⚠️ ${fytBold('ERROR DE BUSQUEDA')}\n╰━━━━━━━━━━━━⬣\n\n┃ > No se pudieron obtener resultados de ninguna API.\n\n╰〔 ⚡ ${fytBold('SYSTEM')} 〕⬣`
       }, { quoted: message });
     }
 
@@ -99,13 +100,13 @@ export default {
     if (!items.length) {
       await socket.sendMessage(remoteJid, { react: { text: '❌', key: message.key } });
       return await socket.sendMessage(remoteJid, {
-        text: `╭〔 ❌ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ⚠️ 𝐒𝐈𝐍 𝐑𝐄𝐒𝐔𝐋𝐓𝐀𝐃𝐎𝐒\n╰━━━━━━━━━━━━⬣\n\n┃ > No se encontraron resultados para "${query}" en Pinterest.\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`
+        text: `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n┃ ⚠️ ${fytBold('SIN RESULTADOS')}\n╰━━━━━━━━━━━━⬣\n\n┃ > No se encontraron resultados para "${query}" en Pinterest.\n\n╰〔 ⚡ ${fytBold('SYSTEM')} 〕⬣`
       }, { quoted: message });
     }
 
-    let captionText = `╭━━〔 𝐏𝐈𝐍𝐓𝐄𝐑𝐄𝐒𝐓 𝐒𝐄𝐀𝐑𝐂𝐇 〕━━⬣\n`;
-    captionText += `┃ 🔍 𝐁úsqueda: ${query}\n`;
-    captionText += `┃ ⚙️ 𝐌otor › ${result.source || 'Desconocido'}\n`;
+    let captionText = `╭━━〔 ${fytBold('PINTEREST SEARCH')} 〕━━⬣\n`;
+    captionText += `┃ 🔍 Pin: ${query}\n`;
+    captionText += `┃ ⚙️ Motor: › ${result.source || 'Desconocido'}\n`;
     captionText += `╰━━━━━━━━━━━━━━━━⬣\n\n`;
 
     items.forEach((item, i) => {
@@ -121,13 +122,13 @@ export default {
         link = item.link || item.url || item.pin_url || item.hd || item.image || '#';
       }
 
-      captionText += `┃ ${i + 1}. ${title}\n`;
+      captionText += `┃ ${i + 1}. ${fytBold(title)}\n`;
       captionText += `┃ ├ 👤 Autor › ${author}\n`;
       captionText += `┃ ├ ❤️ Likes › ${likes}\n`;
       captionText += `┃ └ 🔗 Enlace › ${link}\n\n`;
     });
 
-    captionText += `╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣`;
+    captionText += `╰〔 ⚡ ${fytBold('AURA REED')} 〕⬣`;
 
     // Collect all image URLs
     const mediaArray = items.map(item => ({ url: item.hd || item.image || item.image_small || '' })).filter(m => m.url);

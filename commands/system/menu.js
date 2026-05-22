@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { fyt } from "../../models/utils.js";
+import { fytBold } from "../../models/TextStyle.js";
 
 export default {
     name: ['menu', 'help', 'h'],
@@ -10,19 +10,19 @@ export default {
         const remoteJid = m.key.remoteJid;
         const pushName = m.pushName || 'Usuario';
         const categories = ['system', 'owner', 'group', 'fun', 'utility', 'downloads', 'search', 'economy', 'sticker'];
-        const tituloEstilizado = fyt('AURA REED BOT');
+        const tituloEstilizado = fytBold('AURA REED BOT');
         const chanellink = global.chanellink;
 
         let textoMenu = `
 ╭━━〔 ${tituloEstilizado} 〕━━⬣
 
-┃ 👤 𝐔𝐬𝐮𝐚𝐫𝐢𝐨: @${pushName}
-┃ 🤖 𝐁𝐨𝐭: 𝐀𝐮𝐫𝐚 𝐑𝐞𝐞𝐝
-┃ ⚡ 𝐕𝐞𝐫𝐬𝐢𝐨́𝐧: ${global.version}
-┃ 👑 𝐎𝐰𝐧𝐞𝐫: 𝐎𝐛𝐨𝐞 𝐁𝐨𝐲
-┃ ⚡ 𝐏𝐫𝐞𝐟𝐢𝐱: [ ${prefix} ]
-┃ 📆 𝐅𝐞𝐜𝐡𝐚: ${new Date().toLocaleDateString('es-CR')}
-┃ 💬 𝐂𝐡𝐚𝐧𝐧𝐞𝐥: ${chanellink}
+┃ 👤 ${fytBold('Usuario:')} @${pushName}
+┃ 🤖 ${fytBold('Bot:')} Aura Reed
+┃ ⚡ ${fytBold('Version:')} ${global.version}
+┃ 👑 ${fytBold('Owner:')} Oboe Boy
+┃ ⚡ ${fytBold('Prefix:')} [ ${prefix} ]
+┃ 📆 ${fytBold('Fecha:')} ${new Date().toLocaleDateString('es-CR')}
+┃ 💬 ${fytBold('Channel:')} ${chanellink}
 \n`;
         for (const cat of categories) {
             const folderPath = `./commands/${cat}`;
@@ -31,7 +31,7 @@ export default {
                 const files = fs.readdirSync(folderPath).filter(file => file.endsWith('.js'));
 
                 if (files.length > 0) {
-                    textoMenu += `┏━━〔 ${fyt(cat.charAt(0).toUpperCase() + cat.slice(1))} 〕━━⬣\n`;
+                    textoMenu += `┏━━〔 ${fytBold(cat.charAt(0).toUpperCase() + cat.slice(1))} 〕━━⬣\n`;
 
                     for (const file of files) {
                         try {
@@ -41,7 +41,7 @@ export default {
                                 const formattedNames = Array.isArray(cmd.name)
                                     ? cmd.name.map(n => prefix + n).join(' • ')
                                     : prefix + cmd.name;
-                                    textoMenu += `┃ ➪ ${formattedNames}\n`;
+                                    textoMenu += `┃ ➪ ${fytBold(formattedNames)}\n`;
                                 if (cmd.description) {
                                     textoMenu += `┃ ✦ ${cmd.description}\n\n`;
                                 }

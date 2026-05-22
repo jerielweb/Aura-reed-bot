@@ -43,7 +43,7 @@ function normalize(apiResult, motorName) {
         throw new Error(`[${motorName}] Respuesta inválida o sin datos`);
     }
     const data = apiResult.data;
-    
+
     const name = data.name || 'Aplicación Desconocida';
     const packageId = data.package || data.id || 'com.unknown';
     const size = data.size || 'N/A';
@@ -75,8 +75,8 @@ export default {
         const query = args.join(' ').trim();
 
         if (!query) {
-            return await socket.sendMessage(remoteJid, { 
-                text: `╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐅𝐀𝐋𝐓𝐀 𝐁𝐔́𝐒𝐐𝐔𝐄𝐃𝐀\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, proporciona el nombre\n┃ > de la aplicación APK a buscar.\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣` 
+            return await socket.sendMessage(remoteJid, {
+                text: `╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐅𝐀𝐋𝐓𝐀 𝐁𝐔́𝐒𝐐𝐔𝐄𝐃𝐀\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, proporciona el nombre\n┃ > de la aplicación APK a buscar.\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`
             }, { quoted: message });
         }
 
@@ -118,7 +118,7 @@ export default {
                 isCacheHit = true;
             } else {
                 console.log(`[APK CACHE] [MISS] No se encontró el APK local para: ${packageId}. Descargando...`);
-                
+
                 const res = await fetch(dl);
                 if (!res.ok) throw new Error(`Fallo al descargar APK: ${res.statusText}`);
 
@@ -167,7 +167,7 @@ export default {
 
         } catch (error) {
             console.error('Error en APK Downloader:', error);
-            
+
             // Eliminar archivo corrupto si falló la descarga
             if (cachePath && fs.existsSync(cachePath) && !isCacheHit) {
                 try {
@@ -179,8 +179,8 @@ export default {
             }
 
             await socket.sendMessage(remoteJid, { react: { text: '❌', key: message.key } });
-            await socket.sendMessage(remoteJid, { 
-                text: `╭〔 ❌ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ⚠️ 𝐄𝐑𝐑𝐎𝐑 𝐃𝐄 𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message || 'Ocurrió un error inesperado.'}\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣` 
+            await socket.sendMessage(remoteJid, {
+                text: `╭〔 ❌ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ⚠️ 𝐄𝐑𝐑𝐎𝐑 𝐃𝐄 𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message || 'Ocurrió un error inesperado.'}\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`
             }, { quoted: message });
         }
     }

@@ -2,6 +2,7 @@ import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { fytBold } from '../../models/TextStyle.js';
 
 const IG_REGEX = /^(https?:\/\/)?(www\.)?(instagram\.com)\/(p|reel|reels|tv|stories)\/.*$/i;
 
@@ -110,7 +111,7 @@ export default {
 
         if (!url) {
             return await socket.sendMessage(remoteJid, { 
-                text: `╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐅𝐀𝐋𝐓𝐀 𝐄𝐍𝐋𝐀𝐂𝐄\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, proporciona un enlace\n┃ > de Instagram (Post, Reel, Historia o IGTV).\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣` 
+                text: `╭〔 ⚠️ ${fytBold('AURA REED')} 〕⬣\n┃ ❌ ${fytBold('FALTA ENLACE')}\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, proporciona un enlace\n┃ > de Instagram (Post, Reel, Historia o IGTV).\n\n╰〔 ⚡ ${fytBold('SYSTEM')} 〕⬣` 
             }, { quoted: message });
         }
 
@@ -244,18 +245,18 @@ export default {
             const typeLabel = isImage ? 'Imagen (JPG)' : (isReel ? 'Reel (MP4)' : 'Video (MP4)');
 
             // Enviar mensaje de carga
-            let caption = `╭〔 📸 𝐈𝐍𝐒𝐓𝐀𝐆𝐑𝐀𝐌 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃𝐄𝐑 〕━⬣\n\n`;
-            caption += `┃ 📥 𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀𝐍𝐃𝐎 𝐀𝐑𝐂𝐇𝐈𝐕𝐎\n`;
-            caption += `┃ ⏳ 𝐄𝐬𝐩𝐞𝐫𝐞 𝐮𝐧 𝐦𝐨𝐦𝐞𝐧𝐭𝐨...\n\n`;
+            let caption = `╭〔 📸 ${fytBold('INSTAGRAM DOWNLOADER')} 〕━⬣\n\n`;
+            caption += `┃ 📥 ${fytBold('DESCARGANDO ARCHIVO')}\n`;
+            caption += `┃ ⏳ Espere un momento...\n\n`;
             caption += `┣━━━━━━━━━━━━⬣\n\n`;
-            if (title) caption += `┃ > ✿⃘࣪◌ ֪ 𝐓𝐢́𝐭𝐮𝐥𝐨 › ${title.slice(0, 50)}${title.length > 50 ? '...' : ''}\n`;
-            if (username) caption += `┃ > ✿⃘࣪◌ ֪ 𝐔𝐬𝐮𝐚𝐫𝐢𝐨 › @${username}\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ 𝐓𝐢𝐩𝐨 › ${typeLabel}\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ 𝐌𝐨𝐭𝐨𝐫 › ${finalMotor}\n\n`;
+            if (title) caption += `┃ > ✿⃘࣪◌ ֪ Titulo › ${title.slice(0, 50)}${title.length > 50 ? '...' : ''}\n`;
+            if (username) caption += `┃ > ✿⃘࣪◌ ֪ Usuario › @${username}\n`;
+            caption += `┃ > ✿⃘࣪◌ ֪ Tipo › ${typeLabel}\n`;
+            caption += `┃ > ✿⃘࣪◌ ֪ Motor › ${finalMotor}\n\n`;
             caption += `┣━━━━━━━━━━━━⬣\n\n`;
-            caption += `┃ 𐙚 ❀ ｡ ↻ 𝐄𝐥 𝐚𝐫𝐜𝐡𝐢𝐯𝐨 𝐬𝐞 𝐞𝐬𝐭𝐚́\n`;
-            caption += `┃ 𝐞𝐧𝐯𝐢𝐚𝐧𝐝𝐨, 𝐞𝐬𝐩𝐞𝐫𝐚 𝐮𝐧 𝐦𝐨𝐦𝐞𝐧𝐭𝐨...\n\n`;
-            caption += `╰━━〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐀𝐂𝐓𝐈𝐕𝐄 〕━━⬣`;
+            caption += `┃ 𐙚 ❀ ｡ ↻ El archivo se esta\n`;
+            caption += `┃ enviando, espera un momento...\n\n`;
+            caption += `╰━━〔 ⚡ ${fytBold('SYSTEM ACTIVE')} 〕━━⬣`;
 
             await socket.sendMessage(remoteJid, { text: caption }, { quoted: message });
 
@@ -292,7 +293,7 @@ export default {
             console.error('Error en Instagram Downloader:', error);
             await socket.sendMessage(remoteJid, { react: { text: '❌', key: message.key } });
             await socket.sendMessage(remoteJid, { 
-                text: `╭〔 ❌ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ⚠️ 𝐄𝐑𝐑𝐎𝐑 𝐃𝐄 𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message || 'Ocurrió un error inesperado al procesar la descarga de Instagram.'}\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣` 
+                text: `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n┃ ⚠️ ${fytBold('ERROR DE DESCARGA')}\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message || 'Ocurrio un error inesperado al procesar la descarga de Instagram.'}\n\n╰〔 ⚡ ${fytBold('SYSTEM')} 〕⬣` 
             }, { quoted: message });
         }
     }

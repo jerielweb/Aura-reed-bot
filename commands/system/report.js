@@ -1,4 +1,4 @@
-import { fyt } from "../../models/utils.js";
+import { fytBold } from "../../models/TextStyle.js";
 
 export default {
     name: ['report', 'bug', 'sugerencia', 'reportar', 'sugerir'],
@@ -10,7 +10,7 @@ export default {
 
         if (!reportText) {
             return await sock.sendMessage(remoteJid, {
-                text: `╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐅𝐀𝐋𝐓𝐀 𝐓𝐄𝐗𝐓𝐎\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, escribe tu reporte.\n┃ > Ejemplo: *${prefix}report El comando sticker no funciona con videos.*\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`
+                text: `╭〔 ⚠️ ${fytBold('AURA REED')} 〕⬣\n┃ ❌ ${fytBold('FALTA TEXTO')}\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, escribe tu reporte.\n┃ > Ejemplo: *${prefix}report El comando sticker no funciona con videos.*\n\n╰〔 ⚡ ${fytBold('SYSTEM')} 〕⬣`
             }, { quoted: m });
         }
 
@@ -24,15 +24,15 @@ export default {
         const pushName = m.pushName || 'Usuario';
 
         // Formatear mensaje para los propietarios
-        let textForOwners = `╭〔 📢 𝐍𝐔𝐄𝐕𝐎 𝐑𝐄𝐏𝐎𝐑𝐓𝐄 〕━⬣\n\n`;
-        textForOwners += `┃ 👤 𝐔𝐬𝐮𝐚𝐫𝐢𝐨 › @${senderNumber}\n`;
-        textForOwners += `┃ ☎️ 𝐍𝐮𝐦𝐞𝐫𝐨 › +${jidRemitente.split('@')[0]}\n`;
-        textForOwners += `┃ 📍 𝐎𝐫𝐢𝐠𝐞𝐧 › ${origen}\n`;
-        textForOwners += `┃ 🕒 𝐅𝐞𝐜𝐡𝐚 › ${new Date().toLocaleString('es-CR')}\n\n`;
+        let textForOwners = `╭〔 📢 ${fytBold('NUEVO REPORTE')} 〕━⬣\n\n`;
+        textForOwners += `┃ 👤 ${fytBold('Usuario ›')} @${senderNumber}\n`;
+        textForOwners += `┃ ☎️ ${fytBold('Numero ›')} +${jidRemitente.split('@')[0]}\n`;
+        textForOwners += `┃ 📍 ${fytBold('Origen ›')} ${origen}\n`;
+        textForOwners += `┃ 🕒 ${fytBold('Fecha ›')} ${new Date().toLocaleString('es-CR')}\n\n`;
         textForOwners += `┣━━━━━━━━━━━━⬣\n\n`;
-        textForOwners += `┃ 📝 𝐌𝐞𝐧𝐬𝐚𝐣𝐞:\n`;
+        textForOwners += `┃ 📝 ${fytBold('Mensaje:')}\n`;
         textForOwners += `┃ > ${reportText}\n\n`;
-        textForOwners += `╰━━〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐀𝐂𝐓𝐈𝐕𝐄 〕━━⬣`;
+        textForOwners += `╰━━〔 ⚡ ${fytBold('SYSTEM ACTIVE')} 〕━━⬣`;
 
         let sentCount = 0;
         const targetOwners = Array.isArray(owners) ? owners : [];
@@ -52,12 +52,12 @@ export default {
         if (sentCount > 0) {
             await sock.sendMessage(remoteJid, { react: { text: '✅', key: m.key } });
             await sock.sendMessage(remoteJid, {
-                text: `╭〔 ✅ 𝐑𝐄𝐏𝐎𝐑𝐓𝐄 𝐄𝐍𝐕𝐈𝐀𝐃𝐎 〕━⬣\n\n┃ > Tu reporte ha sido enviado con éxito\n┃ > a los desarrolladores del bot.\n┃ > ¡Gracias por tu colaboración!\n\n╰━━〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐀𝐂𝐓𝐈𝐕𝐄 〕━━⬣`
+                text: `╭〔 ✅ ${fytBold('REPORTE ENVIADO')} 〕━⬣\n\n┃ > Tu reporte ha sido enviado con exito\n┃ > a los desarrolladores del bot.\n┃ > ¡Gracias por tu colaboracion!\n\n╰━━〔 ⚡ ${fytBold('SYSTEM ACTIVE')} 〕━━⬣`
             }, { quoted: m });
         } else {
             await sock.sendMessage(remoteJid, { react: { text: '❌', key: m.key } });
             await sock.sendMessage(remoteJid, {
-                text: `╭〔 ❌ 𝐄𝐑𝐑𝐎𝐑 𝐃𝐄 𝐄𝐍𝐕𝐈́𝐎 〕━⬣\n\n┃ > No se pudo enviar el reporte a los\n┃ > propietarios. Inténtalo más tarde.\n\n╰━━〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐀𝐂𝐓𝐈𝐕𝐄 〕━━⬣`
+                text: `╭〔 ❌ ${fytBold('ERROR DE ENVIO')} 〕━⬣\n\n┃ > No se pudo enviar el reporte a los\n┃ > propietarios. Intentalo mas tarde.\n\n╰━━〔 ⚡ ${fytBold('SYSTEM ACTIVE')} 〕━━⬣`
             }, { quoted: m });
         }
     }

@@ -1,4 +1,5 @@
 import downloader from '../../controllers/spotifyDownloader.js';
+import { fytBold } from '../../models/TextStyle.js';
 
 export default {
     name: ['spotify', 'sp', 'spotifydl'],
@@ -10,7 +11,7 @@ export default {
 
         if (!text) {
             return await socket.sendMessage(remoteJid, { 
-                text: '╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐅𝐀𝐋𝐓𝐀 𝐁𝐔́𝐒𝐐𝐔𝐄𝐃𝐀\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, proporciona un\n┃ > enlace de Spotify o una búsqueda.\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣' 
+                text: `╭〔 ⚠️ ${fytBold('AURA REED')} 〕⬣\n┃ ❌ ${fytBold('FALTA BUSQUEDA')}\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, proporciona un\n┃ > enlace de Spotify o una busqueda.\n\n╰〔 ⚡ ${fytBold('SYSTEM')} 〕⬣` 
             }, { quoted: message });
         }
 
@@ -26,20 +27,20 @@ export default {
             const cover = metadata.cover;
             const finalUrl = metadata.url || text;
 
-            let caption = `╭〔 🎵 𝐒𝐏𝐎𝐓𝐈𝐅𝐘 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃𝐄𝐑 〕━⬣\n\n`;
-            caption += `┃ 🔊 𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀𝐍𝐃𝐎 𝐀𝐑𝐂𝐇𝐈𝐕𝐎\n`;
-            caption += `┃ ⏳ 𝐄𝐬𝐩𝐞𝐫𝐞 𝐮𝐧 𝐦𝐨𝐦𝐞𝐧𝐭𝐨...\n\n`;
+            let caption = `╭〔 🎵 ${fytBold('SPOTIFY DOWNLOADER')} 〕━⬣\n\n`;
+            caption += `┃ 🔊 ${fytBold('DESCARGANDO ARCHIVO')}\n`;
+            caption += `┃ ⏳ Espere un momento...\n\n`;
             caption += `┣━━━━━━━━━━━━⬣\n\n`;
-            caption += `┃ ➥ 𝐃𝐞𝐬𝐜𝐚𝐫𝐠𝐚𝐧𝐝𝐨 › ${title}\n\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ 𝐀𝐫𝐭𝐢𝐬𝐭𝐚 › ${artist}\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ 𝐃𝐮𝐫𝐚𝐜𝐢𝐨́𝐧 › ${duration}\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ 𝐌𝐨𝐝𝐨 › Audio (MP3)\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ 𝐌𝐨𝐭𝐨𝐫 › ${downloadSource || 'Desconocido'}\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ 𝐄𝐧𝐥𝐚𝐜𝐞 › ${finalUrl}\n\n`;
+            caption += `┃ ➥ ${fytBold(title)}\n\n`;
+            caption += `┃ > ✿⃘࣪◌ ֪ Artista › ${artist}\n`;
+            caption += `┃ > ✿⃘࣪◌ ֪ Duracion › ${duration}\n`;
+            caption += `┃ > ✿⃘࣪◌ ֪ Modo › Audio (MP3)\n`;
+            caption += `┃ > ✿⃘࣪◌ ֪ Motor › ${downloadSource || 'Desconocido'}\n`;
+            caption += `┃ > ✿⃘࣪◌ ֪ Enlace › ${finalUrl}\n\n`;
             caption += `┣━━━━━━━━━━━━⬣\n\n`;
-            caption += `┃ 𐙚 ❀ ｡ ↻ 𝐄𝐥 𝐚𝐫𝐜𝐡𝐢𝐯𝐨 𝐬𝐞 𝐞𝐬𝐭𝐚́\n`;
-            caption += `┃ 𝐞𝐧𝐯𝐢𝐚𝐧𝐝𝐨, 𝐞𝐬𝐩𝐞𝐫𝐚 𝐮𝐧 𝐦𝐨𝐦𝐞𝐧𝐭𝐨...\n\n`;
-            caption += `╰━━〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐀𝐂𝐓𝐈𝐕𝐄 〕━━⬣`;
+            caption += `┃ 𐙚 ❀ ｡ ↻ El archivo se esta\n`;
+            caption += `┃ enviando, espera un momento...\n\n`;
+            caption += `╰━━〔 ⚡ ${fytBold('SYSTEM ACTIVE')} 〕━━⬣`;
 
             if (cover) {
                 await socket.sendMessage(remoteJid, { image: { url: cover }, caption }, { quoted: message });
@@ -60,7 +61,7 @@ export default {
             console.error('Error en Spotify Downloader:', error);
             await socket.sendMessage(remoteJid, { react: { text: '❌', key: message.key } });
             await socket.sendMessage(remoteJid, { 
-                text: `╭〔 ❌ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ⚠️ 𝐄𝐑𝐑𝐎𝐑 𝐃𝐄 𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message || 'Ocurrió un error inesperado.'}\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣` 
+                text: `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n┃ ⚠️ ${fytBold('ERROR DE DESCARGA')}\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message || 'Ocurrio un error inesperado.'}\n\n╰〔 ⚡ ${fytBold('SYSTEM')} 〕⬣` 
             }, { quoted: message });
         }
     }

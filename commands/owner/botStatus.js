@@ -1,4 +1,5 @@
 import os from 'os';
+import { fytBold } from '../../models/TextStyle.js';
 
 export default {
     name: ['status', 'botstatus', 'estado'],
@@ -18,15 +19,15 @@ export default {
         const totalMemory = os.totalmem() / 1024 / 1024 / 1024;
         const freeMemory = os.freemem() / 1024 / 1024 / 1024;
 
-        let text = `╭〔 📊 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
-        text += `┃ ⚙️ 𝐄𝐒𝐓𝐀𝐃𝐎 𝐃𝐄𝐋 𝐒𝐈𝐒𝐓𝐄𝐌𝐀\n`;
+        let text = `╭〔 📊 ${fytBold('AURA REED')} 〕⬣\n`;
+        text += `┃ ⚙️ ${fytBold('ESTADO DEL SISTEMA')}\n`;
         text += `╰━━━━━━━━━━━━⬣\n\n`;
-        text += `┃ ⏱️ 𝐔𝐩𝐭𝐢𝐦𝐞: ${hours}h ${minutes}m ${seconds}s\n`;
-        text += `┃ 🧠 𝐌𝐞𝐦. 𝐔𝐬𝐚𝐝𝐚: ${usedMemory.toFixed(2)} MB\n`;
-        text += `┃ 🖥️ 𝐒.𝐎.: ${os.platform()} ${os.arch()}\n`;
-        text += `┃ 💎 𝐌𝐞𝐦. 𝐓𝐨𝐭𝐚𝐥: ${totalMemory.toFixed(2)} GB\n`;
-        text += `┃ 🍃 𝐌𝐞𝐦. 𝐋𝐢𝐛𝐫𝐞: ${freeMemory.toFixed(2)} GB\n\n`;
-        text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
+        text += `┃ ⏱️ ${fytBold('Uptime:')} ${hours}h ${minutes}m ${seconds}s\n`;
+        text += `┃ 🧠 ${fytBold('Mem. Usada:')} ${usedMemory.toFixed(2)} MB\n`;
+        text += `┃ 🖥️ ${fytBold('S.O.:')} ${os.platform()} ${os.arch()}\n`;
+        text += `┃ 💎 ${fytBold('Mem. Total:')} ${totalMemory.toFixed(2)} GB\n`;
+        text += `┃ 🍃 ${fytBold('Mem. Libre:')} ${freeMemory.toFixed(2)} GB\n\n`;
+        text += `╰〔 ⚡ ${fytBold('SYSTEM')} 〕⬣`;
 
         await socket.sendMessage(remoteJid, { text }, { quoted: message });
     }

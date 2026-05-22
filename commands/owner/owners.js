@@ -4,26 +4,53 @@ export default {
     description: 'Muestra la información de los propietarios del bot.',
     ownerOnly: false,
 
-    execute: async (socket, message, args) => {
+    execute: async (socket, message, args, { db }) => {
         const remoteJid = message.key.remoteJid;
+
+        const owners = db.owners || [];
+        const ownerRoles = db.ownerRoles || {};
+
+        if (owners.length === 0) {
+            let text = `╭〔 👑 𝐎𝐖𝐍𝐄𝐑𝐒 〕⬣\n\n`;
+            text += `┃ > No hay propietarios registrados.\n\n`;
+            text += `╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣`;
+            return await socket.sendMessage(remoteJid, { text }, { quoted: message });
+        }
 
         let text = `╭〔 👑 𝐎𝐖𝐍𝐄𝐑𝐒 〕⬣\n\n`;
 
-        text += `┃ 👤 𝐃𝐮𝐞𝐧̃𝐨 𝐩𝐫𝐢𝐧𝐜𝐢𝐩𝐚𝐥\n`;
-        text += `┃ ➪ 𝐉𝐞𝐫𝐢𝐞𝐥 𝐁𝐞𝐜𝐤𝐟𝐨𝐫𝐝\n`;
-        text += `┃ 📞 +506 8923 7369\n\n`;
+        for (let i = 0; i < owners.length; i++) {
+            const jid = owners[i];
+            const numero = jid.split('@')[0];
+            const rol = (ownerRoles[jid] || 'Propietario')
+                .split(' ')
+                .filter(t => !/^@?\d{5,}$/.test(t))
+                .join(' ')
+                .trim() || 'Propietario';
 
-        text += `┣━━━━━━━━━━━━⬣\n\n`;
+            // Elegir ícono según el rol
+            let icon = '👑';
+            const rolLower = rol.toLowerCase();
+            if (rolLower.includes('colaborador')) icon = '🤝';
+            else if (rolLower.includes('diseñador') || rolLower.includes('disenador')) icon = '🎨';
+            else if (rolLower.includes('moderador')) icon = '🛡️';
+            else if (rolLower.includes('admin')) icon = '⚙️';
+            else if (rolLower.includes('developer') || rolLower.includes('dev')) icon = '💻';
 
-        text += `┃ 🎨 𝐃𝐢𝐬𝐞𝐧̃𝐚𝐝𝐨𝐫 𝐝𝐞𝐥 𝐛𝐨𝐭\n`;
-        text += `┃ ➪ 𝐄𝐌𝐀𝐍𝐔𝐄𝐋 𝐒𝐔𝐀𝐑𝐄𝐙\n`;
-        text += `┃ 📞 +505 7783 9681\n\n`;
+            text += `┃ ${icon} *${rol}*\n`;
+            text += `┃ ➪ @${numero}\n`;
+            text += `┃ 📞 +${numero}\n`;
 
-        text += `╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣`;
+            if (i < owners.length - 1) {
+                text += `┃\n┣━━━━━━━━━━━━⬣\n┃\n`;
+            }
+        }
+
+        text += `\n\n╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣`;
 
         await socket.sendMessage(remoteJid, {
             text,
-            mentions: ['50689237369@s.whatsapp.net', '50577839681@s.whatsapp.net']
+            mentions: owners
         }, { quoted: message });
     }
 };

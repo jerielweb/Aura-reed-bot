@@ -1,5 +1,6 @@
 import yts from 'yt-search';
 import downloader from '../../controllers/ytDownloader.js';
+import { fytBold } from '../../models/TextStyle.js';
 
 const YT_REGEX = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
 
@@ -25,7 +26,7 @@ export default {
         const text = args.join(' ').trim();
 
         if (!text) {
-            return await socket.sendMessage(remoteJid, { text: '╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐅𝐀𝐋𝐓𝐀 𝐁𝐔́𝐒𝐐𝐔𝐄𝐃𝐀\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, proporciona un\n┃ > nombre o enlace de canción.\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣' }, { quoted: message });
+            return await socket.sendMessage(remoteJid, { text: `╭〔 ⚠️ ${fytBold('AURA REED')} 〕⬣\n┃ ❌ ${fytBold('FALTA BUSQUEDA')}\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, proporciona un\n┃ > nombre o enlace de cancion.\n\n╰〔 ⚡ ${fytBold('SYSTEM')} 〕⬣` }, { quoted: message });
             await socket.sendMessage(remoteJid, { react: { text: '❓', key: message.key } });
         }
 
@@ -39,7 +40,7 @@ export default {
                 const search = await yts(text);
                 if (!search.videos?.length) {
                     await socket.sendMessage(remoteJid, { react: { text: '❌', key: message.key } });
-                    return await socket.sendMessage(remoteJid, { text: '╭〔 ❌ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ⚠️ 𝐒𝐈𝐍 𝐑𝐄𝐒𝐔𝐋𝐓𝐀𝐃𝐎𝐒\n╰━━━━━━━━━━━━⬣\n\n┃ > No se encontró ningún video.\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣' }, { quoted: message });
+                    return await socket.sendMessage(remoteJid, { text: `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n┃ ⚠️ ${fytBold('SIN RESULTADOS')}\n╰━━━━━━━━━━━━⬣\n\n┃ > No se encontro ningun video.\n\n╰〔 ⚡ ${fytBold('SYSTEM')} 〕⬣` }, { quoted: message });
                 }
                 videoData = search.videos[0];
                 finalUrl = videoData.url;
@@ -82,19 +83,19 @@ export default {
             const views = typeof videoData.views === 'number' ? videoData.views : 0;
             const thumbnail = videoData.thumbnail || videoData.image || `https://i.ytimg.com/vi/${extractVideoId(finalUrl) || 'default'}/hqdefault.jpg`;
 
-            let caption = `╭〔 🎵 𝐘𝐓 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃𝐄𝐑 〕━⬣\n\n`;
-            caption += `┃ 🔊 𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀𝐍𝐃𝐎 𝐀𝐑𝐂𝐇𝐈𝐕𝐎\n`;
-            caption += `┃ ⏳ 𝐄𝐬𝐩𝐞𝐫𝐞 𝐮𝐧 𝐦𝐨𝐦𝐞𝐧𝐭𝐨...\n\n`;
+            let caption = `╭〔 🎵 ${fytBold('YT DOWNLOADER')} 〕━⬣\n\n`;
+            caption += `┃ 🔊 ${fytBold('DESCARGANDO ARCHIVO')}\n`;
+            caption += `┃ ⏳ Espere un momento...\n\n`;
             caption += `┣━━━━━━━━━━━━⬣\n\n`;
-            caption += `┃ ➥ 𝐃𝐞𝐬𝐜𝐚𝐫𝐠𝐚𝐧𝐝𝐨 › ${title}\n\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ 𝐂𝐚𝐧𝐚𝐥 › ${author}\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ 𝐃𝐮𝐫𝐚𝐜𝐢𝐨́𝐧 › ${duration}\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ 𝐕𝐢𝐬𝐭𝐚𝐬 › ${views.toLocaleString()}\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ 𝐄𝐧𝐥𝐚𝐜𝐞 › ${finalUrl}\n\n`;
+            caption += `┃ ➥ ${fytBold(title)}\n\n`;
+            caption += `┃ > ✿⃘࣪◌ ֪ Canal › ${author}\n`;
+            caption += `┃ > ✿⃘࣪◌ ֪ Duracion › ${duration}\n`;
+            caption += `┃ > ✿⃘࣪◌ ֪ Vistas › ${views.toLocaleString()}\n`;
+            caption += `┃ > ✿⃘࣪◌ ֪ Enlace › ${finalUrl}\n\n`;
             caption += `┣━━━━━━━━━━━━⬣\n\n`;
-            caption += `┃ 𐙚 ❀ ｡ ↻ 𝐄𝐥 𝐚𝐫𝐜𝐡𝐢𝐯𝐨 𝐬𝐞 𝐞𝐬𝐭𝐚́\n`;
-            caption += `┃ 𝐞𝐧𝐯𝐢𝐚𝐧𝐝𝐨, 𝐞𝐬𝐩𝐞𝐫𝐚 𝐮𝐧 𝐦𝐨𝐦𝐞𝐧𝐭𝐨...\n\n`;
-            caption += `╰━━〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐀𝐂𝐓𝐈𝐕𝐄 〕━━⬣`;
+            caption += `┃ 𐙚 ❀ ｡ ↻ El archivo se esta\n`;
+            caption += `┃ enviando, espera un momento...\n\n`;
+            caption += `╰━━〔 ⚡ ${fytBold('SYSTEM ACTIVE')} 〕━━⬣`;
 
             await socket.sendMessage(remoteJid, { image: { url: thumbnail }, caption }, { quoted: message });
 
@@ -111,7 +112,7 @@ export default {
         } catch (error) {
             console.error('Error en ytmp3:', error);
             await socket.sendMessage(remoteJid, { react: { text: '❌', key: message.key } });
-            await socket.sendMessage(remoteJid, { text: `╭〔 ❌ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ⚠️ 𝐄𝐑𝐑𝐎𝐑 𝐃𝐄 𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message || 'Ocurrió un error inesperado.'}\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣` }, { quoted: message });
+            await socket.sendMessage(remoteJid, { text: `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n┃ ⚠️ ${fytBold('ERROR DE DESCARGA')}\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message || 'Ocurrio un error inesperado.'}\n\n╰〔 ⚡ ${fytBold('SYSTEM')} 〕⬣` }, { quoted: message });
         }
     }
 };

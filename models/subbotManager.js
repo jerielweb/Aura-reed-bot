@@ -15,13 +15,17 @@ const getDB = () => {
     return {
         prefix: dbData.prefix,
         owners: dbData.owners,
+        ownerRoles: dbData.ownerRoles || {},
         users: usersData.users || {},
         groups: groupsData.groups || {}
     };
 };
 
 const saveDB = (data) => {
-    fs.writeFileSync('./database/database.json', JSON.stringify({ prefix: data.prefix, owners: data.owners }, null, 2));
+    const roles = data.ownerRoles || {};
+    const dbToSave = { prefix: data.prefix, owners: data.owners };
+    if (Object.keys(roles).length > 0) dbToSave.ownerRoles = roles;
+    fs.writeFileSync('./database/database.json', JSON.stringify(dbToSave, null, 2));
     fs.writeFileSync('./database/users.json', JSON.stringify({ users: data.users }, null, 2));
     fs.writeFileSync('./database/groups.json', JSON.stringify({ groups: data.groups }, null, 2));
 };
