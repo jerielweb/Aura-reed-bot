@@ -107,27 +107,6 @@ export default {
     let captionText = `╭━━〔 ${fytBold('PINTEREST SEARCH')} 〕━━⬣\n`;
     captionText += `┃ 🔍 Pin: ${query}\n`;
     captionText += `┃ ⚙️ Motor: › ${result.source || 'Desconocido'}\n`;
-    captionText += `╰━━━━━━━━━━━━━━━━⬣\n\n`;
-
-    items.forEach((item, i) => {
-      const title = item.title || item.name || 'Sin título';
-      const author = item.username || item.author_username || 'Desconocido';
-      const likes = item.likes ?? item.likes?.toString() ?? '0';
-      
-      let link = '#';
-      const pinId = item.id || item.pinId || item.pin_id;
-      if (pinId && !String(pinId).startsWith('http')) {
-        link = `https://www.pinterest.com/pin/${pinId}`;
-      } else {
-        link = item.link || item.url || item.pin_url || item.hd || item.image || '#';
-      }
-
-      captionText += `┃ ${i + 1}. ${fytBold(title)}\n`;
-      captionText += `┃ ├ 👤 Autor › ${author}\n`;
-      captionText += `┃ ├ ❤️ Likes › ${likes}\n`;
-      captionText += `┃ └ 🔗 Enlace › ${link}\n\n`;
-    });
-
     captionText += `╰〔 ⚡ ${fytBold('AURA REED')} 〕⬣`;
 
     // Collect all image URLs

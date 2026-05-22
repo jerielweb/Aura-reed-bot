@@ -11,5 +11,7 @@
         "statusBar.debuggingForeground": "#FBFBFE",
         "statusBar.noFolderBackground": "#2E2267",
         "statusBar.noFolderForeground": "#FBFBFE"
-    }
+    },
+    "typescript.preferences.organizeImports": {},
+    "liveServer.settings.AdvanceCustomBrowserCmdLine": ""
 }
