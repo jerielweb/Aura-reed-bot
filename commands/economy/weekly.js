@@ -1,15 +1,12 @@
+import { getGroupUser } from '../../models/groupDb.js';
+
 export default {
     name: ['weekly', 'semanal'],
     category: 'economy',
     description: 'Reclama tu recompensa semanal.',
     execute: async (socket, message, args, { db, saveDB, jidRemitente }) => {
         const remoteJid = message.key.remoteJid;
-        
-        if (!db.users[jidRemitente]) {
-            db.users[jidRemitente] = { coins: 0, bank: 0, lastWeekly: 0 };
-        }
-
-        const user = db.users[jidRemitente];
+        const user = getGroupUser(db, remoteJid, jidRemitente, { coins: 0, bank: 0, lastWeekly: 0 });
         const now = Date.now();
         const cooldown = 7 * 24 * 60 * 60 * 1000; // 7 días
 

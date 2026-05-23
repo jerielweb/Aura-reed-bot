@@ -1,15 +1,12 @@
+import { getGroupUser } from '../../models/groupDb.js';
+
 export default {
     name: ['daily', 'diario'],
     category: 'economy',
     description: 'Reclama tu recompensa diaria.',
     execute: async (socket, message, args, { db, saveDB, jidRemitente }) => {
         const remoteJid = message.key.remoteJid;
-        
-        if (!db.users[jidRemitente]) {
-            db.users[jidRemitente] = { coins: 0, bank: 0, lastWork: 0, lastDaily: 0 };
-        }
-
-        const user = db.users[jidRemitente];
+        const user = getGroupUser(db, remoteJid, jidRemitente, { coins: 0, bank: 0, lastWork: 0, lastDaily: 0 });
         const now = Date.now();
         const cooldown = 24 * 60 * 60 * 1000; // 24 horas
 

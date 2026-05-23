@@ -22,7 +22,3 @@ export const fytBold = (texto) => {
     };
     return String(texto).split('').map(letra => mapa[letra] || letra).join('');
 };
-
-export const fytNormal = (texto2) => {
-    return String(texto2);
-};

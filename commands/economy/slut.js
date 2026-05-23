@@ -1,4 +1,5 @@
 import { economyTexts } from '../../models/economyTexts.js';
+import { getGroupUser } from '../../models/groupDb.js';
 
 export default {
     name: ['slut', 'putear', 'prost'],
@@ -6,12 +7,7 @@ export default {
     description: 'Vende tu cuerpo por dinero (con riesgo).',
     execute: async (socket, message, args, { db, saveDB, jidRemitente }) => {
         const remoteJid = message.key.remoteJid;
-        
-        if (!db.users[jidRemitente]) {
-            db.users[jidRemitente] = { coins: 0, bank: 0, lastSlut: 0 };
-        }
-
-        const user = db.users[jidRemitente];
+        const user = getGroupUser(db, remoteJid, jidRemitente, { coins: 0, bank: 0, lastSlut: 0 });
         const now = Date.now();
         const cooldown = 45 * 60 * 1000; // 45 minutos
 

@@ -1,11 +1,12 @@
 import fs from 'fs';
 import chalk from 'chalk';
 import { resolveLidToRealJid } from '../models/utils.js';
+import { trackGroupActivity } from '../models/groupDb.js';
 import { cmdLog } from './cmdLog.js';
 import { Rstr } from '../controllers/textBots.js';
 import { isCategoryEnabled, default as cmdManagerCmd } from './cmdManager.js';
 
-const categories = ['owner', 'system', 'group', 'downloads', 'economy', 'search', 'fun', 'utilities', 'sticker'];
+const categories = ['owner', 'system', 'group', 'downloads', 'economy', 'search', 'fun', 'utilities', 'sticker', 'profile'];
 
 let middlewareCache = null;
 let middlewareCacheTime = 0;
@@ -81,6 +82,10 @@ export async function handleMessage(sock, m, db, saveDB) {
     const jidResuelto = await resolveLidToRealJid(senderRaw, sock, remoteJid);
     const numeroReal = jidResuelto.split('@')[0].split(':')[0];
     const jidRemitente = `${numeroReal}@s.whatsapp.net`;
+
+    if (isGroup && !m.key.fromMe && trackGroupActivity(db, remoteJid, jidRemitente)) {
+        saveDB(db);
+    }
 
     // 2. DETECTAR RANGOS
     const owners = db.owners || [];
@@ -171,7 +176,7 @@ export async function handleMessage(sock, m, db, saveDB) {
                     return await sock.sendMessage(remoteJid, { text: Rstr.onlyOwner }, { quoted: m });
                 }
 
-                if (cat === 'group' && !isGroup) {
+                if ((cat === 'group' || cat === 'economy') && !isGroup) {
                     return await sock.sendMessage(remoteJid, { text: Rstr.onlyGroup }, { quoted: m });
                 }
 

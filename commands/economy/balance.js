@@ -1,16 +1,14 @@
+import { getGroupUser } from '../../models/groupDb.js';
+
 export default {
     name: ['bank', 'bal', 'coins'],
     category: 'economy',
     description: 'Muestra tu saldo actual de monedas.',
     execute: async (socket, message, args, { db, jidRemitente }) => {
         const remoteJid = message.key.remoteJid;
-
-        // Inicializar usuario si no existe
-        if (!db.users[jidRemitente]) {
-            db.users[jidRemitente] = { coins: 0, bank: 0, lastWork: 0, lastDaily: 0, lastWeekly: 0, lastMonthly: 0 };
-        }
-
-        const user = db.users[jidRemitente];
+        const user = getGroupUser(db, remoteJid, jidRemitente, {
+            coins: 0, bank: 0, lastWork: 0, lastDaily: 0, lastWeekly: 0, lastMonthly: 0
+        });
         const coins = user.coins || 0;
         const bank = user.bank || 0;
         const total = coins + bank;

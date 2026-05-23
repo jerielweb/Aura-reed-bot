@@ -1,15 +1,12 @@
+import { getGroupUser } from '../../models/groupDb.js';
+
 export default {
     name: ['deposit', 'd', 'dep'],
     category: 'economy',
     description: 'Deposita monedas en el banco para mantenerlas seguras.',
     execute: async (socket, message, args, { db, saveDB, jidRemitente }) => {
         const remoteJid = message.key.remoteJid;
-
-        if (!db.users[jidRemitente]) {
-            db.users[jidRemitente] = { coins: 0, bank: 0 };
-        }
-
-        const user = db.users[jidRemitente];
+        const user = getGroupUser(db, remoteJid, jidRemitente, { coins: 0, bank: 0 });
         let amount = args[0];
 
         if (!amount) {

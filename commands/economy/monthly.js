@@ -1,15 +1,12 @@
+import { getGroupUser } from '../../models/groupDb.js';
+
 export default {
     name: ['monthly', 'mensual'],
     category: 'economy',
     description: 'Reclama tu recompensa mensual gigante.',
     execute: async (socket, message, args, { db, saveDB, jidRemitente }) => {
         const remoteJid = message.key.remoteJid;
-        
-        if (!db.users[jidRemitente]) {
-            db.users[jidRemitente] = { coins: 0, bank: 0, lastMonthly: 0 };
-        }
-
-        const user = db.users[jidRemitente];
+        const user = getGroupUser(db, remoteJid, jidRemitente, { coins: 0, bank: 0, lastMonthly: 0 });
         const now = Date.now();
         const cooldown = 30 * 24 * 60 * 60 * 1000; // 30 días
 

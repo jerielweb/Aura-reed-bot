@@ -1,6 +1,4 @@
-import { createSubBot } from '../../models/subbotManager.js';
-import fs from 'fs';
-import path from 'path';
+import { createSubBot, canRegisterSubBot, resolveSubBotSenderId, SUB_LIMIT_MESSAGE } from '../../models/subbotManager.js';
 
 export default {
     name: ['code', 'qr'],
@@ -10,30 +8,24 @@ export default {
         const remoteJid = message.key.remoteJid;
         const sender = jidRemitente; // Usar el jid resuelto
 
+        const senderId = resolveSubBotSenderId(numeroReal, jidRemitente);
+
+        // 1. Límite de sub-bots (verificar cupo ANTES de todo)
+        if (!canRegisterSubBot(senderId)) {
+            return await socket.sendMessage(remoteJid, { text: SUB_LIMIT_MESSAGE }, { quoted: message });
+        }
+
         // Inicializar datos del usuario si no existen
         if (!db.users[sender]) {
             db.users[sender] = { Subs: 0 };
         }
 
-        // 1. Cooldown de 2 minutos (120000 ms)
+        // 2. Cooldown de 2 minutos (120000 ms)
         let lastSub = db.users[sender].Subs || 0;
         let now = Date.now();
         if (now - lastSub < 120000) {
             let timeLeft = msToTime(120000 - (now - lastSub));
             return await socket.sendMessage(remoteJid, { text: `ꕥ Debes esperar *${timeLeft}* para volver a intentar vincular un sub-bot.` }, { quoted: message });
-        }
-
-        // 2. Límite de sub-bots (50)
-        const sessionsDir = './sessions/subbots';
-        if (!fs.existsSync(sessionsDir)) fs.mkdirSync(sessionsDir, { recursive: true });
-        
-        const subsCount = fs.readdirSync(sessionsDir).filter(f => {
-            return fs.existsSync(path.join(sessionsDir, f, 'creds.json'));
-        }).length;
-
-        const maxSubs = 50;
-        if (subsCount >= maxSubs) {
-            return await socket.sendMessage(remoteJid, { text: '✐ No se han encontrado espacios disponibles para registrar un `Sub-Bot`.' }, { quoted: message });
         }
 
         // Instrucciones
@@ -56,7 +48,7 @@ export default {
             if (isCode) {
                 await createSubBot(socket, message, 'code', numeroReal);
             } else {
-                await createSubBot(socket, message, 'qr');
+                await createSubBot(socket, message, 'qr', numeroReal);
             }
         } catch (error) {
             console.error('Error en comando subs:', error);

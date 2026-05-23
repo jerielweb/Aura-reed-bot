@@ -1,4 +1,5 @@
 import { economyTexts } from '../../models/economyTexts.js';
+import { getGroupUser } from '../../models/groupDb.js';
 
 export default {
     name: ['crime', 'crimen'],
@@ -6,12 +7,7 @@ export default {
     description: 'Comete un crimen para ganar monedas, pero cuidado con la policía.',
     execute: async (socket, message, args, { db, saveDB, jidRemitente }) => {
         const remoteJid = message.key.remoteJid;
-        
-        if (!db.users[jidRemitente]) {
-            db.users[jidRemitente] = { coins: 0, bank: 0, lastCrime: 0 };
-        }
-
-        const user = db.users[jidRemitente];
+        const user = getGroupUser(db, remoteJid, jidRemitente, { coins: 0, bank: 0, lastCrime: 0 });
         const now = Date.now();
         const cooldown = 60 * 60 * 1000; // 1 hora
 

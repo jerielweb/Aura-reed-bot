@@ -1,4 +1,5 @@
 import { resolveLidToRealJid } from '../../models/utils.js';
+import { getGroupUser } from '../../models/groupDb.js';
 
 export default {
     name: ['transfer', 'pagar', 'pay'],
@@ -6,13 +7,7 @@ export default {
     description: 'Transfiere monedas a otro usuario.',
     execute: async (socket, message, args, { db, saveDB, jidRemitente }) => {
         const remoteJid = message.key.remoteJid;
-        const text = args.join(' ');
-
-        if (!db.users[jidRemitente]) {
-            db.users[jidRemitente] = { coins: 0, bank: 0 };
-        }
-
-        const user = db.users[jidRemitente];
+        const user = getGroupUser(db, remoteJid, jidRemitente, { coins: 0, bank: 0 });
         let amountStr = args[0];
         let amount = parseInt(amountStr);
 
@@ -28,6 +23,8 @@ export default {
             return await socket.sendMessage(remoteJid, { text: '⚠️ Debes mencionar o responder al mensaje del usuario al que quieres pagarle.\nEjemplo: *.pay 100 @usuario*' }, { quoted: message });
         }
 
+        targetJid = await resolveLidToRealJid(targetJid, socket, remoteJid);
+
         // Evitar pagarse a uno mismo
         if (targetJid === jidRemitente) {
             return await socket.sendMessage(remoteJid, { text: '❌ No puedes transferirte dinero a ti mismo.' }, { quoted: message });
@@ -41,13 +38,10 @@ export default {
             return await socket.sendMessage(remoteJid, { text: `❌ No tienes suficientes monedas en tu cartera para hacer la transferencia. Tienes *₡${user.coins || 0}*` }, { quoted: message });
         }
 
-        // Inicializar al receptor si no existe
-        if (!db.users[targetJid]) {
-            db.users[targetJid] = { coins: 0, bank: 0 };
-        }
+        const targetUser = getGroupUser(db, remoteJid, targetJid, { coins: 0, bank: 0 });
 
         user.coins -= amount;
-        db.users[targetJid].coins = (db.users[targetJid].coins || 0) + amount;
+        targetUser.coins = (targetUser.coins || 0) + amount;
         saveDB(db);
 
         let resText = `╭〔 💸 𝐓𝐑𝐀𝐍𝐒𝐅𝐄𝐑𝐄𝐍𝐂𝐈𝐀 〕⬣\n`;

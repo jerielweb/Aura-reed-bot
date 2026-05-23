@@ -1,18 +1,21 @@
+import { getGroupUsers } from '../../models/groupDb.js';
+
 export default {
     name: ['baltop', 'topbal', 'topcoins'],
     category: 'economy',
     description: 'Muestra quien tiene mas plata.',
     execute: async (socket, message, args, { db }) => {
         const remoteJid = message.key.remoteJid;
+        const groupUsers = getGroupUsers(db, remoteJid);
 
-        if (!db.users || Object.keys(db.users).length === 0) {
-            return await socket.sendMessage(remoteJid, { text: '⚠️ No hay usuarios registrados aún.' }, { quoted: message });
+        if (!groupUsers || Object.keys(groupUsers).length === 0) {
+            return await socket.sendMessage(remoteJid, { text: '⚠️ No hay usuarios registrados aún en este grupo.' }, { quoted: message });
         }
 
         const requested = parseInt(args[0]) || 10;
         const topN = Math.min(Math.max(requested, 1), 20); // entre 1 y 20
 
-        const usersArr = Object.entries(db.users).map(([jid, data]) => {
+        const usersArr = Object.entries(groupUsers).map(([jid, data]) => {
             const coins = data.coins || 0;
             const bank = data.bank || 0;
             const total = coins + bank;
@@ -31,7 +34,7 @@ export default {
         const medals = ['🥇', '🥈', '🥉', '🎖️'];
         let text = `╭━━〔 💎 𝐁𝐀𝐋𝐀𝐍𝐂𝐄 𝐓𝐎𝐏 💎 〕━━⬣\n`;
         text += `┃ 🏆 𝐑𝐀𝐍𝐊𝐈𝐍𝐆 𝐃𝐄 𝐌𝐎𝐍𝐄𝐃𝐀𝐒\n`;
-        text += `┃ 👑 𝐋𝐨𝐬 𝐦𝐚́𝐬 𝐫𝐢𝐜𝐨𝐬 𝐝𝐞𝐥 𝐬𝐢𝐬𝐭𝐞𝐦𝐚\n`;
+        text += `┃ 👑 𝐋𝐨𝐬 𝐦𝐚́𝐬 𝐫𝐢𝐜𝐨𝐬 𝐝𝐞 𝐞𝐬𝐭𝐞 𝐠𝐫𝐮𝐩𝐨\n`;
         text += `╰━━━━━━━━━━━━━━━━⬣\n\n`;
 
         const mentions = [];

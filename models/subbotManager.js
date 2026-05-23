@@ -1,40 +1,108 @@
 import makeWASocket, { useMultiFileAuthState, makeCacheableSignalKeyStore, DisconnectReason } from '@whiskeysockets/baileys';
 import pino from 'pino';
 import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import QRCode from 'qrcode';
 import { Boom } from '@hapi/boom';
 import { handleMessage } from '../controllers/msgHandler.js';
+import { stripEconomyFromUsers } from './groupDb.js';
 
-const sessionsDir = './sessions/subbots';
+export const SUB_LIMIT_MESSAGE = '✐ No se han encontrado espacios disponibles para registrar un `Sub-Bot`.';
+
+/** Lee el límite en cada llamada (sin caché de módulo; editable en database.json). */
+export function getMaxSubBots() {
+    try {
+        const db = JSON.parse(fs.readFileSync(path.join(databaseDir, 'database.json'), 'utf-8'));
+        const max = Number(db.maxSubBots);
+        return Number.isFinite(max) && max >= 0 ? max : 15;
+    } catch {
+        return 15;
+    }
+}
+
+const ROOT_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+const sessionsDir = path.join(ROOT_DIR, 'sessions', 'subbots');
+const databaseDir = path.join(ROOT_DIR, 'database');
+
 if (!fs.existsSync(sessionsDir)) fs.mkdirSync(sessionsDir, { recursive: true });
 
 const getDB = () => {
-    const dbData = JSON.parse(fs.readFileSync('./database/database.json', 'utf-8'));
-    const usersData = JSON.parse(fs.readFileSync('./database/users.json', 'utf-8'));
-    const groupsData = JSON.parse(fs.readFileSync('./database/groups.json', 'utf-8'));
+    const dbData = JSON.parse(fs.readFileSync(path.join(databaseDir, 'database.json'), 'utf-8'));
+    const usersData = JSON.parse(fs.readFileSync(path.join(databaseDir, 'users.json'), 'utf-8'));
+    const groupsData = JSON.parse(fs.readFileSync(path.join(databaseDir, 'groups.json'), 'utf-8'));
     return {
         prefix: dbData.prefix,
         owners: dbData.owners,
         ownerRoles: dbData.ownerRoles || {},
-        users: usersData.users || {},
+        users: stripEconomyFromUsers(usersData.users || {}),
         groups: groupsData.groups || {}
     };
 };
 
 const saveDB = (data) => {
     const roles = data.ownerRoles || {};
-    const dbToSave = { prefix: data.prefix, owners: data.owners };
+    const existing = JSON.parse(fs.readFileSync(path.join(databaseDir, 'database.json'), 'utf-8'));
+    const dbToSave = {
+        prefix: data.prefix,
+        owners: data.owners,
+        maxSubBots: data.maxSubBots ?? existing.maxSubBots ?? 15
+    };
     if (Object.keys(roles).length > 0) dbToSave.ownerRoles = roles;
-    fs.writeFileSync('./database/database.json', JSON.stringify(dbToSave, null, 2));
-    fs.writeFileSync('./database/users.json', JSON.stringify({ users: data.users }, null, 2));
-    fs.writeFileSync('./database/groups.json', JSON.stringify({ groups: data.groups }, null, 2));
+    fs.writeFileSync(path.join(databaseDir, 'database.json'), JSON.stringify(dbToSave, null, 2));
+    fs.writeFileSync(path.join(databaseDir, 'users.json'), JSON.stringify({ users: stripEconomyFromUsers(data.users) }, null, 2));
+    fs.writeFileSync(path.join(databaseDir, 'groups.json'), JSON.stringify({ groups: data.groups }, null, 2));
 };
 
 // Mapa para rastrear sockets activos de sub-bots
 const activeSubBots = new Map();
 
+/** Lista carpetas de sesión con creds.json válido. */
+export function listActiveSubBotSessions() {
+    if (!fs.existsSync(sessionsDir)) return [];
+    return fs.readdirSync(sessionsDir, { withFileTypes: true })
+        .filter(entry => entry.isDirectory())
+        .map(entry => entry.name)
+        .filter(name => fs.existsSync(path.join(sessionsDir, name, 'creds.json')));
+}
+
+export function countActiveSubBots() {
+    return listActiveSubBotSessions().length;
+}
+
+export function getSubBotSlotStatus(senderId) {
+    const max = getMaxSubBots();
+    const id = resolveSubBotSenderId(senderId, null);
+    const active = listActiveSubBotSessions();
+    const count = active.length;
+    const hasOwn = id ? active.includes(id) : false;
+    const available = Math.max(0, max - count);
+    return { id, count, max, available, hasOwn };
+}
+
+export function resolveSubBotSenderId(phoneNumber, jidRemitente) {
+    if (phoneNumber) return String(phoneNumber).replace(/\D/g, '');
+    if (jidRemitente) return jidRemitente.split('@')[0].split(':')[0];
+    return null;
+}
+
+/**
+ * true = puede vincular.
+ * - Hay cupo libre (count < max): usuario nuevo.
+ * - Cupo lleno: solo quien ya tiene sub-bot (re-vinculación).
+ */
+export function canRegisterSubBot(senderId) {
+    const { id, count, max, available, hasOwn } = getSubBotSlotStatus(senderId);
+    if (!id) return false;
+    if (max <= 0) return false;
+    if (available > 0) return true;
+    if (hasOwn) return true;
+    return false;
+}
+
+
 export async function stopSubBot(senderId) {
-    const sessionPath = `${sessionsDir}/${senderId}`;
+    const sessionPath = path.join(sessionsDir, senderId);
     let handled = false;
     if (activeSubBots.has(senderId)) {
         try {
@@ -62,8 +130,13 @@ export async function stopSubBot(senderId) {
 export async function createSubBot(sock, m, type, phoneNumber = null) {
     const remoteJid = m.key.remoteJid;
     const sender = m.key.participant || m.key.remoteJid;
-    const senderId = sender.split('@')[0].split(':')[0];
-    const sessionPath = `${sessionsDir}/${senderId}`;
+    const senderId = resolveSubBotSenderId(phoneNumber, null) || sender.split('@')[0].split(':')[0];
+    const sessionPath = path.join(sessionsDir, senderId);
+
+    if (!canRegisterSubBot(senderId)) {
+        await sock.sendMessage(remoteJid, { text: SUB_LIMIT_MESSAGE }, { quoted: m });
+        return;
+    }
 
     if (fs.existsSync(sessionPath)) {
         fs.rmSync(sessionPath, { recursive: true, force: true });

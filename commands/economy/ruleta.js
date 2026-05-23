@@ -1,15 +1,12 @@
+import { getGroupUser } from '../../models/groupDb.js';
+
 export default {
     name: ['ruleta', 'roulette', 'rt'],
     category: 'economy',
     description: 'Juega a la ruleta.',
     execute: async (socket, message, args, { db, saveDB, jidRemitente }) => {
         const remoteJid = message.key.remoteJid;
-
-        if (!db.users[jidRemitente]) {
-            db.users[jidRemitente] = { coins: 0, bank: 0 };
-        }
-
-        const user = db.users[jidRemitente];
+        const user = getGroupUser(db, remoteJid, jidRemitente, { coins: 0, bank: 0 });
         const amount = parseInt(args[0]);
         const color = args[1]?.toLowerCase();
 

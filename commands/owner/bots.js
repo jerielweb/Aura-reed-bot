@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { countActiveSubBots, getMaxSubBots } from '../../models/subbotManager.js';
 
 export default {
     name: ['bots', 'subbots', 'lista-bots'],
@@ -22,9 +23,13 @@ export default {
 
         const files = fs.readdirSync(sessionsDir);
         
+        const activeCount = countActiveSubBots();
+        const maxSubs = getMaxSubBots();
+
         let text = `╭〔 🔌 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
         text += `┃ 🤖 𝐒𝐔𝐁-𝐁𝐎𝐓𝐒 𝐀𝐂𝐓𝐈𝐕𝐎𝐒\n`;
         text += `╰━━━━━━━━━━━━⬣\n\n`;
+        text += `┃ 📊 𝐒𝐞𝐬𝐢𝐨𝐧𝐞𝐬: *${activeCount}/${maxSubs}*\n\n`;
 
         if (files.length === 0) {
             text += `┃ > No hay sesiones activas.\n`;

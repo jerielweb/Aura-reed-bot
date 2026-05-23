@@ -1,15 +1,12 @@
+import { getGroupUser } from '../../models/groupDb.js';
+
 export default {
     name: ['einfo', 'economia'],
     category: 'economy',
     description: 'Muestra información sobre cómo funciona la economía del bot.',
-    execute: async (socket, message, args, { db }) => {
+    execute: async (socket, message, args, { db, jidRemitente }) => {
         const remoteJid = message.key.remoteJid;
-        const sender = message.key.participant || message.key.remoteJid;
-
-        // Inicializar datos del usuario si no existen
-        if (!db.users) db.users = {};
-        if (!db.users[sender]) db.users[sender] = {};
-        const user = db.users[sender];
+        const user = getGroupUser(db, remoteJid, jidRemitente, {});
 
         const now = Date.now();
         

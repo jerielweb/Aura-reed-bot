@@ -7,6 +7,7 @@ import chalk from 'chalk';
 import './models/settings.js';
 import { handleMessage } from './controllers/msgHandler.js';
 import { handleGroupUpdate } from './controllers/groupEvents.js';
+import { stripEconomyFromUsers } from './models/groupDb.js';
 
 const getDB = () => {
     const dbData = JSON.parse(fs.readFileSync('./database/database.json', 'utf-8'));
@@ -16,17 +17,23 @@ const getDB = () => {
         prefix: dbData.prefix,
         owners: dbData.owners,
         ownerRoles: dbData.ownerRoles || {},
-        users: usersData.users || {},
+        maxSubBots: Number.isFinite(Number(dbData.maxSubBots)) ? Number(dbData.maxSubBots) : 15,
+        users: stripEconomyFromUsers(usersData.users || {}),
         groups: groupsData.groups || {}
     };
 };
 
 const saveDB = (data) => {
     const roles = data.ownerRoles || {};
-    const dbToSave = { prefix: data.prefix, owners: data.owners };
+    const existing = JSON.parse(fs.readFileSync('./database/database.json', 'utf-8'));
+    const dbToSave = {
+        prefix: data.prefix,
+        owners: data.owners,
+        maxSubBots: data.maxSubBots ?? existing.maxSubBots ?? 15
+    };
     if (Object.keys(roles).length > 0) dbToSave.ownerRoles = roles;
     fs.writeFileSync('./database/database.json', JSON.stringify(dbToSave, null, 2));
-    fs.writeFileSync('./database/users.json', JSON.stringify({ users: data.users }, null, 2));
+    fs.writeFileSync('./database/users.json', JSON.stringify({ users: stripEconomyFromUsers(data.users) }, null, 2));
     fs.writeFileSync('./database/groups.json', JSON.stringify({ groups: data.groups }, null, 2));
 };
 
