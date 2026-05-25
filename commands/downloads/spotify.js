@@ -2,7 +2,7 @@ import downloader from '../../controllers/spotifyDownloader.js';
 import { fytBold } from '../../models/TextStyle.js';
 
 export default {
-    name: ['spotify', 'sp', 'spotifydl'],
+    name: ['spotify', 'sp', 'spotifydl', 'spotifydownload', 'spt', 'spotifyaudio', 'spta'],
     category: 'downloads',
     description: 'Busca y descarga canciones de Spotify.',
     execute: async (socket, message, args) => {
@@ -32,14 +32,14 @@ export default {
             caption += `┃ ⏳ Espere un momento...\n\n`;
             caption += `┣━━━━━━━━━━━━⬣\n\n`;
             caption += `┃ ➥ ${fytBold(title)}\n\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ Artista › ${artist}\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ Duracion › ${duration}\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ Modo › Audio (MP3)\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ Motor › ${downloadSource || 'Desconocido'}\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ Enlace › ${finalUrl}\n\n`;
+            caption += `┃ > Artista › ${artist}\n`;
+            caption += `┃ > Duracion › ${duration}\n`;
+            caption += `┃ > Modo › Audio (MP3)\n`;
+            caption += `┃ > Motor › ${downloadSource || 'Desconocido'}\n`;
+            caption += `┃ > Enlace › ${finalUrl}\n\n`;
             caption += `┣━━━━━━━━━━━━⬣\n\n`;
-            caption += `┃ 𐙚 ❀ ｡ ↻ El archivo se esta\n`;
-            caption += `┃ enviando, espera un momento...\n\n`;
+            caption += `┃ > El archivo se esta\n`;
+            caption += `┃ > enviando, espera un momento...\n\n`;
             caption += `╰━━〔 ⚡ ${fytBold('SYSTEM ACTIVE')} 〕━━⬣`;
 
             if (cover) {

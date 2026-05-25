@@ -2,7 +2,7 @@ import { getGroupUser } from '../../models/groupDb.js';
 import { GENRES } from '../../models/profileUtils.js';
 
 export default {
-    name: ['setgenre', 'género', 'genero'],
+    name: ['setgenre', 'género', 'genero', 'setgen', 'sg'],
     category: 'profile',
     description: 'Define tu género en el perfil del grupo.',
     execute: async (socket, message, args, { db, saveDB, jidRemitente }) => {

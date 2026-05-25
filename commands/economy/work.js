@@ -1,15 +1,16 @@
 import { economyTexts } from '../../models/economyTexts.js';
 import { getGroupUser } from '../../models/groupDb.js';
+import formatter from '../../controllers/functions/formatNumbers.js';
 
 export default {
-    name: ['work', 'trabajar', 'w'],
+    name: ['work', 'trabajar', 'w', 'job', 'empleo'],
     category: 'economy',
     description: 'Trabaja para ganar algunas monedas.',
     execute: async (socket, message, args, { db, saveDB, jidRemitente }) => {
         const remoteJid = message.key.remoteJid;
         const user = getGroupUser(db, remoteJid, jidRemitente, { coins: 0, bank: 0, lastWork: 0, lastDaily: 0 });
         const now = Date.now();
-        const cooldown = 10 * 60 * 1000; // 1 minutos
+        const cooldown = 5 * 60 * 1000; // 5 minutos
 
         if (user.lastWork && now - user.lastWork < cooldown) {
             const timeLeft = cooldown - (now - user.lastWork);
@@ -34,7 +35,7 @@ export default {
         text += `╰━━━━━━━━━━━━⬣\n\n`;
         text += `┃ 👋 *${message.pushName || 'Usuario'}*\n`;
         text += `┃ 🛠️ ${randomWork} *₡${reward}*\n`;
-        text += `┃ 💵 𝐒𝐚𝐥𝐝𝐨 𝐚𝐜𝐭𝐮𝐚𝐥: ₡${user.coins}\n\n`;
+        text += `┃ 💵 𝐒𝐚𝐥𝐝𝐨 𝐚𝐜𝐭𝐮𝐚𝐥: ₡${formatter(user.coins)}\n\n`;
         text += `╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣`;
 
         await socket.sendMessage(remoteJid, { text, mentions: [jidRemitente] }, { quoted: message });

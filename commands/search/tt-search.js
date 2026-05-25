@@ -1,4 +1,5 @@
 import axios from 'axios';
+import formatter from '../../controllers/functions/formatNumbers';
 
 export default {
     name: ['ttsearch', 'tiktoksearch', 'tts'],
@@ -69,8 +70,8 @@ export default {
                             title: video.title,
                             author: video.author.nickname,
                             username: video.author.username,
-                            views: formatNumber(video.play),
-                            likes: formatNumber(video.like),
+                            views: formatter(video.play),
+                            likes: formatter(video.like),
                             duration: formatDuration(video.duration),
                             music: video.music.title,
                             tiktok_url: video.url,
@@ -111,7 +112,8 @@ export default {
         result.results.forEach((video, i) => {
             text += `┃ ${i + 1}. ${video.title}\n`;
             text += `┃ ├ 👤 @${video.username} (${video.author})\n`;
-            text += `┃ ├ 👁️ ${video.views} | ❤️ ${video.likes}\n`;
+            text += `┃ ├ 👁️ ${video.views}\n`;
+            text += `┃ ├ ❤️ ${video.likes}\n`;
             text += `┃ ├ 🎵 ${video.music.substring(0, 40)}${video.music.length > 40 ? '...' : ''}\n`;
             text += `┃ ├ ⏱️ ${video.duration}\n`;
             text += `┃ └ 🎥 ${video.tiktok_url}\n\n`;
@@ -129,22 +131,6 @@ export default {
     }
 };
 
-
-/**
- * Formatea números para hacerlos más legibles
- * @param {number} num - Número a formatear
- * @returns {string} - Número formateado
- */
-function formatNumber(num) {
-    if (!num) return '0';
-    if (num >= 1000000) {
-        return (num / 1000000).toFixed(1) + 'M';
-    }
-    if (num >= 1000) {
-        return (num / 1000).toFixed(1) + 'K';
-    }
-    return num.toString();
-}
 
 /**
  * Convierte segundos a formato MM:SS

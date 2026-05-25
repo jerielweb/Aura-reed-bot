@@ -39,7 +39,7 @@ export default {
 
                             if (cmd && cmd.name) {
                                 const formattedNames = Array.isArray(cmd.name)
-                                    ? cmd.name.map(n => prefix + n).join(' • ')
+                                    ? cmd.name.map(n => prefix + n).slice(0, 3).join(' • ')
                                     : prefix + cmd.name;
                                     textoMenu += `┃ ➪ ${fytBold(formattedNames)}\n`;
                                 if (cmd.description) {

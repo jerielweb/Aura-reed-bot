@@ -6,7 +6,7 @@ import {
 } from '../../models/profileUtils.js';
 
 export default {
-    name: ['profile', 'perfil', 'me'],
+    name: ['profile', 'perfil', 'me', 'user', 'whois'],
     category: 'profile',
     description: 'Muestra tu perfil o el de un usuario mencionado.',
     execute: async (socket, message, args, { db, jidRemitente }) => {

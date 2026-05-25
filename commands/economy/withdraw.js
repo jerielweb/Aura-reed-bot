@@ -1,4 +1,5 @@
 import { getGroupUser } from '../../models/groupDb.js';
+import formatter from '../../controllers/functions/formatNumbers.js';
 
 export default {
     name: ['withdraw', 'retirar', 'with'],
@@ -36,8 +37,8 @@ export default {
         text += `╰━━━━━━━━━━━━⬣\n\n`;
         text += `┃ 👋 *${message.pushName || 'Usuario'}*\n`;
         text += `┃ 📤 𝐑𝐞𝐭𝐢𝐫𝐚𝐬𝐭𝐞: ₡${amount.toLocaleString()}\n`;
-        text += `┃ 💵 𝐍𝐮𝐞𝐯𝐨 𝐒𝐚𝐥𝐝𝐨 𝐂𝐚𝐫𝐭𝐞𝐫𝐚: ₡${user.coins.toLocaleString()}\n`;
-        text += `┃ 🏦 𝐅𝐨𝐧𝐝𝐨𝐬 𝐫𝐞𝐬𝐭𝐚𝐧𝐭𝐞𝐬: ₡${user.bank.toLocaleString()}\n\n`;
+        text += `┃ 💵 𝐍𝐮𝐞𝐯𝐨 𝐒𝐚𝐥𝐝𝐨 𝐂𝐚𝐫𝐭𝐞𝐫𝐚: ₡${formatter(user.coins)}\n`;
+        text += `┃ 🏦 𝐅𝐨𝐧𝐝𝐨𝐬 𝐫𝐞𝐬𝐭𝐚𝐧𝐭𝐞𝐬: ₡${formatter(user.bank)}\n\n`;
         text += `╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣`;
 
         await socket.sendMessage(remoteJid, { text, mentions: [jidRemitente] }, { quoted: message });

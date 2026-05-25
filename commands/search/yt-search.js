@@ -1,4 +1,5 @@
 import axios from 'axios';
+import formatter from '../../controllers/functions/formatNumbers.js';
 
 export default {
     name: ['ytsearch', 'yts', 'plays'],
@@ -25,7 +26,7 @@ export default {
                             title: item.title,
                             author: item.channel || 'Desconocido',
                             duration: item.duration || 'N/A',
-                            views: item.views?.toLocaleString() || 'N/A',
+                            views: item.views || 'N/A',
                             image: item.imageUrl,
                             url: item.link
                         }))
@@ -47,7 +48,7 @@ export default {
                             title: item.title,
                             author: item.author?.name || 'Desconocido',
                             duration: item.duration,
-                            views: item.views?.toLocaleString(),
+                            views: item.views,
                             image: item.image,
                             url: item.url
                         }))
@@ -79,7 +80,7 @@ export default {
             text += `┃ ${i + 1}. *${video.title}*\n`;
             text += `┃ ├ 👤 ${video.author}\n`;
             text += `┃ ├ ⏱️ ${video.duration}\n`;
-            text += `┃ ├ 👁️ ${video.views}\n`;
+            text += `┃ ├ 👁️ ${formatter(video.views)}\n`;
             text += `┃ └ 🔗 ${video.url}\n\n`;
         });
 

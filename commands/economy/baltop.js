@@ -1,4 +1,5 @@
 import { getGroupUsers } from '../../models/groupDb.js';
+import formatter from '../../controllers/functions/formatNumbers.js';
 
 export default {
     name: ['baltop', 'topbal', 'topcoins'],
@@ -44,7 +45,7 @@ export default {
             const medal = medals[i] || medals[medals.length - 1];
 
             text += `┃ ${medal} @${name}\n`;
-            text += `┃ ₡ ${u.total.toLocaleString()} AuraCoins\n\n`;
+            text += `┃ ₡ ${formatter(u.total)} AuraCoins\n\n`;
 
             if (i < top.length - 1) {
                 text += `┣━━━━━━━━━━━━━━━━⬣\n\n`;

@@ -134,8 +134,17 @@ export async function handleMessage(sock, m, db, saveDB) {
 
     await sock.readMessages([m.key]);
 
+    // LOG DE TEXTO NORMAL (No es comando)
     if (!text.startsWith(db.prefix)) {
-        cmdLog({ numeroReal, rango: rangoLog, isGroup, text });
+        cmdLog({
+            numeroReal,
+            rango: rangoLog,
+            isGroup,
+            text,
+            pushName: m.pushName,
+            groupMetadata: groupMetadata,
+            m: m
+        });
     }
 
     // 3. EJECUTAR MIDDLEWARES
@@ -160,7 +169,18 @@ export async function handleMessage(sock, m, db, saveDB) {
     const commandName = args.shift().toLowerCase();
     const rango = isOwner ? 'OWNER 👑' : (isAdmin ? 'ADMIN 🛡️' : 'USUARIO 👤');
 
-    cmdLog({ numeroReal, rango, commandName, isGroup });
+    // LOG DE COMANDOS (Corregido para pasar todas las propiedades necesarias al cmdLog)
+    cmdLog({ 
+        numeroReal, 
+        rango, 
+        commandName, 
+        isGroup,
+        text,
+        pushName: m.pushName,
+        groupMetadata: groupMetadata,
+        m: m,
+        prefix: db.prefix
+    });
 
     try {
         const allCommands = await loadCommands();

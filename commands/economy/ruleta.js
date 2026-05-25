@@ -1,4 +1,5 @@
 import { getGroupUser } from '../../models/groupDb.js';
+import formatter from '../../controllers/functions/formatNumbers.js';
 
 export default {
     name: ['ruleta', 'roulette', 'rt'],
@@ -53,15 +54,15 @@ export default {
                 text += `┃ ${resultColor} - 2𝐱\n\n`;
             }
             user.coins += winnings;
-            text += `┃ 💰 𝐆𝐚𝐧𝐚𝐧𝐜𝐢𝐚: ₡${winnings.toLocaleString()}\n`;
+            text += `┃ 💰 𝐆𝐚𝐧𝐚𝐧𝐜𝐢𝐚: ₡${formatter(winnings)}\n`;
         } else {
             text += `┃ ❌ 𝐏𝐞𝐫𝐝𝐢𝐬𝐭𝐞\n`;
             text += `┃ 🎡 𝐑𝐞𝐬𝐮𝐥𝐭𝐚𝐝𝐨: ${resultColor}\n`;
             text += `┃ 🎯 𝐀𝐩𝐨𝐬𝐭𝐚𝐞𝐭𝐞 𝐞𝐧: ${color === 'red' ? '🔴 RED' : color === 'black' ? '⚫ BLACK' : '🟢 GREEN'}\n\n`;
-            text += `┃ 💸 𝐏𝐞́𝐫𝐝𝐢𝐝𝐚: ₡${amount.toLocaleString()}\n`;
+            text += `┃ 💸 𝐏𝐞́𝐫𝐝𝐢𝐝𝐚: ₡${formatter(amount)}\n`;
         }
 
-        text += `┃ 💵 𝐂𝐚𝐫𝐭𝐞𝐫𝐚: ₡${user.coins.toLocaleString()}\n\n`;
+        text += `┃ 💵 𝐂𝐚𝐫𝐭𝐞𝐫𝐚: ₡${formatter(user.coins)}\n\n`;
         text += `╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣`;
 
         saveDB(db);

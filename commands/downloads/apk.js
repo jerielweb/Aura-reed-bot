@@ -67,7 +67,7 @@ function normalize(apiResult, motorName) {
 }
 
 export default {
-    name: ['apk', 'apkdl'],
+    name: ['apk', 'apkdl', 'apkd', 'apks', 'apkdownload', 'androidapp', 'app'],
     category: 'downloads',
     description: 'Descarga archivos APK de Android.',
     execute: async (socket, message, args) => {
@@ -140,14 +140,14 @@ export default {
             caption += `┃ ⏳ 𝐄𝐬𝐩𝐞𝐫𝐞 𝐮𝐧 𝐦𝐨𝐦𝐞𝐧𝐭𝐨...\n\n`;
             caption += `┣━━━━━━━━━━━━⬣\n\n`;
             caption += `┃ ➥ 𝐀𝐩𝐥𝐢𝐜𝐚𝐜𝐢𝐨́𝐧 › ${name || 'Desconocida'}\n\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ 𝐏𝐚𝐪𝐮𝐞𝐭𝐞 › ${packageId || 'Desconocido'}\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ 𝐓𝐚𝐦𝐚𝐧̃𝐨 › ${size || 'N/A'}\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ 𝐀𝐜𝐭𝐮𝐚𝐥𝐢𝐳𝐚𝐝𝐨 › ${lastUpdated || 'N/A'}\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ 𝐌𝐨𝐝𝐨 › Aplicación (APK)\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ 𝐌𝐨𝐭𝐨𝐫 › ${motorLabel}\n\n`;
+            caption += `┃ > 𝐏𝐚𝐪𝐮𝐞𝐭𝐞 › ${packageId || 'Desconocido'}\n`;
+            caption += `┃ > 𝐓𝐚𝐦𝐚𝐧̃𝐨 › ${size || 'N/A'}\n`;
+            caption += `┃ > 𝐀𝐜𝐭𝐮𝐚𝐥𝐢𝐳𝐚𝐝𝐨 › ${lastUpdated || 'N/A'}\n`;
+            caption += `┃ > 𝐌𝐨𝐝𝐨 › Aplicación (APK)\n`;
+            caption += `┃ > 𝐌𝐨𝐭𝐨𝐫 › ${motorLabel}\n\n`;
             caption += `┣━━━━━━━━━━━━⬣\n\n`;
-            caption += `┃ 𐙚 ❀ ｡ ↻ 𝐄𝐥 𝐚𝐫𝐜𝐡ι𝐯𝐨 𝐬𝐞 𝐞𝐬𝐭𝐚́\n`;
-            caption += `┃ 𝐞𝐧𝐯𝐢𝐚𝐧𝐝𝐨, 𝐞𝐬𝐩𝐞𝐫𝐚 𝐮𝐧 𝐦𝐨𝐦𝐞𝐧𝐭𝐨...\n\n`;
+            caption += `┃ > 𝐄𝐥 𝐚𝐫𝐜𝐡ι𝐯𝐨 𝐬𝐞 𝐞𝐬𝐭𝐚́\n`;
+            caption += `┃ > 𝐞𝐧𝐯𝐢𝐚𝐧𝐝𝐨, 𝐞𝐬𝐩𝐞𝐫𝐚 𝐮𝐧 𝐦𝐨𝐦𝐞𝐧𝐭𝐨...\n\n`;
             caption += `╰━━〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐀𝐂𝐓𝐈𝐕𝐄 〕━━⬣`;
 
             if (banner) {

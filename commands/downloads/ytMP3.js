@@ -1,5 +1,6 @@
 import yts from 'yt-search';
 import downloader from '../../controllers/ytDownloader.js';
+import formatter from '../../controllers/functions/formatNumbers.js';
 import { fytBold } from '../../models/TextStyle.js';
 
 const YT_REGEX = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
@@ -18,7 +19,7 @@ function extractVideoId(url) {
 }
 
 export default {
-    name: ['ytmp3', 'play', 'playaudio'],
+    name: ['ytmp3', 'play', 'playaudio', 'mp3', 'yta', 'audio'],
     category: 'downloads',
     description: 'Busca y descarga audio de YouTube.',
     execute: async (socket, message, args) => {
@@ -90,7 +91,7 @@ export default {
             caption += `┃ ➥ ${fytBold(title)}\n\n`;
             caption += `┃ > ✿⃘࣪◌ ֪ Canal › ${author}\n`;
             caption += `┃ > ✿⃘࣪◌ ֪ Duracion › ${duration}\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ Vistas › ${views.toLocaleString()}\n`;
+            caption += `┃ > ✿⃘࣪◌ ֪ Vistas › ${formatter(views)}\n`;
             caption += `┃ > ✿⃘࣪◌ ֪ Enlace › ${finalUrl}\n\n`;
             caption += `┣━━━━━━━━━━━━⬣\n\n`;
             caption += `┃ 𐙚 ❀ ｡ ↻ El archivo se esta\n`;

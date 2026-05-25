@@ -33,16 +33,16 @@ async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
     return new Promise((resolve, reject) => {
         let fps = 12;
         let quality = 50;
-        let duration = 4; // Límite de 4 segundos
-        
+        let duration = 15; // Límite de 15 segundos
+
         if (attempt === 2) {
             fps = 10;
             quality = 35;
-            duration = 3;
+            duration = 13;
         } else if (attempt >= 3) {
             fps = 8;
             quality = 20;
-            duration = 2.5;
+            duration = 11;
         }
 
         // 1. Opciones generales de salida (Separadas correctamente sin mezclar banderas)
@@ -82,14 +82,14 @@ export default {
     description: 'Convierte imágenes, videos o GIFs en stickers optimizados.',
     execute: async (socket, message, args, { prefix }) => {
         const remoteJid = message.key.remoteJid;
-        
+
         // Determinar el mensaje multimedia objetivo (citado o directo)
         const quoted = message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
         const targetMessage = quoted ? unwrapMessage(quoted) : unwrapMessage(message.message);
 
         if (!targetMessage) {
             return await socket.sendMessage(remoteJid, { 
-                text: `╭〔 ⚠️ ${fytBold('AURA REED')} 〕⬣\n┃ ❌ ${fytBold('FALTA MEDIO')}\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, envía una imagen/video\n┃ > con la descripción *${prefix}s* o responde\n┃ > a una imagen/video con *${prefix}s*.\n\n╰〔 ⚡ ${fytBold('SYSTEM')} 〕⬣` 
+                text: `╭〔 ⚠️ ${fytBold('AURA REED')} 〕⬣\n┃ ❌ ${fytBold('FALTA MEDIO')}\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, envía una imagen/video\n┃ > con la descripción *${prefix}s* o responde\n┃ > a una imagen/video con *${prefix}s*.\n\n╰〔 ⚡ ${fytBold('SYSTEM')} 〕⬣`
             }, { quoted: message });
         }
 
@@ -121,18 +121,18 @@ export default {
                 await convertToSticker(tempInPath, tempOutPath, false);
             } else {
                 console.log('[Sticker] Procesando video/GIF animado con ffmpeg...');
-                
+
                 let attempt = 1;
                 let fileSize = Infinity;
-                
+
                 while (fileSize > 1000000 && attempt <= 3) {
                     if (fs.existsSync(tempOutPath)) {
                         await fs.promises.unlink(tempOutPath);
                     }
-                    
+
                     console.log(`[Sticker] Optimizando video, intento: ${attempt}...`);
                     await convertToSticker(tempInPath, tempOutPath, true, attempt);
-                    
+
                     fileSize = fs.statSync(tempOutPath).size;
                     console.log(`[Sticker] Tamaño final del archivo en intento ${attempt}: ${fileSize} bytes`);
                     attempt++;
@@ -163,16 +163,16 @@ export default {
 
             // Enviar sticker
             await socket.sendMessage(remoteJid, { react: { text: '✅', key: message.key } });
-            await socket.sendMessage(remoteJid, { 
-                sticker: finalStickerBuffer, 
-                mimetype: 'image/webp' 
+            await socket.sendMessage(remoteJid, {
+                sticker: finalStickerBuffer,
+                mimetype: 'image/webp'
             }, { quoted: message });
 
         } catch (error) {
             console.error('Error al generar sticker:', error);
             await socket.sendMessage(remoteJid, { react: { text: '❌', key: message.key } });
-            await socket.sendMessage(remoteJid, { 
-                text: `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n┃ ⚠️ ${fytBold('ERROR AL CREAR STICKER')}\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message || 'No pude generar el sticker.'}\n\n╰〔 ⚡ ${fytBold('SYSTEM')} 〕⬣` 
+            await socket.sendMessage(remoteJid, {
+                text: `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n┃ ⚠️ ${fytBold('ERROR AL CREAR STICKER')}\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message || 'No pude generar el sticker.'}\n\n╰〔 ⚡ ${fytBold('SYSTEM')} 〕⬣`
             }, { quoted: message });
         } finally {
             // Limpieza de archivos temporales

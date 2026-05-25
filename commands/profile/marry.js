@@ -19,7 +19,7 @@ async function resolveTargetFromMessage(message, socket, remoteJid, jidRemitente
 export default {
     name: ['marry', 'casar', 'matrimonio', 'divorce', 'divorciar', 'separar'],
     category: 'profile',
-    description: 'Casarse o divorciarse (requiere confirmación de ambos, 5 min).',
+    description: 'Casarse o divorciarse.',
     execute: async (socket, message, args, { db, saveDB, jidRemitente, prefix }) => {
         const remoteJid = message.key.remoteJid;
         if (!remoteJid.endsWith('@g.us')) {

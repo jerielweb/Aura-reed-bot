@@ -1,51 +1,55 @@
 import { exec } from 'child_process';
+import { fytBold } from "../../models/TextStyle.js";
 
 export default {
     name: ['update', 'actualizar'],
     category: 'owner',
-    description: 'Actualiza el bot desde el repositorio (Git).',
+    description: 'Actualiza el bot desde el repositorio (Git) mostrando los cambios.',
     ownerOnly: true,
 
     execute: async (socket, message, args) => {
         const remoteJid = message.key.remoteJid;
 
-        let text = `╭〔 🚀 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
-        text += `┃ ⚙️ 𝐒𝐈𝐒𝐓𝐄𝐌𝐀 𝐔𝐏𝐃𝐀𝐓𝐄\n`;
+        let text = `╭〔 🚀 ${fytBold('AURA REED')} 〕⬣\n`;
+        text += `┃ ⚙️ ${fytBold('SISTEMA UPDATE')}\n`;
         text += `╰━━━━━━━━━━━━⬣\n\n`;
         text += `┃ > Buscando actualizaciones\n`;
         text += `┃ > en el repositorio...\n\n`;
-        text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
+        text += `╰〔 ⚡ ${fytBold('SYSTEM')} 〕⬣`;
 
         await socket.sendMessage(remoteJid, { text }, { quoted: message });
 
         exec('git pull', async (err, stdout, stderr) => {
             if (err) {
-                let textErr = `╭〔 ❌ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
-                textErr += `┃ ⚠️ 𝐄𝐑𝐑𝐎𝐑 𝐃𝐄 𝐔𝐏𝐃𝐀𝐓𝐄\n`;
+                let textErr = `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n`;
+                textErr += `┃ ⚠️ ${fytBold('ERROR DE UPDATE')}\n`;
                 textErr += `╰━━━━━━━━━━━━⬣\n\n`;
                 textErr += `┃ > Error al actualizar:\n`;
                 textErr += `┃ > ${err.message}\n\n`;
-                textErr += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
+                textErr += `╰〔 ⚡ ${fytBold('SYSTEM')} 〕⬣`;
                 return await socket.sendMessage(remoteJid, { text: textErr }, { quoted: message });
             }
 
             if (stdout.includes('Already up to date')) {
-                let textUp = `╭〔 ✅ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
-                textUp += `┃ ✨ 𝐒𝐈𝐒𝐓𝐄𝐌𝐀 𝐔𝐏𝐃𝐀𝐓𝐄\n`;
+                let textUp = `╭〔 ✅ ${fytBold('AURA REED')} 〕⬣\n`;
+                textUp += `┃ ✨ ${fytBold('SISTEMA UPDATE')}\n`;
                 textUp += `╰━━━━━━━━━━━━⬣\n\n`;
                 textUp += `┃ > El bot ya se encuentra\n`;
                 textUp += `┃ > en su versión más reciente.\n\n`;
-                textUp += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
+                textUp += `╰〔 ⚡ ${fytBold('SYSTEM')} 〕⬣`;
                 return await socket.sendMessage(remoteJid, { text: textUp }, { quoted: message });
             }
 
-            let textSuccess = `╭〔 ✅ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
-            textSuccess += `┃ 🚀 𝐔𝐏𝐃𝐀𝐓𝐄 𝐂𝐎𝐌𝐏𝐋𝐄𝐓𝐎\n`;
+            // Formatear los cambios de Git de forma limpia
+            let textSuccess = `╭〔 ✅ ${fytBold('AURA REED')} 〕⬣\n`;
+            textSuccess += `┃ 🚀 ${fytBold('UPDATE COMPLETO')}\n`;
             textSuccess += `╰━━━━━━━━━━━━⬣\n\n`;
             textSuccess += `┃ > Actualización exitosa.\n`;
-            textSuccess += `┃ > Reinicie el bot para\n`;
-            textSuccess += `┃ > aplicar los cambios.\n\n`;
-            textSuccess += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
+            textSuccess += `┃ > Reinicie el bot para aplicar.\n\n`;
+            textSuccess += `┣ 📝 ${fytBold('CAMBIOS DETECTADOS:')}\n`;
+            textSuccess += `\`\`\`\n${stdout.trim()}\n\`\`\`\n\n`;
+            textSuccess += `╰〔 ⚡ ${fytBold('SYSTEM')} 〕⬣`;
+
             await socket.sendMessage(remoteJid, { text: textSuccess }, { quoted: message });
         });
     }

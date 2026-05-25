@@ -1,5 +1,6 @@
 import { resolveLidToRealJid } from './utils.js';
 import { getGroupUser } from './groupDb.js';
+import formatter from '../controllers/functions/formatNumbers.js';
 
 export const GENRES = {
     hombre: 'Hombre',
@@ -81,9 +82,9 @@ export function formatProfileText(user, pushName, jid) {
     text += `┃ 🎂 𝐂𝐮𝐦𝐩𝐥𝐞𝐚𝐧̃𝐨𝐬 › ${birthday}\n`;
     text += `┃ 💍 𝐄𝐬𝐭𝐚𝐝𝐨 › ${married}\n\n`;
     text += `┃ 📊 𝐍𝐢𝐯𝐞𝐥 › ${level}\n`;
-    text += `┃ ✨ 𝐗𝐏 › ${xp.toLocaleString()}\n`;
-    text += `┃ 💵 𝐂𝐚𝐫𝐭𝐞𝐫𝐚 › ₡${coins.toLocaleString()}\n`;
-    text += `┃ 🏦 𝐁𝐚𝐧𝐜𝐨 › ₡${bank.toLocaleString()}\n\n`;
+    text += `┃ ✨ 𝐗𝐏 › ${formatter(xp)}\n`;
+    text += `┃ 💵 𝐂𝐚𝐫𝐭𝐞𝐫𝐚 › ₡${formatter(coins)}\n`;
+    text += `┃ 🏦 𝐁𝐚𝐧𝐜𝐨 › ₡${formatter(bank)}\n\n`;
     text += `╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣`;
     return text;
 }

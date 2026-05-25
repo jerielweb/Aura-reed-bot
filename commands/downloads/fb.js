@@ -96,7 +96,7 @@ function normalizeStellar(res) {
 }
 
 export default {
-    name: ['fb', 'facebook', 'fbdl'],
+    name: ['fb', 'facebook', 'fbdl', 'facebookdl', 'fbvideo', 'fbv', 'fbreels'],
     category: 'downloads',
     description: 'Descarga videos de Facebook / Reels.',
     execute: async (socket, message, args) => {
@@ -143,12 +143,12 @@ export default {
             caption += `┃ 🎥 𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀𝐍𝐃𝐎 𝐀𝐑𝐂𝐇𝐈𝐕𝐎\n`;
             caption += `┃ ⏳ 𝐄𝐬𝐩𝐞𝐫𝐞 𝐮𝐧 𝐦𝐨𝐦𝐞𝐧𝐭𝐨...\n\n`;
             caption += `┣━━━━━━━━━━━━⬣\n\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ 𝐂𝐚𝐥𝐢𝐝𝐚𝐝 › ${quality}\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ 𝐌𝐨𝐝𝐨 › Video (MP4)\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ 𝐌𝐨𝐭𝐨𝐫 › ${motor}\n\n`;
+            caption += `┃ > 𝐂𝐚𝐥𝐢𝐝𝐚𝐝 › ${quality}\n`;
+            caption += `┃ > 𝐌𝐨𝐝𝐨 › Video (MP4)\n`;
+            caption += `┃ > 𝐌𝐨𝐭𝐨𝐫 › ${motor}\n\n`;
             caption += `┣━━━━━━━━━━━━⬣\n\n`;
-            caption += `┃ 𐙚 ❀ ｡ ↻ 𝐄𝐥 𝐚𝐫𝐜𝐡ι𝐯ο 𝐬𝐞 𝐞𝐬𝐭𝐚́\n`;
-            caption += `┃ 𝐞𝐧𝐯𝐢𝐚𝐧𝐝𝐨, 𝐞𝐬𝐩𝐞𝐫𝐚 𝐮𝐧 𝐦𝐨𝐦𝐞𝐧𝐭𝐨...\n\n`;
+            caption += `┃ > 𝐄𝐥 𝐚𝐫𝐜𝐡ι𝐯ο 𝐬𝐞 𝐞𝐬𝐭𝐚́\n`;
+            caption += `┃ > 𝐞𝐧𝐯𝐢𝐚𝐧𝐝𝐨, 𝐞𝐬𝐩𝐞𝐫𝐚 𝐮𝐧 𝐦𝐨𝐦𝐞𝐧𝐭𝐨...\n\n`;
             caption += `╰━━〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐀𝐂𝐓𝐈𝐕𝐄 〕━━⬣`;
 
             if (thumbnail) {

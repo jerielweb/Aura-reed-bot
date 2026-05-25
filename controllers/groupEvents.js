@@ -43,7 +43,7 @@ export async function handleGroupUpdate(sock, { id, participants, action }, getD
                 try {
                     ppUrl = await sock.profilePictureUrl(jid, 'image');
                 } catch {
-                    ppUrl = 'hhttps://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png';
+                    ppUrl = 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png';
                 }
 
                 await sock.sendMessage(id, { 

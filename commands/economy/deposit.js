@@ -1,5 +1,5 @@
 import { getGroupUser } from '../../models/groupDb.js';
-
+import formatter from '../../controllers/functions/formatNumbers.js';
 export default {
     name: ['deposit', 'd', 'dep'],
     category: 'economy',
@@ -36,8 +36,8 @@ export default {
         text += `╰━━━━━━━━━━━━⬣\n\n`;
         text += `┃ 👋 *${message.pushName || 'Usuario'}*\n`;
         text += `┃ 📥 𝐃𝐞𝐩𝐨𝐬𝐢𝐭𝐚𝐬𝐭𝐞: ₡${amount.toLocaleString()}\n`;
-        text += `┃ 🏦 𝐍𝐮𝐞𝐯𝐨 𝐒𝐚𝐥𝐝𝐨 𝐁𝐚𝐧𝐜𝐨: ₡${user.bank.toLocaleString()}\n`;
-        text += `┃ 💵 𝐌𝐨𝐧𝐞𝐝𝐚𝐬 𝐫𝐞𝐬𝐭𝐚𝐧𝐭𝐞𝐬: ₡${user.coins.toLocaleString()}\n\n`;
+        text += `┃ 🏦 𝐍𝐮𝐞𝐯𝐨 𝐒𝐚𝐥𝐝𝐨 𝐁𝐚𝐧𝐜𝐨: ₡${formatter(user.bank)}\n`;
+        text += `┃ 💵 𝐌𝐨𝐧𝐞𝐝𝐚𝐬 𝐫𝐞𝐬𝐭𝐚𝐧𝐭𝐞𝐬: ₡${formatter(user.coins)}\n\n`;
         text += `╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣`;
 
         await socket.sendMessage(remoteJid, { text, mentions: [jidRemitente] }, { quoted: message });

@@ -102,7 +102,7 @@ function normalizeStellar(res) {
 }
 
 export default {
-    name: ['ig', 'instagram', 'igdl'],
+    name: ['ig', 'instagram', 'igdl', 'reels', 'igtv'],
     category: 'downloads',
     description: 'Descarga videos, fotos, reels o historias de Instagram.',
     execute: async (socket, message, args) => {
@@ -249,13 +249,13 @@ export default {
             caption += `┃ 📥 ${fytBold('DESCARGANDO ARCHIVO')}\n`;
             caption += `┃ ⏳ Espere un momento...\n\n`;
             caption += `┣━━━━━━━━━━━━⬣\n\n`;
-            if (title) caption += `┃ > ✿⃘࣪◌ ֪ Titulo › ${title.slice(0, 50)}${title.length > 50 ? '...' : ''}\n`;
-            if (username) caption += `┃ > ✿⃘࣪◌ ֪ Usuario › @${username}\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ Tipo › ${typeLabel}\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ Motor › ${finalMotor}\n\n`;
+            if (title) caption += `┃ > Titulo › ${title.slice(0, 50)}${title.length > 50 ? '...' : ''}\n`;
+            if (username) caption += `┃ > Usuario › @${username}\n`;
+            caption += `┃ > Tipo › ${typeLabel}\n`;
+            caption += `┃ > Motor › ${finalMotor}\n\n`;
             caption += `┣━━━━━━━━━━━━⬣\n\n`;
-            caption += `┃ 𐙚 ❀ ｡ ↻ El archivo se esta\n`;
-            caption += `┃ enviando, espera un momento...\n\n`;
+            caption += `┃ > El archivo se esta\n`;
+            caption += `┃ > enviando, espera un momento...\n\n`;
             caption += `╰━━〔 ⚡ ${fytBold('SYSTEM ACTIVE')} 〕━━⬣`;
 
             await socket.sendMessage(remoteJid, { text: caption }, { quoted: message });
