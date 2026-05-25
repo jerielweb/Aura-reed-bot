@@ -9,12 +9,31 @@ const dbPath = path.join(process.cwd(), 'database', 'groups.json');
 
 export default {
     name: ['ppt', 'juego', 'rps', 'desafio', 'retar'],
-    category: 'juegos',
+    category: 'economy',
     description: 'Juega a Piedra, Papel o Tijera contra Aura Reed con premios random.',
     execute: async (socket, message, args) => {
         const remoteJid = message.key.remoteJid;
         const sender = message.key.participant || message.key.remoteJid;
         const eleccionUsuario = args[0]?.toLowerCase();
+
+        // 0. Validar cooldown de 10 minutos
+        try {
+            const dbData = JSON.parse(await fs.promises.readFile(dbPath, 'utf-8'));
+            const ahora = Date.now();
+            const lastPPT = dbData.groups?.[remoteJid]?.users?.[sender]?.lastPPT || 0;
+            const cooldownMs = 10 * 60 * 1000; // 10 minutos en milisegundos
+            const tiempoRestante = lastPPT + cooldownMs - ahora;
+
+            if (tiempoRestante > 0) {
+                const minutos = Math.floor(tiempoRestante / 60000);
+                const segundos = Math.floor((tiempoRestante % 60000) / 1000);
+                return await socket.sendMessage(remoteJid, {
+                    text: `╭〔 ⏱️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ⏳ 𝐄𝐍 𝐂𝐎𝐎𝐋𝐃𝐎𝐖𝐍\n╰━━━━━━━━━━━━⬣\n┃ > Espera ${minutos}m ${segundos}s para jugar de nuevo.\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`
+                }, { quoted: message });
+            }
+        } catch (err) {
+            console.error('Error verificando cooldown en ppt.js:', err);
+        }
 
         // 1. Validar entrada
         if (!eleccionUsuario || !opciones.includes(eleccionUsuario)) {
@@ -53,11 +72,28 @@ export default {
 
                     const monedasActuales = dbData.groups[remoteJid].users[sender].coins || 0;
                     dbData.groups[remoteJid].users[sender].coins = monedasActuales + monedasGanadas;
+                    dbData.groups[remoteJid].users[sender].lastPPT = Date.now();
 
                     await fs.promises.writeFile(dbPath, JSON.stringify(dbData, null, 2));
                 }
             } catch (err) {
                 console.error('Error actualizando monedas en ppt.js:', err);
+            }
+        } else {
+            // Guardar cooldown incluso si no ganó
+            try {
+                const dbData = JSON.parse(await fs.promises.readFile(dbPath, 'utf-8'));
+
+                if (dbData.groups?.[remoteJid]) {
+                    if (!dbData.groups[remoteJid].users) dbData.groups[remoteJid].users = {};
+                    if (!dbData.groups[remoteJid].users[sender]) dbData.groups[remoteJid].users[sender] = {};
+
+                    dbData.groups[remoteJid].users[sender].lastPPT = Date.now();
+
+                    await fs.promises.writeFile(dbPath, JSON.stringify(dbData, null, 2));
+                }
+            } catch (err) {
+                console.error('Error guardando cooldown en ppt.js:', err);
             }
         }
 

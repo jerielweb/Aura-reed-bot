@@ -13,6 +13,7 @@ export default {
         // Definición de cooldowns (en milisegundos)
         const cooldowns = {
             work: 5 * 60 * 1000,      // 5 min
+            ppt: 10 * 60 * 1000,      // 10 min
             mine: 30 * 60 * 1000,     // 30 min
             hunt: 30 * 60 * 1000,     // 30 min
             crime: 60 * 60 * 1000,     // 1 hora
@@ -50,6 +51,7 @@ export default {
         text += `┃ Gana, ahorra y gestiona tu fortuna.\n\n`;
         text += `┣━━〔 🛠️ 𝐂𝐎́𝐌𝐎 𝐆𝐀𝐍𝐀𝐑 〕━━⬣\n\n`;
         text += `┃ ➪ *${prefix}work:* ${getRemaining(user.lastWork, cooldowns.work)}\n`;
+        text += `┃ ➪ *${prefix}ppt:* ${getRemaining(user.lastPpt, cooldowns.ppt)}\n`;
         text += `┃ ➪ *${prefix}mine:* ${getRemaining(user.lastMine, cooldowns.mine)}\n`;
         text += `┃ ➪ *${prefix}hunt:* ${getRemaining(user.lastHunt, cooldowns.hunt)}\n`;
         text += `┃ ➪ *${prefix}crime:* ${getRemaining(user.lastCrime, cooldowns.crime)}\n`;
