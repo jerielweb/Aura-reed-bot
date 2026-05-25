@@ -20,9 +20,9 @@ export default {
         try {
             const dbData = JSON.parse(await fs.promises.readFile(dbPath, 'utf-8'));
             const ahora = Date.now();
-            const lastPPT = dbData.groups?.[remoteJid]?.users?.[sender]?.lastPPT || 0;
+            const lastPpt = dbData.groups?.[remoteJid]?.users?.[sender]?.lastPpt || 0;
             const cooldownMs = 10 * 60 * 1000; // 10 minutos en milisegundos
-            const tiempoRestante = lastPPT + cooldownMs - ahora;
+            const tiempoRestante = lastPpt + cooldownMs - ahora;
 
             if (tiempoRestante > 0) {
                 const minutos = Math.floor(tiempoRestante / 60000);
@@ -70,7 +70,7 @@ export default {
                 if (!dbData.groups[remoteJid].users[sender]) dbData.groups[remoteJid].users[sender] = {};
 
                 // Siempre guardar el cooldown
-                dbData.groups[remoteJid].users[sender].lastPPT = Date.now();
+                dbData.groups[remoteJid].users[sender].lastPpt = Date.now();
 
                 // Solo actualizar monedas si ganó
                 if (monedasGanadas > 0) {
