@@ -5,6 +5,7 @@ import { trackGroupActivity } from '../models/groupDb.js';
 import { cmdLog } from './cmdLog.js';
 import { Rstr } from '../controllers/textBots.js';
 import { isCategoryEnabled, default as cmdManagerCmd } from './cmdManager.js';
+import { botStatus } from '../commands/group/bot.js';
 
 const categories = ['owner', 'system', 'group', 'downloads', 'economy', 'search', 'fun', 'utilities', 'sticker', 'profile'];
 
@@ -12,29 +13,21 @@ let middlewareCache = null;
 let middlewareCacheTime = 0;
 let commandCache = null;
 let commandCacheTime = 0;
-const CACHE_TTL = 30000; // 30 segundos
+const CACHE_TTL = 30000;
 
 async function loadMiddlewares() {
     const now = Date.now();
-    if (middlewareCache && (now - middlewareCacheTime) < CACHE_TTL) {
-        return middlewareCache;
-    }
-
+    if (middlewareCache && (now - middlewareCacheTime) < CACHE_TTL) return middlewareCache;
     const middlewares = [];
     for (const cat of categories) {
         const folderPath = `./commands/${cat}`;
         if (!fs.existsSync(folderPath)) continue;
         const files = fs.readdirSync(folderPath).filter(f => f.endsWith('.js'));
-
         for (const file of files) {
             try {
                 const { default: cmd } = await import(`../commands/${cat}/${file}?update=${now}`);
-                if (cmd && typeof cmd.middleware === 'function') {
-                    middlewares.push(cmd);
-                }
-            } catch (e) {
-                console.error(chalk.red(`Error cargando middleware de ${file}:`), e.message);
-            }
+                if (cmd && typeof cmd.middleware === 'function') middlewares.push(cmd);
+            } catch (e) { console.error(chalk.red(`Error middleware ${file}:`), e.message); }
         }
     }
     middlewareCache = middlewares;
@@ -44,25 +37,17 @@ async function loadMiddlewares() {
 
 async function loadCommands() {
     const now = Date.now();
-    if (commandCache && (now - commandCacheTime) < CACHE_TTL) {
-        return commandCache;
-    }
-
+    if (commandCache && (now - commandCacheTime) < CACHE_TTL) return commandCache;
     const allCommands = [];
     for (const cat of categories) {
         const folderPath = `./commands/${cat}`;
         if (!fs.existsSync(folderPath)) continue;
         const files = fs.readdirSync(folderPath).filter(f => f.endsWith('.js'));
-
         for (const file of files) {
             try {
                 const { default: cmd } = await import(`../commands/${cat}/${file}?update=${now}`);
-                if (cmd && cmd.name) {
-                    allCommands.push(cmd);
-                }
-            } catch (e) {
-                console.error(chalk.red(`Error cargando comando ${file}:`), e.message);
-            }
+                if (cmd && cmd.name) allCommands.push(cmd);
+            } catch (e) { console.error(chalk.red(`Error comando ${file}:`), e.message); }
         }
     }
     allCommands.push(cmdManagerCmd);
@@ -78,16 +63,29 @@ export async function handleMessage(sock, m, db, saveDB) {
     const isGroup = remoteJid.endsWith('@g.us');
     const senderRaw = m.key.participant || remoteJid;
 
-    // 1. RESOLVER IDENTIDAD
+    const text = m.message.conversation || m.message.extendedTextMessage?.text || m.message.imageMessage?.caption || m.message.videoMessage?.caption || "";
+    
+    // --- BLOQUEO TOTAL (INTERRUPTOR) ---
+    const prefix = db.prefix;
+    const esComando = text.startsWith(prefix);
+    const argsForCheck = esComando ? text.slice(prefix.length).trim().split(/ +/) : [];
+    const commandNameForCheck = esComando ? argsForCheck[0]?.toLowerCase() : null;
+
+    if (isGroup && db.chats?.[remoteJid]?.botOn === false) {
+        if (text === `${prefix}bot on` || commandNameForCheck === 'bot') {
+            // Permitir el comando bot para mostrar estado o activar.
+        } else if (esComando) {
+            return await sock.sendMessage(remoteJid, { text: `⚠️ El bot está desactivado. Usa *${prefix}bot on* para activarlo.` }, { quoted: m });
+        } else return;
+    }
+    // ------------------------------------
+
     const jidResuelto = await resolveLidToRealJid(senderRaw, sock, remoteJid);
     const numeroReal = jidResuelto.split('@')[0].split(':')[0];
     const jidRemitente = `${numeroReal}@s.whatsapp.net`;
 
-    if (isGroup && !m.key.fromMe && trackGroupActivity(db, remoteJid, jidRemitente)) {
-        saveDB(db);
-    }
+    if (isGroup && !m.key.fromMe && trackGroupActivity(db, remoteJid, jidRemitente)) saveDB(db);
 
-    // 2. DETECTAR RANGOS
     const owners = db.owners || [];
     const botId = sock.user.id.split('@')[0].split(':')[0] + '@s.whatsapp.net';
     const sender = m.key.fromMe ? botId : jidRemitente;
@@ -101,88 +99,28 @@ export async function handleMessage(sock, m, db, saveDB) {
     if (isGroup) {
         try {
             groupMetadata = await sock.groupMetadata(remoteJid);
-            const participants = groupMetadata.participants || [];
-            
-            // Búsqueda robusta del participante (por ID directo o por JID resuelto)
-            const userParticipant = participants.find(p => 
-                p.id === senderRaw || 
-                p.id === jidRemitente || 
-                p.id.split(':')[0] === numeroReal
-            );
-            
-            const botParticipant = participants.find(p => p.id.includes(sock.user.id.split(':')[0]));
-
-            const isGroupAdmin = userParticipant?.admin === 'admin' || userParticipant?.admin === 'superadmin';
-            isAdmin = isGroupAdmin; // El rango de admin ahora es estrictamente para admins de grupo
+            const userParticipant = groupMetadata.participants.find(p => p.id === senderRaw || p.id === jidRemitente || p.id.split(':')[0] === numeroReal);
+            const botParticipant = groupMetadata.participants.find(p => p.id.includes(sock.user.id.split(':')[0]));
+            isAdmin = userParticipant?.admin === 'admin' || userParticipant?.admin === 'superadmin';
             isBotAdmin = botParticipant?.admin === 'admin' || botParticipant?.admin === 'superadmin';
-        } catch (e) { 
-            isAdmin = false;
-        }
+        } catch (e) { isAdmin = false; }
     }
-
-    const text = m.message.conversation || 
-                 m.message.extendedTextMessage?.text || 
-                 m.message.imageMessage?.caption || 
-                 m.message.videoMessage?.caption || 
-                 m.message.documentMessage?.caption || 
-                 m.message.viewOnceMessageV2?.message?.imageMessage?.caption || 
-                 m.message.viewOnceMessageV2?.message?.videoMessage?.caption || 
-                 m.message.viewOnceMessage?.message?.imageMessage?.caption || 
-                 m.message.viewOnceMessage?.message?.videoMessage?.caption || 
-                 m.message.documentWithCaptionMessage?.message?.documentMessage?.caption || 
-                 "";
 
     await sock.readMessages([m.key]);
 
-    // LOG DE TEXTO NORMAL (No es comando)
-    if (!text.startsWith(db.prefix)) {
-        cmdLog({
-            numeroReal,
-            rango: rangoLog,
-            isGroup,
-            text,
-            pushName: m.pushName,
-            groupMetadata: groupMetadata,
-            m: m
-        });
-    }
+    if (!esComando) {
+        cmdLog({ numeroReal, rango: rangoLog, isGroup, text, pushName: m.pushName, groupMetadata, m });
+    } else {
+        try {
+            const middlewares = await loadMiddlewares();
+            for (const cmd of middlewares) await cmd.middleware(sock, m, { db, saveDB, owners, isAdmin, isBotAdmin, isOwner, groupMetadata, text });
+        } catch (e) { console.error(e); }
 
-    // 3. EJECUTAR MIDDLEWARES
-    try {
-        const middlewares = await loadMiddlewares();
-        for (const cmd of middlewares) {
-            try {
-                await cmd.middleware(sock, m, { db, saveDB, owners, isAdmin, isBotAdmin, isOwner, groupMetadata, text });
-            } catch (err) {
-                console.error(chalk.red(`Error en middleware [${cmd.name}]:`), err.message);
-            }
-        }
-    } catch (e) {
-        console.error(chalk.red("Error ejecutando middlewares:"), e);
-    }
+        const args = text.slice(prefix.length).trim().split(/ +/);
+        const commandName = args.shift().toLowerCase();
+        
+        cmdLog({ numeroReal, rango: isOwner ? 'OWNER 👑' : (isAdmin ? 'ADMIN 🛡️' : 'USUARIO 👤'), commandName, isGroup, text, pushName: m.pushName, groupMetadata, m, prefix });
 
-    // 4. FILTRO DE PREFIX
-    const prefix = db.prefix;
-    if (!text.startsWith(prefix)) return;
-
-    const args = text.slice(prefix.length).trim().split(/ +/);
-    const commandName = args.shift().toLowerCase();
-    const rango = isOwner ? 'OWNER 👑' : (isAdmin ? 'ADMIN 🛡️' : 'USUARIO 👤');
-
-    // LOG DE COMANDOS (Corregido para pasar todas las propiedades necesarias al cmdLog)
-    cmdLog({ 
-        numeroReal, 
-        rango, 
-        commandName, 
-        isGroup,
-        text,
-        pushName: m.pushName,
-        groupMetadata: groupMetadata,
-        m: m,
-        prefix: db.prefix
-    });
-
-    try {
         const allCommands = await loadCommands();
         let commandFound = false;
 
@@ -190,39 +128,14 @@ export async function handleMessage(sock, m, db, saveDB) {
             const match = Array.isArray(cmd.name) ? cmd.name.includes(commandName) : cmd.name === commandName;
             if (match) {
                 commandFound = true;
-                const cat = cmd.category;
+                if (cmd.category === 'owner' && !isOwner) return await sock.sendMessage(remoteJid, { text: Rstr.onlyOwner }, { quoted: m });
+                if ((cmd.category === 'group' || cmd.category === 'economy') && !isGroup) return await sock.sendMessage(remoteJid, { text: Rstr.onlyGroup }, { quoted: m });
+                if (isGroup && !isCategoryEnabled(remoteJid, cmd.category, db)) return await sock.sendMessage(remoteJid, { text: 'Categoría desactivada.' }, { quoted: m });
+                if (cmd.adminOnly && !isAdmin) return await sock.sendMessage(remoteJid, { text: Rstr.onlyAdmin }, { quoted: m });
 
-                if (cat === 'owner' && !isOwner) {
-                    return await sock.sendMessage(remoteJid, { text: Rstr.onlyOwner }, { quoted: m });
-                }
-
-                if ((cat === 'group' || cat === 'economy') && !isGroup) {
-                    return await sock.sendMessage(remoteJid, { text: Rstr.onlyGroup }, { quoted: m });
-                }
-
-                if (isGroup && !isCategoryEnabled(remoteJid, cat, db)) {
-                    return await sock.sendMessage(remoteJid, { text: `╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐂𝐀𝐓𝐄𝐆𝐎𝐑𝐈́𝐀 𝐃𝐄𝐒𝐀𝐂𝐓𝐈𝐕𝐀𝐃𝐀\n╰━━━━━━━━━━━━⬣\n\n┃ > La categoría *${cat}* está\n┃ > desactivada en este grupo.\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣` }, { quoted: m });
-                }
-
-                if (cmd.adminOnly && !isAdmin) {
-                    return await sock.sendMessage(remoteJid, { text: Rstr.onlyAdmin }, { quoted: m });
-                }
-
-                try {
-                    await cmd.execute(sock, m, args, { prefix, db, saveDB, isOwner, isAdmin, isBotAdmin, owners, groupMetadata, numeroReal, jidRemitente });
-                } catch (error) {
-                    console.error(chalk.red(`Error ejecutando comando [${commandName}]:`), error);
-                    await sock.sendMessage(remoteJid, { text: `⚠️ Error: ${error.message}` }, { quoted: m });
-                }
+                await cmd.execute(sock, m, args, { prefix, db, saveDB, isOwner, isAdmin, isBotAdmin, owners, groupMetadata, numeroReal, jidRemitente });
                 return;
             }
         }
-
-        if (!commandFound) {
-            await sock.sendMessage(remoteJid, { text: `╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐂𝐎𝐌𝐀𝐍𝐃𝐎 𝐍𝐎 𝐄𝐗𝐈𝐒𝐓𝐄\n╰━━━━━━━━━━━━⬣\n┃ > El comando que intentaste usar no existe.\n┃ > Usa el menú con ${db.prefix}menu para ver los comandos disponibles.` }, { quoted: m });
-        }
-
-    } catch (e) {
-        console.error(chalk.red("Error crítico en el procesador de comandos:"), e);
     }
 }
