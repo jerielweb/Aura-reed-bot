@@ -5,21 +5,21 @@ import { fytBold } from "../../models/TextStyle.js";
 // ==========================================
 export const botStatus = {
     isGroupActive(remoteJid, db) {
-        if (!remoteJid.endsWith('@g.us')) return true; 
-        if (!db.chats) db.chats = {};
-        if (db.chats[remoteJid]?.botOn === false) return false;
+        if (!remoteJid.endsWith('@g.us')) return true;
+        if (!db.groups) db.groups = {};
+        if (db.groups[remoteJid]?.botOn === false) return false;
         return true;
     },
     groupOn(remoteJid, db, saveDB) {
-        if (!db.chats) db.chats = {};
-        if (!db.chats[remoteJid]) db.chats[remoteJid] = {};
-        db.chats[remoteJid].botOn = true;
+        if (!db.groups) db.groups = {};
+        if (!db.groups[remoteJid]) db.groups[remoteJid] = {};
+        db.groups[remoteJid].botOn = true;
         saveDB(db);
     },
     groupOff(remoteJid, db, saveDB) {
-        if (!db.chats) db.chats = {};
-        if (!db.chats[remoteJid]) db.chats[remoteJid] = {};
-        db.chats[remoteJid].botOn = false;
+        if (!db.groups) db.groups = {};
+        if (!db.groups[remoteJid]) db.groups[remoteJid] = {};
+        db.groups[remoteJid].botOn = false;
         saveDB(db);
     }
 };
@@ -45,7 +45,7 @@ export default {
         }
 
         if (!accion) {
-            const estado = db.chats?.[remoteJid]?.botOn === false ? 'Desactivado' : 'Activado';
+            const estado = db.groups?.[remoteJid]?.botOn === false ? 'Desactivado' : 'Activado';
             return await sock.sendMessage(remoteJid, {
                 text: `╭〔 ⚡ 𝐄𝐒𝐓𝐀𝐃𝐎 𝐃𝐄𝐋 𝐁𝐎𝐓 〕⬣\n┃ Estado: *${estado}*\n┃\n┃ Para activar: *${prefix}bot on*\n┃ Para desactivar: *${prefix}bot off*\n╰━━━━━━━━━━━━⬣`
             }, { quoted: m });

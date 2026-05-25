@@ -18,7 +18,6 @@ const getDB = () => {
         owners: dbData.owners,
         ownerRoles: dbData.ownerRoles || {},
         maxSubBots: Number.isFinite(Number(dbData.maxSubBots)) ? Number(dbData.maxSubBots) : 15,
-        chats: dbData.chats || {},
         users: stripEconomyFromUsers(usersData.users || {}),
         groups: groupsData.groups || {}
     };
@@ -33,7 +32,6 @@ const saveDB = (data) => {
         maxSubBots: data.maxSubBots ?? existing.maxSubBots ?? 15
     };
     if (Object.keys(roles).length > 0) dbToSave.ownerRoles = roles;
-    if (data.chats && Object.keys(data.chats).length > 0) dbToSave.chats = data.chats;
     fs.writeFileSync('./database/database.json', JSON.stringify(dbToSave, null, 2));
     fs.writeFileSync('./database/users.json', JSON.stringify({ users: stripEconomyFromUsers(data.users) }, null, 2));
     fs.writeFileSync('./database/groups.json', JSON.stringify({ groups: data.groups }, null, 2));

@@ -71,7 +71,7 @@ export async function handleMessage(sock, m, db, saveDB) {
     const argsForCheck = esComando ? text.slice(prefix.length).trim().split(/ +/) : [];
     const commandNameForCheck = esComando ? argsForCheck[0]?.toLowerCase() : null;
 
-    if (isGroup && db.chats?.[remoteJid]?.botOn === false) {
+    if (isGroup && db.groups?.[remoteJid]?.botOn === false) {
         if (text === `${prefix}bot on` || commandNameForCheck === 'bot') {
             // Permitir el comando bot para mostrar estado o activar.
         } else if (esComando) {
