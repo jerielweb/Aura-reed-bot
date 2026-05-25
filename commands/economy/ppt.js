@@ -61,40 +61,27 @@ export default {
             resultado = '¡𝐇𝐀𝐒 𝐏𝐄𝐑𝐃𝐈𝐃𝐎! ❌\n┃ > Aura Reed leyó tus movimientos.';
         }
 
-        // 3. Guardar en la base de datos si el usuario ganó
-        if (monedasGanadas > 0) {
-            try {
-                const dbData = JSON.parse(await fs.promises.readFile(dbPath, 'utf-8'));
+        // 3. Guardar en la base de datos (cooldown + monedas si ganó)
+        try {
+            const dbData = JSON.parse(await fs.promises.readFile(dbPath, 'utf-8'));
 
-                if (dbData.groups?.[remoteJid]) {
-                    if (!dbData.groups[remoteJid].users) dbData.groups[remoteJid].users = {};
-                    if (!dbData.groups[remoteJid].users[sender]) dbData.groups[remoteJid].users[sender] = {};
+            if (dbData.groups?.[remoteJid]) {
+                if (!dbData.groups[remoteJid].users) dbData.groups[remoteJid].users = {};
+                if (!dbData.groups[remoteJid].users[sender]) dbData.groups[remoteJid].users[sender] = {};
 
+                // Siempre guardar el cooldown
+                dbData.groups[remoteJid].users[sender].lastPPT = Date.now();
+
+                // Solo actualizar monedas si ganó
+                if (monedasGanadas > 0) {
                     const monedasActuales = dbData.groups[remoteJid].users[sender].coins || 0;
                     dbData.groups[remoteJid].users[sender].coins = monedasActuales + monedasGanadas;
-                    dbData.groups[remoteJid].users[sender].lastPPT = Date.now();
-
-                    await fs.promises.writeFile(dbPath, JSON.stringify(dbData, null, 2));
                 }
-            } catch (err) {
-                console.error('Error actualizando monedas en ppt.js:', err);
+
+                await fs.promises.writeFile(dbPath, JSON.stringify(dbData, null, 2));
             }
-        } else {
-            // Guardar cooldown incluso si no ganó
-            try {
-                const dbData = JSON.parse(await fs.promises.readFile(dbPath, 'utf-8'));
-
-                if (dbData.groups?.[remoteJid]) {
-                    if (!dbData.groups[remoteJid].users) dbData.groups[remoteJid].users = {};
-                    if (!dbData.groups[remoteJid].users[sender]) dbData.groups[remoteJid].users[sender] = {};
-
-                    dbData.groups[remoteJid].users[sender].lastPPT = Date.now();
-
-                    await fs.promises.writeFile(dbPath, JSON.stringify(dbData, null, 2));
-                }
-            } catch (err) {
-                console.error('Error guardando cooldown en ppt.js:', err);
-            }
+        } catch (err) {
+            console.error('Error actualizando datos en ppt.js:', err);
         }
 
         // 4. Tu diseño de menú de texto exacto
