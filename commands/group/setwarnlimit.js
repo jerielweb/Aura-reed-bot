@@ -20,7 +20,7 @@ export default {
             return socket.sendMessage(remoteJid, { text }, { quoted: message });
         }
 
-        if (!db.groups[remoteJid]) db.groups[remoteJid] = { antilink: false, warnLimit: 3, warns: {}, activity: {} };
+        if (!db.groups[remoteJid]) db.groups[remoteJid] = { antilink: false, warnLimit: 3, warns: {}, activity: {}, botOn: true };
         db.groups[remoteJid].warnLimit = limit;
         saveDB(db);
 

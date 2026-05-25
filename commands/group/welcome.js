@@ -11,7 +11,7 @@ export default {
         }
 
         if (!db.groups[remoteJid]) {
-            db.groups[remoteJid] = { antilink: false, welcome: false, warnLimit: 3, warns: {}, activity: {} };
+            db.groups[remoteJid] = { antilink: false, welcome: false, warnLimit: 3, warns: {}, activity: {}, botOn: true };
         }
 
         const status = args[0]?.toLowerCase();

@@ -10,7 +10,7 @@ export default {
         if (!remoteJid.endsWith('@g.us')) return;
 
         if (!db.groups[remoteJid]) {
-            db.groups[remoteJid] = { antilink: false, warnLimit: 3, warns: {}, activity: {}, onlyAdmin: false };
+            db.groups[remoteJid] = { antilink: false, warnLimit: 3, warns: {}, activity: {}, onlyAdmin: false, botOn: true };
         }
 
         const status = args[0]?.toLowerCase();

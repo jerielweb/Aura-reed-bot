@@ -25,7 +25,7 @@ export default {
         if (!remoteJid.endsWith('@g.us')) return;
 
         if (!db.groups[remoteJid]) {
-            db.groups[remoteJid] = { antilink: false, warnLimit: 3, warns: {}, activity: {}, onlyAdmin: false, antitoxic: false, disabledCategories: [] };
+            db.groups[remoteJid] = { antilink: false, warnLimit: 3, warns: {}, activity: {}, onlyAdmin: false, antitoxic: false, disabledCategories: [], botOn: true };
         }
 
         if (!db.groups[remoteJid].disabledCategories) {

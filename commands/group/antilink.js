@@ -67,7 +67,7 @@ export default {
         const remoteJid = message.key.remoteJid;
         if (!remoteJid.endsWith('@g.us')) return socket.sendMessage(remoteJid, { text: '╭〔 ⚠️ 𝐀𝐃𝐌𝐈𝐍 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣\n\n┃ ❌ 𝐀𝐂𝐂𝐈𝐎́𝐍 𝐃𝐄𝐍𝐄𝐆𝐀𝐃𝐀\n┃ > solo funciona en grupos\n\n╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣' }, { quoted: message });
 
-        if (!db.groups[remoteJid]) db.groups[remoteJid] = { antilink: false, warnLimit: 3, warns: {}, activity: {} };
+        if (!db.groups[remoteJid]) db.groups[remoteJid] = { antilink: false, warnLimit: 3, warns: {}, activity: {}, botOn: true };
 
         const status = args[0]?.toLowerCase();
         if (status === 'on' || status === '1' || status === 'true') {

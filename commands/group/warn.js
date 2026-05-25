@@ -17,7 +17,7 @@ export default {
         const reason = args.filter(arg => !arg.includes('@')).join(' ') || 'Sin motivo';
         const date = new Date().toLocaleDateString('es-CR', { timeZone: 'America/Costa_Rica' });
 
-        if (!db.groups[remoteJid]) db.groups[remoteJid] = { antilink: false, warnLimit: 3, warns: {}, activity: {} };
+        if (!db.groups[remoteJid]) db.groups[remoteJid] = { antilink: false, warnLimit: 3, warns: {}, activity: {}, botOn: true };
         if (!db.groups[remoteJid].warns) db.groups[remoteJid].warns = {};
         if (!db.groups[remoteJid].warns[userToWarn]) db.groups[remoteJid].warns[userToWarn] = [];
 

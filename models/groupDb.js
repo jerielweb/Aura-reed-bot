@@ -7,6 +7,7 @@ export const DEFAULT_GROUP = {
     antitoxic: false,
     welcome: false,
     disabledCategories: [],
+    botOn: true,
     users: {}
 };
 
