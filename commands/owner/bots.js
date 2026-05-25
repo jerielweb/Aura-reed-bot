@@ -5,9 +5,9 @@ export default {
     name: ['bots', 'subbots', 'lista-bots'],
     category: 'owner',
     description: 'Muestra la lista de sub-bots activos/sesiones.',
-    ownerOnly: true,
+    ownerOnly: false,
 
-    execute: async (socket, message, args) => {
+    execute: async (socket, message, args, {prefix}) => {
         const remoteJid = message.key.remoteJid;
         const sessionsDir = './sessions/subbots';
 
@@ -32,13 +32,14 @@ export default {
         text += `┃ 📊 𝐒𝐞𝐬𝐢𝐨𝐧𝐞𝐬: *${activeCount}/${maxSubs}*\n\n`;
 
         if (files.length === 0) {
-            text += `┃ > No hay sesiones activas.\n`;
+            text += `┃ > No hay sesiones activas.\n\n`;
         } else {
             files.forEach((file, index) => {
-                text += `┃ ${index + 1}. @${file}\n`;
+                text += `┃ ${index + 1}. @${file}\n\n`;
             });
         }
 
+        text += `> _Usa ${prefix}code o ${prefix}qr para tener tu sub-bot._\n\n`;
         text += `\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
 
         await socket.sendMessage(remoteJid, { text, mentions: files.map(f => f + '@s.whatsapp.net') }, { quoted: message });
