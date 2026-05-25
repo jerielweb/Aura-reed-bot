@@ -89,13 +89,13 @@ export default {
             caption += `┃ ⏳ Espere un momento...\n\n`;
             caption += `┣━━━━━━━━━━━━⬣\n\n`;
             caption += `┃ ➥ ${fytBold(title)}\n\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ Canal › ${author}\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ Duracion › ${duration}\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ Vistas › ${formatter(views)}\n`;
-            caption += `┃ > ✿⃘࣪◌ ֪ Enlace › ${finalUrl}\n\n`;
+            caption += `┃ > Canal › ${author}\n`;
+            caption += `┃ > Duracion › ${duration}\n`;
+            caption += `┃ > Vistas › ${formatter(views)}\n`;
+            caption += `┃ > Enlace › ${finalUrl}\n\n`;
             caption += `┣━━━━━━━━━━━━⬣\n\n`;
-            caption += `┃ 𐙚 ❀ ｡ ↻ El archivo se esta\n`;
-            caption += `┃ enviando, espera un momento...\n\n`;
+            caption += `┃ > El archivo se esta\n`;
+            caption += `┃ > enviando, espera un momento...\n\n`;
             caption += `╰━━〔 ⚡ ${fytBold('SYSTEM ACTIVE')} 〕━━⬣`;
 
             await socket.sendMessage(remoteJid, { image: { url: thumbnail }, caption }, { quoted: message });
