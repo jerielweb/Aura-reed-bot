@@ -35,11 +35,11 @@ export default {
             text += `┃ > No hay sesiones activas.\n\n`;
         } else {
             files.forEach((file, index) => {
-                text += `┃ ${index + 1}. @${file}\n\n`;
+                text += `┃ ${index + 1}. @${file}\n`;
             });
         }
 
-        text += `> _Usa ${prefix}code o ${prefix}qr para tener tu sub-bot._\n\n`;
+        text += `\n\n> _Usa ${prefix}code o ${prefix}qr para tener tu sub-bot._\n\n`;
         text += `\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
 
         await socket.sendMessage(remoteJid, { text, mentions: files.map(f => f + '@s.whatsapp.net') }, { quoted: message });
