@@ -1,5 +1,5 @@
 import axios from 'axios';
-import formatter from '../../controllers/functions/formatNumbers';
+import formatter from '../../controllers/functions/formatNumbers.js';
 
 export default {
     name: ['ttsearch', 'tiktoksearch', 'tts'],
