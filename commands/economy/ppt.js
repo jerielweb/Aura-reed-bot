@@ -11,7 +11,7 @@ export default {
     name: ['ppt', 'juego', 'rps', 'desafio', 'retar'],
     category: 'economy',
     description: 'Juega a Piedra, Papel o Tijera contra Aura Reed con premios random.',
-    execute: async (socket, message, args) => {
+    execute: async (socket, message, args, {prefix}) => {
         const remoteJid = message.key.remoteJid;
         const sender = message.key.participant || message.key.remoteJid;
         const eleccionUsuario = args[0]?.toLowerCase();
@@ -38,7 +38,7 @@ export default {
         // 1. Validar entrada
         if (!eleccionUsuario || !opciones.includes(eleccionUsuario)) {
             return await socket.sendMessage(remoteJid, {
-                text: `╭〔 🎮 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐄𝐋𝐄𝐂𝐂𝐈Ó𝐍 𝐈𝐍𝐕Á𝐋𝐈𝐃𝐀\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, Elige una opción válida:\n┃ > *#ppt piedra*\n┃ > *#ppt papel*\n┃ > *#ppt tijera*\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`
+                text: `╭〔 🎮 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐄𝐋𝐄𝐂𝐂𝐈Ó𝐍 𝐈𝐍𝐕Á𝐋𝐈𝐃𝐀\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, Elige una opción válida:\n┃ > *${prefix}ppt piedra*\n┃ > *${prefix}ppt papel*\n┃ > *${prefix}ppt tijera*\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`
             }, { quoted: message });
         }
 
