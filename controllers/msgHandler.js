@@ -137,5 +137,11 @@ export async function handleMessage(sock, m, db, saveDB) {
                 return;
             }
         }
+
+        if (!commandFound) {
+            return await sock.sendMessage(remoteJid, {
+                text: `╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐂𝐎𝐌𝐀𝐍𝐃𝐎 𝐍𝐎 𝐄𝐗𝐈𝐒𝐓𝐄\n╰━━━━━━━━━━━━⬣\n┃ > El comando que intentaste usar no existe.\n┃ > Usa el menú con ${prefix}menu para ver los comandos disponibles.`
+            }, { quoted: m });
+        }
     }
 }
