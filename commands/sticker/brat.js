@@ -4,6 +4,7 @@ import path from 'path'
 import os from 'os'
 import ffmpeg from 'fluent-ffmpeg'
 import ffmpegPath from '@ffmpeg-installer/ffmpeg'
+import { ffmpegSemaphore } from '../../controllers/downloadUtils.js'
 
 ffmpeg.setFfmpegPath(ffmpegPath.path)
 
@@ -132,7 +133,7 @@ export default {
 
       await fs.promises.writeFile(inputPath, stickerBuffer)
 
-      await new Promise((resolve, reject) => {
+      await ffmpegSemaphore.run(() => new Promise((resolve, reject) => {
         ffmpeg(inputPath)
           .outputOptions([
             '-vcodec libwebp',
@@ -146,7 +147,7 @@ export default {
           .save(outputPath)
           .on('end', resolve)
           .on('error', reject)
-      })
+      }))
 
       const webpStickerBuffer = await fs.promises.readFile(outputPath)
 

@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import fs from 'fs';
 
 export async function handleGroupUpdate(sock, { id, participants, action }, getDB) {
-    const db = getDB();
+    const db = await getDB();
     const groupData = db.groups[id];
 
     console.log(`[GROUP-EVENT] Acción: ${action} | Grupo: ${id} | Participants: ${participants.length}`);

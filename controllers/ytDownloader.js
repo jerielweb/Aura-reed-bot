@@ -4,6 +4,7 @@ import ffmpegPath from '@ffmpeg-installer/ffmpeg';
 import ffprobePath from '@ffprobe-installer/ffprobe';
 import fs from 'fs';
 import path from 'path';
+import { ensureDirectory, downloadStreamToFile, ffmpegSemaphore } from './downloadUtils.js';
 
 // Configurar rutas de FFmpeg
 ffmpeg.setFfmpegPath(ffmpegPath.path);
@@ -12,9 +13,7 @@ ffmpeg.setFfprobePath(ffprobePath.path);
 class YTDownloader {
     constructor() {
         this.tempDir = path.resolve('./tmp');
-        if (!fs.existsSync(this.tempDir)) {
-            fs.mkdirSync(this.tempDir, { recursive: true });
-        }
+        ensureDirectory(this.tempDir);
     }
 
     getVideoId(url) {
@@ -78,8 +77,7 @@ class YTDownloader {
         }
 
         const downloadUrl = await this.raceApis(url, 'audio');
-        const res = await axios.get(downloadUrl, { responseType: 'arraybuffer', timeout: 60000 });
-        fs.writeFileSync(cachePath, Buffer.from(res.data));
+        await downloadStreamToFile(downloadUrl, cachePath, { timeout: 60000 });
 
         return cachePath;
     }
@@ -96,16 +94,9 @@ class YTDownloader {
         const downloadUrl = await this.raceApis(url, 'video');
         const tempIn = path.join(this.tempDir, `raw_${videoId}.mp4`);
         
-        const writer = fs.createWriteStream(tempIn);
-        const res = await axios({ url: downloadUrl, method: 'GET', responseType: 'stream', timeout: 60000 });
-        res.data.pipe(writer);
+        await downloadStreamToFile(downloadUrl, tempIn, { timeout: 60000 });
 
-        await new Promise((resolve, reject) => {
-            writer.on('finish', resolve);
-            writer.on('error', reject);
-        });
-
-        await new Promise((resolve, reject) => {
+        await ffmpegSemaphore.run(() => new Promise((resolve, reject) => {
             ffmpeg(tempIn)
                 .outputOptions([
                     '-c:v libx264',
@@ -118,7 +109,7 @@ class YTDownloader {
                 .on('error', reject)
                 .on('end', resolve)
                 .save(cachePath);
-        });
+        }));
 
         if (fs.existsSync(tempIn)) fs.unlinkSync(tempIn);
         return cachePath;

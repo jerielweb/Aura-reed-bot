@@ -3,43 +3,9 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { fytBold } from '../../models/TextStyle.js';
+import { fetchJson, downloadStreamToFile, firstSuccessfulPromise } from '../../controllers/downloadUtils.js';
 
 const IG_REGEX = /^(https?:\/\/)?(www\.)?(instagram\.com)\/(p|reel|reels|tv|stories)\/.*$/i;
-
-async function fetchJson(url) {
-    const res = await axios.get(url, { timeout: 30000 });
-    return res.data;
-}
-
-async function firstSuccessfulPromise(promises) {
-    return new Promise((resolve, reject) => {
-        let errors = [];
-        let completed = 0;
-        if (promises.length === 0) {
-            reject(new Error('No hay servidores disponibles.'));
-            return;
-        }
-        promises.forEach(p => {
-            Promise.resolve(p)
-                .then(res => {
-                    if (res) {
-                        resolve(res);
-                    } else {
-                        throw new Error('Respuesta vacía o inválida');
-                    }
-                })
-                .catch(err => {
-                    errors.push(err);
-                })
-                .finally(() => {
-                    completed++;
-                    if (completed === promises.length) {
-                        reject(new Error('Todos los servidores fallaron: ' + errors.map(e => e.message).join(' | ')));
-                    }
-                });
-        });
-    });
-}
 
 function normalizeAlyacore(res) {
     if (!res || !res.status || !res.data) {
@@ -169,30 +135,21 @@ export default {
                 const attemptTempPath = path.join(os.tmpdir(), `aura-igdl-${tempId}.${fileExt}`);
 
                 try {
-                    const mediaRes = await axios({
-                        method: 'get',
-                        url: downloadUrl,
-                        responseType: 'stream',
-                        headers: {
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                        },
-                        timeout: 45000
-                    });
-
-                    const fileStream = fs.createWriteStream(attemptTempPath);
-                    await new Promise((resolve, reject) => {
-                        mediaRes.data.pipe(fileStream);
-                        mediaRes.data.on("error", reject);
-                        fileStream.on("finish", resolve);
-                        fileStream.on("error", reject);
-                    });
-
-                    if (fs.existsSync(attemptTempPath) && fs.statSync(attemptTempPath).size > 0) {
-                        downloaded = true;
-                        tempPath = attemptTempPath;
-                        finalMetadata = { ...metadata, isReel: isReelAttempt, isImage: isImageAttempt };
-                        console.log(`[IG Downloader] Descarga local exitosa usando Axios con motor: ${motor}`);
-                        break;
+                    try {
+                        await downloadStreamToFile(downloadUrl, attemptTempPath, { timeout: 45000 });
+                        if (fs.existsSync(attemptTempPath) && fs.statSync(attemptTempPath).size > 0) {
+                            downloaded = true;
+                            tempPath = attemptTempPath;
+                            finalMetadata = { ...metadata, isReel: isReelAttempt, isImage: isImageAttempt };
+                            console.log(`[IG Downloader] Descarga local exitosa usando Axios con motor: ${motor}`);
+                            break;
+                        }
+                    } catch (streamError) {
+                        console.error(`[IG Downloader] Falló la descarga por stream para ${motor}: ${streamError.message}`);
+                        try {
+                            if (fs.existsSync(attemptTempPath)) fs.unlinkSync(attemptTempPath);
+                        } catch {}
+                        throw streamError;
                     }
                 } catch (dlError) {
                     console.error(`[IG Downloader] Falló Axios para ${motor} (${dlError.message}). Intentando con fetch...`);

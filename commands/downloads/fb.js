@@ -2,13 +2,9 @@ import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { fetchJson, downloadStreamToFile } from '../../controllers/downloadUtils.js';
 
 const FB_REGEX = /^(https?:\/\/)?(www\.)?(facebook\.com|fb\.watch|fb\.gg|m\.facebook\.com|share\/v|share\/r)\/.*$/i;
-
-async function fetchJson(url) {
-    const res = await axios.get(url, { timeout: 30000 });
-    return res.data;
-}
 
 async function firstSuccessfulPromise(promises) {
     return new Promise((resolve, reject) => {
@@ -157,21 +153,7 @@ export default {
                 await socket.sendMessage(remoteJid, { text: caption }, { quoted: message });
             }
 
-            // Descargar video a un archivo temporal usando axios stream para soportar archivos de cualquier tamaño
-            const videoRes = await axios({
-                method: 'get',
-                url: videoUrl,
-                responseType: 'stream',
-                timeout: 120000
-            });
-
-            const fileStream = fs.createWriteStream(tempPath);
-            await new Promise((resolve, reject) => {
-                videoRes.data.pipe(fileStream);
-                videoRes.data.on("error", reject);
-                fileStream.on("finish", resolve);
-                fileStream.on("error", reject);
-            });
+            await downloadStreamToFile(videoUrl, tempPath, { timeout: 120000 });
 
             // Enviar el video a WhatsApp
         await socket.sendMessage(remoteJid, { react: { text: '✅', key: message.key } });

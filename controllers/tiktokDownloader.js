@@ -5,6 +5,7 @@ import ffmpegPath from '@ffmpeg-installer/ffmpeg';
 import ffprobePath from '@ffprobe-installer/ffprobe';
 import fs from 'fs';
 import path from 'path';
+import { ensureDirectory, downloadStreamToFile, ffmpegSemaphore } from './downloadUtils.js';
 
 // Configurar rutas de FFmpeg
 ffmpeg.setFfmpegPath(ffmpegPath.path);
@@ -13,9 +14,7 @@ ffmpeg.setFfprobePath(ffprobePath.path);
 class TikTokDownloader {
     constructor() {
         this.tempDir = path.resolve('./tmp');
-        if (!fs.existsSync(this.tempDir)) {
-            fs.mkdirSync(this.tempDir, { recursive: true });
-        }
+        ensureDirectory(this.tempDir);
     }
 
     async search(query) {
@@ -176,18 +175,11 @@ class TikTokDownloader {
         const isMp3Direct = !!info.audioUrl;
 
         console.log(`[TikTokDownloader] Descargando audio desde: ${downloadUrl}`);
-        const writer = fs.createWriteStream(tempIn);
-        const res = await axios({ url: downloadUrl, method: 'GET', responseType: 'stream', timeout: 60000 });
-        res.data.pipe(writer);
-
-        await new Promise((resolve, reject) => {
-            writer.on('finish', resolve);
-            writer.on('error', reject);
-        });
+        await downloadStreamToFile(downloadUrl, tempIn, { timeout: 60000 });
 
         // Transcodificar a mp3 para compatibilidad absoluta
         console.log('[TikTokDownloader] Transcodificando audio a MP3...');
-        await new Promise((resolve, reject) => {
+        await ffmpegSemaphore.run(() => new Promise((resolve, reject) => {
             ffmpeg(tempIn)
                 .outputOptions([
                     '-vn',
@@ -199,7 +191,7 @@ class TikTokDownloader {
                 .on('error', reject)
                 .on('end', resolve)
                 .save(cachePath);
-        });
+        }));
 
         if (fs.existsSync(tempIn)) fs.unlinkSync(tempIn);
         return { path: cachePath, info };
@@ -217,17 +209,10 @@ class TikTokDownloader {
         const tempIn = path.join(this.tempDir, `raw_${info.id}.mp4`);
         
         console.log(`[TikTokDownloader] Descargando video desde: ${info.videoUrl}`);
-        const writer = fs.createWriteStream(tempIn);
-        const res = await axios({ url: info.videoUrl, method: 'GET', responseType: 'stream', timeout: 60000 });
-        res.data.pipe(writer);
-
-        await new Promise((resolve, reject) => {
-            writer.on('finish', resolve);
-            writer.on('error', reject);
-        });
+        await downloadStreamToFile(info.videoUrl, tempIn, { timeout: 60000 });
 
         console.log('[TikTokDownloader] Transcodificando video con FFmpeg...');
-        await new Promise((resolve, reject) => {
+        await ffmpegSemaphore.run(() => new Promise((resolve, reject) => {
             ffmpeg(tempIn)
                 .outputOptions([
                     '-c:v libx264',
@@ -240,7 +225,7 @@ class TikTokDownloader {
                 .on('error', reject)
                 .on('end', resolve)
                 .save(cachePath);
-        });
+        }));
 
         if (fs.existsSync(tempIn)) fs.unlinkSync(tempIn);
         return { path: cachePath, info };

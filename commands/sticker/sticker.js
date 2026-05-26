@@ -6,6 +6,7 @@ import ffprobePath from '@ffprobe-installer/ffprobe';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { ffmpegSemaphore } from '../../controllers/downloadUtils.js';
 
 ffmpeg.setFfmpegPath(ffmpegPath.path);
 ffmpeg.setFfprobePath(ffprobePath.path);
@@ -118,7 +119,7 @@ export default {
 
             if (!isVideo) {
                 console.log('[Sticker] Procesando imagen estática con ffmpeg...');
-                await convertToSticker(tempInPath, tempOutPath, false);
+                await ffmpegSemaphore.run(() => convertToSticker(tempInPath, tempOutPath, false));
             } else {
                 console.log('[Sticker] Procesando video/GIF animado con ffmpeg...');
 
@@ -131,7 +132,7 @@ export default {
                     }
 
                     console.log(`[Sticker] Optimizando video, intento: ${attempt}...`);
-                    await convertToSticker(tempInPath, tempOutPath, true, attempt);
+                    await ffmpegSemaphore.run(() => convertToSticker(tempInPath, tempOutPath, true, attempt));
 
                     fileSize = fs.statSync(tempOutPath).size;
                     console.log(`[Sticker] Tamaño final del archivo en intento ${attempt}: ${fileSize} bytes`);

@@ -7,6 +7,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { fytBold } from '../../models/TextStyle.js';
+import { ffmpegSemaphore } from '../../controllers/downloadUtils.js';
 
 ffmpeg.setFfmpegPath(ffmpegPath.path);
 ffmpeg.setFfprobePath(ffprobePath.path);
@@ -18,14 +19,14 @@ async function convertWebpToGif(buffer) {
 
     await fs.promises.writeFile(tempIn, buffer);
 
-    await new Promise((resolve, reject) => {
+    await ffmpegSemaphore.run(() => new Promise((resolve, reject) => {
         ffmpeg(tempIn)
             .outputOptions(['-y', '-filter_complex', 'fps=15', '-loop', '0'])
             .toFormat('gif')
             .save(tempOut)
             .on('error', reject)
             .on('end', resolve);
-    });
+    }));
 
     const gifBuffer = await fs.promises.readFile(tempOut);
     await fs.promises.unlink(tempIn).catch(() => {});

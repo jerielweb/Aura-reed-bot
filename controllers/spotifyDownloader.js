@@ -2,6 +2,7 @@ import spotifyUrlInfo from 'spotify-url-info';
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
+import { ensureDirectory, firstSuccessfulPromise, downloadStreamToFile } from './downloadUtils.js';
 
 // Matches regular and international/localized Spotify track URLs
 const SPOTIFY_REGEX = /open\.spotify\.com\/([a-zA-Z0-9-]+\/)?track\/([a-zA-Z0-9]+)/i;
@@ -9,45 +10,13 @@ const SPOTIFY_REGEX = /open\.spotify\.com\/([a-zA-Z0-9-]+\/)?track\/([a-zA-Z0-9]
 class SpotifyDownloader {
     constructor() {
         this.tempDir = path.resolve('./tmp');
-        if (!fs.existsSync(this.tempDir)) {
-            fs.mkdirSync(this.tempDir, { recursive: true });
-        }
+        ensureDirectory(this.tempDir);
     }
 
     extractTrackId(url) {
         if (!url) return null;
         const match = url.match(/track\/([a-zA-Z0-9]+)/);
         return match ? match[1] : null;
-    }
-
-    async firstSuccessfulPromise(promises) {
-        return new Promise((resolve, reject) => {
-            let errors = [];
-            let completed = 0;
-            if (promises.length === 0) {
-                reject(new Error('No hay tareas disponibles para procesar.'));
-                return;
-            }
-            promises.forEach(p => {
-                Promise.resolve(p)
-                    .then(res => {
-                        if (res) {
-                            resolve(res);
-                        } else {
-                            throw new Error('Respuesta vacía o inválida');
-                        }
-                    })
-                    .catch(err => {
-                        errors.push(err);
-                    })
-                    .finally(() => {
-                        completed++;
-                        if (completed === promises.length) {
-                            reject(new Error('Todos los servidores fallaron: ' + errors.map(e => e.message).join(' | ')));
-                        }
-                    });
-            });
-        });
     }
 
     async getTrackMetadata(url) {
@@ -374,7 +343,7 @@ class SpotifyDownloader {
             })());
 
             try {
-                const resolved = await this.firstSuccessfulPromise(dlTasks);
+                const resolved = await firstSuccessfulPromise(dlTasks);
                 downloadUrl = resolved.url;
                 downloadSource = resolved.source;
             } catch (e) {
@@ -390,15 +359,7 @@ class SpotifyDownloader {
         const cachePath = path.join(this.tempDir, `spotify_${fileId}.mp3`);
 
         console.log(`[Spotify] Descargando archivo de audio desde el servidor más rápido (${downloadSource})...`);
-        const audioRes = await axios.get(downloadUrl, {
-            responseType: 'arraybuffer',
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-            },
-            timeout: 60000
-        });
-
-        fs.writeFileSync(cachePath, Buffer.from(audioRes.data));
+        await downloadStreamToFile(downloadUrl, cachePath, { timeout: 60000 });
         console.log('[Spotify] Descarga de audio completada y guardada en caché.');
 
         return { metadata, path: cachePath, downloadSource };
