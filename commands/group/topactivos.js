@@ -42,8 +42,21 @@ export default {
             return socket.sendMessage(remoteJid, { text: 'Aún no hay suficiente actividad registrada en este mes.' }, { quoted: message });
         }
 
-        const pageSize = Math.min(Math.max(parseInt(args[0], 20) || 20, 1), 50);
-        const page = Math.max(parseInt(args[1], 10) || 1, 1);
+        let pageSize = 10;
+        let page = 1;
+
+        if (args.length === 1) {
+            const arg = parseInt(args[0], 10);
+            if (arg > 20) {
+                pageSize = Math.min(Math.max(arg, 1), 50);
+            } else if (arg > 0) {
+                page = arg;
+            }
+        } else if (args.length >= 2) {
+            pageSize = Math.min(Math.max(parseInt(args[0], 10) || 10, 1), 50);
+            page = Math.max(parseInt(args[1], 10) || 1, 1);
+        }
+
         const totalPages = Math.max(Math.ceil(users.length / pageSize), 1);
         const currentPage = Math.min(page, totalPages);
         const startIndex = (currentPage - 1) * pageSize;
