@@ -5,12 +5,12 @@ export default {
     name: ['ttsearch', 'tiktoksearch', 'tts'],
     category: 'search',
     description: 'Busca videos en TikTok.',
-    execute: async (socket, message, args) => {
+    execute: async (socket, message, args, {prefix}) => {
         const remoteJid = message.key.remoteJid;
         const query = args.join(' ');
 
         if (!query) {
-            return await socket.sendMessage(remoteJid, { text: `⚠️ Debes especificar qué buscar.\nEjemplo: *${global.db.prefix}ttsearch bomboclat*` }, { quoted: message });
+            return await socket.sendMessage(remoteJid, { text: `⚠️ Debes especificar qué buscar.\nEjemplo: *${prefix}ttsearch bomboclat*` }, { quoted: message });
         }
 
         console.log(`[TikTok Search] Iniciando búsqueda: "${query}"`);

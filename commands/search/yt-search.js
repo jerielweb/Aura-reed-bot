@@ -5,12 +5,12 @@ export default {
     name: ['ytsearch', 'yts', 'plays'],
     category: 'search',
     description: 'Busca videos en YouTube. Usa: .yt [búsqueda]',
-    execute: async (socket, message, args) => {
+    execute: async (socket, message, args, {prefix}) => {
         const remoteJid = message.key.remoteJid;
         const query = args.join(' ');
 
         if (!query) {
-            return await socket.sendMessage(remoteJid, { text: `⚠️ Debes especificar qué buscar.\nEjemplo: *${db.prefix}yts Twice Fancy*` }, { quoted: message });
+            return await socket.sendMessage(remoteJid, { text: `⚠️ Debes especificar qué buscar.\nEjemplo: *${prefix}yts Twice Fancy*` }, { quoted: message });
         }
 
         await socket.sendMessage(remoteJid, { text: '🔍 Buscando en YouTube...' }, { quoted: message });
