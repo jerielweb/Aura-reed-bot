@@ -108,14 +108,14 @@ export async function handleMessage(sock, m, db, saveDB) {
 
     await sock.readMessages([m.key]);
 
+    try {
+        const middlewares = await loadMiddlewares();
+        for (const cmd of middlewares) await cmd.middleware(sock, m, { db, saveDB, owners, isAdmin, isBotAdmin, isOwner, groupMetadata, text });
+    } catch (e) { console.error(e); }
+
     if (!esComando) {
         cmdLog({ numeroReal, rango: rangoLog, isGroup, text, pushName: m.pushName, groupMetadata, m });
     } else {
-        try {
-            const middlewares = await loadMiddlewares();
-            for (const cmd of middlewares) await cmd.middleware(sock, m, { db, saveDB, owners, isAdmin, isBotAdmin, isOwner, groupMetadata, text });
-        } catch (e) { console.error(e); }
-
         const args = text.slice(prefix.length).trim().split(/ +/);
         const commandName = args.shift().toLowerCase();
         

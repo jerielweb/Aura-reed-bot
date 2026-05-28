@@ -1,6 +1,6 @@
 import fs from 'fs';
 
-const badWordsData = JSON.parse(fs.readFileSync('./../../database/badWords.json', 'utf-8'));
+const badWordsData = JSON.parse(fs.readFileSync('./database/badWords.json', 'utf-8'));
 
 // Pre-normalizar palabras prohibidas para mayor velocidad
 for (const level of Object.values(badWordsData.levels)) {
