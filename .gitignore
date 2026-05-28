@@ -16,7 +16,6 @@ scratch/
 temp/
 tmp/
 database/groups.json
-database/database.json
 database/users.json
 
 bun.lock
