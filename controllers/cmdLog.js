@@ -77,7 +77,7 @@ export function cmdLog({ numeroReal, rango, commandName, isGroup, text, jidRemit
     }
 
     lineasDinamicas += `${chalk.blue.bold('│')} ${chalk.gray('🕒 ')} ${chalk.bold('Fecha:')}     ${chalk.white(fecha)}\n`;
-    lineasDinamicas += `${chalk.blue.bold('│')} ${chalk.gray('📱 ')} ${chalk.bold('Número:')}    ${chalk.white(senderNumber)}\n`;
+    lineasDinamicas += `${chalk.blue.bold('│')} ${chalk.gray('📱 ')} ${chalk.bold('Número:')}    +${chalk.white(senderNumber)}\n`;
     lineasDinamicas += `${chalk.blue.bold('│')} ${chalk.gray('💬 ')} ${chalk.bold('Chat:')}      ${chatTipo}\n`;
 
     // Impresión en consola manteniendo la caja limpia intacta

@@ -57,3 +57,9 @@ global.tiktokApis = {
         url: 'https://api.delirius.store/search/tiktoksearch'
     }
 };
+
+
+global.apiShazam = {
+    url: 'https://api.audd.io/',
+    apikey: '257b4fe430651b5c9fbaa9d5203531f8'
+}

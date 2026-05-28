@@ -19,7 +19,8 @@ database/groups.json
 database/database.json
 database/users.json
 
-
+bun.lock
+package-lock.json
 
 
 # Sesiones de sub-bots
