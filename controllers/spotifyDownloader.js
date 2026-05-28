@@ -98,7 +98,7 @@ class SpotifyDownloader {
 
         let metadata = null;
         try {
-            metadata = await this.firstSuccessfulPromise(highQualityTasks);
+            metadata = await firstSuccessfulPromise(highQualityTasks);
         } catch (e) {
             console.warn('[Spotify] Todos los metadatos de alta calidad fallaron en paralelo, intentando oEmbed:', e.message);
             
@@ -219,7 +219,7 @@ class SpotifyDownloader {
         ];
 
         try {
-            return await this.firstSuccessfulPromise(tasks);
+            return await firstSuccessfulPromise(tasks);
         } catch (e) {
             console.error('[Spotify] Todos los motores de búsqueda fallaron en paralelo:', e.message);
             throw new Error('No se encontraron resultados para la búsqueda.');
