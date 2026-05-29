@@ -82,9 +82,9 @@ export function cmdLog({ numeroReal, rango, commandName, isGroup, text, jidRemit
 
     // Impresión en consola manteniendo la caja limpia intacta
     console.log(
-        chalk.blue.bold(`╭────────────────────────────────────────────────────⬣\n`) +
+        chalk.blue.bold(`╭──────────────────────────────────────────────────⬣\n`) +
         lineasDinamicas +
-        `${chalk.blue.bold('├────────────────────────────────────────────────────⬣\n')}` +
+        `${chalk.blue.bold('├──────────────────────────────────────────────────⬣\n')}` +
         `${chalk.blue.bold('│')}${tipoAccion} ➤  ${contenido}\n` +
         chalk.blue.bold(`╰──────────────────────────────────────────────────⬣`)
     );
