@@ -1,50 +1,33 @@
 import formatNumber from '../../controllers/functions/formatNumbers.js';
 import { economyTexts } from '../../models/economyTexts.js';
-import fs from 'fs';
-import path from 'path';
-
-const dbPath = path.join(process.cwd(), 'database', 'groups.json');
+import { getGroupUser } from '../../models/groupDb.js';
 
 export default {
     name: ['mine', 'minar', 'chambear'],
     category: 'economy',
     description: 'Mina en las cuevas para conseguir XP, monedas y tal vez algo legendario.',
-    execute: async (socket, message, args) => {
+    execute: async (socket, message, args, { db, saveDB, jidRemitente }) => {
         const remoteJid = message.key.remoteJid;
-        const sender = message.key.participant || message.key.remoteJid;
+        const user = getGroupUser(db, remoteJid, jidRemitente, { coins: 0, bank: 0, lastMine: 0, xp: 0 });
+        const now = Date.now();
+        const cooldown = 30 * 60 * 1000; // 30 minutos
 
-        // Tiempo de cooldown en milisegundos (30 minutos = 30 * 60 * 1000)
-        const tiempoCooldown = 30 * 60 * 1000;
+        if (user.lastMine && now - user.lastMine < cooldown) {
+            const timeLeft = cooldown - (now - user.lastMine);
+            const minutes = Math.floor(timeLeft / (1000 * 60));
+            const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
 
-        // 1. Verificar Cooldown leyendo el archivo primero
-        try {
-            const dbData = JSON.parse(await fs.promises.readFile(dbPath, 'utf-8'));
+            let menuCooldown = `╭〔 ⏳ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
+            menuCooldown += `┃ 𝐂𝐎𝐎𝐋𝐃𝐎𝐖𝐍 𝐀𝐂𝐓𝐈𝐕𝐎\n`;
+            menuCooldown += `╰━━━━━━━━━━━━⬣\n\n`;
+            menuCooldown += `┃ ⏱️ ¡Agotado! Tus brazos necesitan descansar.\n`;
+            menuCooldown += `┃ > Espera: *${minutes}m ${seconds}s* para volver al pozo.\n\n`;
+            menuCooldown += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
 
-            if (dbData.groups?.[remoteJid]?.users?.[sender]) {
-                const usuario = dbData.groups[remoteJid].users[sender];
-                const ultimoMinado = usuario.lastMine || 0; // Usamos lastMine para no chocar con lastWork
-                const tiempoRestante = (ultimoMinado + tiempoCooldown) - Date.now();
-
-                if (tiempoRestante > 0) {
-                    // Convertir milisegundos restantes a minutos y segundos reales
-                    const minutos = Math.floor(tiempoRestante / (60 * 1000));
-                    const segundos = Math.floor((tiempoRestante % (60 * 1000)) / 1000);
-
-                    let menuCooldown = `╭〔 ⏳ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
-                    menuCooldown += `┃ 𝐂𝐎𝐎𝐋𝐃𝐎𝐖𝐍 𝐀𝐂𝐓𝐈𝐕𝐎\n`;
-                    menuCooldown += `╰━━━━━━━━━━━━⬣\n\n`;
-                    menuCooldown += `┃ ⏱️ ¡Agotado! Tus brazos necesitan descansar.\n`;
-                    menuCooldown += `┃ > Espera: *${minutos}m ${segundos}s* para volver al pozo.\n\n`;
-                    menuCooldown += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
-
-                    return await socket.sendMessage(remoteJid, { text: menuCooldown }, { quoted: message });
-                }
-            }
-        } catch (err) {
-            console.error('Error verificando cooldown en mine.js:', err);
+            return await socket.sendMessage(remoteJid, { text: menuCooldown }, { quoted: message });
         }
 
-        // 2. Probabilidades y Rangos del comando si no hay cooldown
+        // Probabilidades y Rangos del comando si no hay cooldown
         const ganoDinero = Math.random() > 0.3; // 70% de probabilidad de ganar dinero
         const xpGanado = Math.floor(Math.random() * (50 - 20 + 1)) + 20; // Siempre gana entre 20 y 50 de XP
         
@@ -71,32 +54,18 @@ export default {
             monedasLegendarias = Math.floor(Math.random() * (50000 - 20000 + 1)) + 20000;
         }
 
-        // 3. Guardar Datos y Guardar la marca de tiempo actual (`lastMine`)
-        try {
-            const dbData = JSON.parse(await fs.promises.readFile(dbPath, 'utf-8'));
+        // Guardar tiempo actual en milisegundos para bloquear el comando por 30m
+        user.lastMine = now;
 
-            if (dbData.groups?.[remoteJid]) {
-                if (!dbData.groups[remoteJid].users) dbData.groups[remoteJid].users = {};
-                if (!dbData.groups[remoteJid].users[sender]) dbData.groups[remoteJid].users[sender] = {};
+        // Actualizar XP y monedas
+        user.xp = (user.xp || 0) + xpGanado;
 
-                const usuario = dbData.groups[remoteJid].users[sender];
-
-                // Guardar tiempo actual en milisegundos para bloquear el comando por 30m
-                usuario.lastMine = Date.now();
-
-                // Actualizar XP y monedas
-                usuario.xp = (usuario.xp || 0) + xpGanado;
-
-                const totalAAsignar = monedasGanadas + monedasLegendarias;
-                if (totalAAsignar > 0) {
-                    usuario.coins = (usuario.coins || 0) + totalAAsignar;
-                }
-
-                await fs.promises.writeFile(dbPath, JSON.stringify(dbData, null, 2));
-            }
-        } catch (err) {
-            console.error('Error actualizando base de datos en mine.js:', err);
+        const totalAAsignar = monedasGanadas + monedasLegendarias;
+        if (totalAAsignar > 0) {
+            user.coins = (user.coins || 0) + totalAAsignar;
         }
+
+        saveDB(db);
 
         // 4. Armar el diseño visual con tu estructura de texto exacta con +=
         let menuTexto = `╭〔 ⚒️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;

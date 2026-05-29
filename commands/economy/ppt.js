@@ -1,38 +1,28 @@
 import formatNumber from '../../controllers/functions/formatNumbers.js';
-import fs from 'fs';
-import path from 'path';
+import { getGroupUser } from '../../models/groupDb.js';
 
 const opciones = ['piedra', 'papel', 'tijera'];
 const emojis = { piedra: '🪨', papel: '📄', tijera: '✂️' };
-
-const dbPath = path.join(process.cwd(), 'database', 'groups.json');
 
 export default {
     name: ['ppt', 'juego', 'rps', 'desafio', 'retar'],
     category: 'economy',
     description: 'Juega a Piedra, Papel o Tijera contra Aura Reed con premios random.',
-    execute: async (socket, message, args, {prefix}) => {
+    execute: async (socket, message, args, { db, saveDB, jidRemitente, prefix }) => {
         const remoteJid = message.key.remoteJid;
-        const sender = message.key.participant || message.key.remoteJid;
+        const user = getGroupUser(db, remoteJid, jidRemitente, { coins: 0, bank: 0, lastPpt: 0 });
         const eleccionUsuario = args[0]?.toLowerCase();
+        const now = Date.now();
+        const cooldown = 10 * 60 * 1000; // 10 minutos
 
-        // 0. Validar cooldown de 10 minutos
-        try {
-            const dbData = JSON.parse(await fs.promises.readFile(dbPath, 'utf-8'));
-            const ahora = Date.now();
-            const lastPpt = dbData.groups?.[remoteJid]?.users?.[sender]?.lastPpt || 0;
-            const cooldownMs = 10 * 60 * 1000; // 10 minutos en milisegundos
-            const tiempoRestante = lastPpt + cooldownMs - ahora;
-
-            if (tiempoRestante > 0) {
-                const minutos = Math.floor(tiempoRestante / 60000);
-                const segundos = Math.floor((tiempoRestante % 60000) / 1000);
-                return await socket.sendMessage(remoteJid, {
-                    text: `╭〔 ⏱️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ⏳ 𝐄𝐍 𝐂𝐎𝐎𝐋𝐃𝐎𝐖𝐍\n╰━━━━━━━━━━━━⬣\n┃ > Espera ${minutos}m ${segundos}s para jugar de nuevo.\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`
-                }, { quoted: message });
-            }
-        } catch (err) {
-            console.error('Error verificando cooldown en ppt.js:', err);
+        // Validar cooldown
+        if (user.lastPpt && now - user.lastPpt < cooldown) {
+            const timeLeft = cooldown - (now - user.lastPpt);
+            const minutes = Math.floor(timeLeft / 60000);
+            const seconds = Math.floor((timeLeft % 60000) / 1000);
+            return await socket.sendMessage(remoteJid, {
+                text: `╭〔 ⏱️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ⏳ 𝐄𝐍 𝐂𝐎𝐎𝐋𝐃𝐎𝐖𝐍\n╰━━━━━━━━━━━━⬣\n┃ > Espera ${minutes}m ${seconds}s para jugar de nuevo.\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`
+            }, { quoted: message });
         }
 
         // 1. Validar entrada
@@ -61,28 +51,17 @@ export default {
             resultado = '¡𝐇𝐀𝐒 𝐏𝐄𝐑𝐃𝐈𝐃𝐎! ❌\n┃ > Aura Reed leyó tus movimientos.';
         }
 
-        // 3. Guardar en la base de datos (cooldown + monedas si ganó)
-        try {
-            const dbData = JSON.parse(await fs.promises.readFile(dbPath, 'utf-8'));
+        // 3. Siempre guardar el cooldown
+        user.lastPpt = now;
 
-            if (dbData.groups?.[remoteJid]) {
-                if (!dbData.groups[remoteJid].users) dbData.groups[remoteJid].users = {};
-                if (!dbData.groups[remoteJid].users[sender]) dbData.groups[remoteJid].users[sender] = {};
-
-                // Siempre guardar el cooldown
-                dbData.groups[remoteJid].users[sender].lastPpt = Date.now();
-
-                // Solo actualizar monedas si ganó
-                if (monedasGanadas > 0) {
-                    const monedasActuales = dbData.groups[remoteJid].users[sender].coins || 0;
-                    dbData.groups[remoteJid].users[sender].coins = monedasActuales + monedasGanadas;
-                }
-
-                await fs.promises.writeFile(dbPath, JSON.stringify(dbData, null, 2));
-            }
-        } catch (err) {
-            console.error('Error actualizando datos en ppt.js:', err);
+        // Solo actualizar monedas si ganó
+        if (monedasGanadas > 0) {
+            user.coins = (user.coins || 0) + monedasGanadas;
         }
+
+        saveDB(db);
+
+        saveDB(db);
 
         // 4. Tu diseño de menú de texto exacto
         let menuTexto = `╭〔 🎮 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
