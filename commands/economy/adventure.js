@@ -1,47 +1,33 @@
 import formatNumber from '../../controllers/functions/formatNumbers.js';
 import { economyTexts } from '../../models/economyTexts.js';
-import fs from 'fs';
-import path from 'path';
-
-const dbPath = path.join(process.cwd(), 'database', 'groups.json');
+import { getGroupUser } from '../../models/groupDb.js';
 
 export default {
     name: ['adventure', 'aventura', 'explorar'],
     category: 'economy',
     description: 'Embárcate en una misión RPG para conseguir XP, monedas y botín legendario.',
-    execute: async (socket, message, args) => {
+    execute: async (socket, message, args, { db, saveDB, jidRemitente }) => {
         const remoteJid = message.key.remoteJid;
-        const sender = message.key.participant || message.key.remoteJid;
+        const user = getGroupUser(db, remoteJid, message.key.participant || message.key.remoteJid, { coins: 0, bank: 0, xp: 0, lastAdventure: 0 });
 
         // Cooldown de 2 horas (2 * 60 * 60 * 1000)
         const tiempoCooldown = 2 * 60 * 60 * 1000;
 
         // 1. Verificar Cooldown (lastAdventure)
-        try {
-            const dbData = JSON.parse(await fs.promises.readFile(dbPath, 'utf-8'));
+        if (user.lastAdventure && Date.now() - user.lastAdventure < tiempoCooldown) {
+            const timeLeft = tiempoCooldown - (Date.now() - user.lastAdventure);
+            const horas = Math.floor(timeLeft / (60 * 60 * 1000));
+            const minutos = Math.floor((timeLeft % (60 * 60 * 1000)) / (60 * 1000));
+            const segundos = Math.floor((timeLeft % (60 * 1000)) / 1000);
 
-            if (dbData.groups?.[remoteJid]?.users?.[sender]) {
-                const usuario = dbData.groups[remoteJid].users[sender];
-                const ultimaAventura = usuario.lastAdventure || 0;
-                const tiempoRestante = (ultimaAventura + tiempoCooldown) - Date.now();
+            let menuCooldown = `╭〔 ⏳ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
+            menuCooldown += `┃ 𝐒𝐓𝐀𝐌𝐈𝐍𝐀 𝐈𝐍𝐒𝐔𝐅𝐈𝐂𝐈𝐄𝐍𝐓𝐄\n`;
+            menuCooldown += `╰━━━━━━━━━━━━⬣\n\n`;
+            menuCooldown += `┃ ❌ Tu héroe está descansando en la taberna.\n`;
+            menuCooldown += `┃ > Cooldown: *${horas}h ${minutos}m ${segundos}s* para tu siguiente Raid.\n\n`;
+            menuCooldown += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
 
-                if (tiempoRestante > 0) {
-                    const horas = Math.floor(tiempoRestante / (60 * 60 * 1000));
-                    const minutos = Math.floor((tiempoRestante % (60 * 60 * 1000)) / (60 * 1000));
-                    const segundos = Math.floor((tiempoRestante % (60 * 1000)) / 1000);
-
-                    let menuCooldown = `╭〔 ⏳ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
-                    menuCooldown += `┃ 𝐒𝐓𝐀𝐌𝐈𝐍𝐀 𝐈𝐍𝐒𝐔𝐅𝐈𝐂𝐈𝐄𝐍𝐓𝐄\n`;
-                    menuCooldown += `╰━━━━━━━━━━━━⬣\n\n`;
-                    menuCooldown += `┃ ❌ Tu héroe está descansando en la taberna.\n`;
-                    menuCooldown += `┃ > Cooldown: *${horas}h ${minutos}m ${segundos}s* para tu siguiente Raid.\n\n`;
-                    menuCooldown += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
-
-                    return await socket.sendMessage(remoteJid, { text: menuCooldown }, { quoted: message });
-                }
-            }
-        } catch (err) {
-            console.error('Error verificando cooldown en adventure.js:', err);
+            return await socket.sendMessage(remoteJid, { text: menuCooldown }, { quoted: message });
         }
 
         // 2. Probabilidades y Rangos (Mismo formato que el minado)
@@ -74,33 +60,14 @@ export default {
             monedasLegendarias = Math.floor(Math.random() * (100000 - 40000 + 1)) + 40000;
         }
 
-        // 3. Guardar en Base de Datos (groups.json)
-        try {
-            const dbData = JSON.parse(await fs.promises.readFile(dbPath, 'utf-8'));
-
-            if (dbData.groups?.[remoteJid]) {
-                if (!dbData.groups[remoteJid].users) dbData.groups[remoteJid].users = {};
-                if (!dbData.groups[remoteJid].users[sender]) dbData.groups[remoteJid].users[sender] = {};
-
-                const usuario = dbData.groups[remoteJid].users[sender];
-
-                // Guardar timestamp de aventura
-                usuario.lastAdventure = Date.now();
-
-                // Actualizar XP
-                usuario.xp = (usuario.xp || 0) + xpGanado;
-
-                // Sumar economía si aplica
-                const totalAAsignar = monedasGanadas + monedasLegendarias;
-                if (totalAAsignar > 0) {
-                    usuario.coins = (usuario.coins || 0) + totalAAsignar;
-                }
-
-                await fs.promises.writeFile(dbPath, JSON.stringify(dbData, null, 2));
-            }
-        } catch (err) {
-            console.error('Error actualizando base de datos en adventure.js:', err);
+        // 3. Guardar en Base de Datos
+        user.lastAdventure = Date.now();
+        user.xp = (user.xp || 0) + xpGanado;
+        const totalAAsignar = monedasGanadas + monedasLegendarias;
+        if (totalAAsignar > 0) {
+            user.coins = (user.coins || 0) + totalAAsignar;
         }
+        saveDB(db);
 
         // 4. Diseño Visual RPG con estructura +=
         let menuTexto = `╭〔 🗺️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
