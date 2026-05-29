@@ -58,9 +58,9 @@ export function cmdLog({ numeroReal, rango, commandName, isGroup, text, jidRemit
                         msgObj?.viewOnceMessageV2?.message?.videoMessage?.caption ||
                         msgObj?.imageMessage?.caption || msgObj?.videoMessage?.caption || '';
         
-        contenido = chalk.magenta.bold(`MEDIO: ${tipoMedio} `) + (caption ? chalk.white(` "${caption.substring(0, 25)}..."`) : '');
+        contenido = chalk.magenta.bold(`MEDIO: ${tipoMedio} `) + (caption ? chalk.white(` "${caption.substring(0, 20)}..."`) : '');
     } else {
-        contenido = chalk.white(`"${text?.substring(0, 40)}${text?.length > 45 ? '...' : ''}"`);
+        contenido = chalk.white(`"${text?.substring(0, 35)}${text?.length > 40 ? '...' : ''}"`);
     }
 
     const chatTipo = isGroup ? chalk.green('Grupo') : chalk.magenta('Privado');
@@ -82,10 +82,10 @@ export function cmdLog({ numeroReal, rango, commandName, isGroup, text, jidRemit
 
     // Impresión en consola manteniendo la caja limpia intacta
     console.log(
-        chalk.blue.bold(`╭──────────────────────────────────────────────────────────⬣\n`) +
+        chalk.blue.bold(`╭────────────────────────────────────────────────────⬣\n`) +
         lineasDinamicas +
-        `${chalk.blue.bold('├──────────────────────────────────────────────────────────⬣\n')}` +
+        `${chalk.blue.bold('├────────────────────────────────────────────────────⬣\n')}` +
         `${chalk.blue.bold('│')}${tipoAccion} ➤  ${contenido}\n` +
-        chalk.blue.bold(`╰──────────────────────────────────────────────────────────⬣`)
+        chalk.blue.bold(`╰──────────────────────────────────────────────────⬣`)
     );
 }
