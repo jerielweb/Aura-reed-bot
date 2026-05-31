@@ -128,7 +128,8 @@ export async function handleMessage(sock, m, db, saveDB) {
             const match = Array.isArray(cmd.name) ? cmd.name.includes(commandName) : cmd.name === commandName;
             if (match) {
                 commandFound = true;
-                if (cmd.category === 'owner' && !isOwner) return await sock.sendMessage(remoteJid, { text: Rstr.onlyOwner }, { quoted: m });
+                const requiresOwner = cmd.ownerOnly !== false && cmd.category === 'owner';
+                if (requiresOwner && !isOwner) return await sock.sendMessage(remoteJid, { text: Rstr.onlyOwner }, { quoted: m });
                 if ((cmd.category === 'group' || cmd.category === 'economy') && !isGroup) return await sock.sendMessage(remoteJid, { text: Rstr.onlyGroup }, { quoted: m });
                 if (isGroup && !isCategoryEnabled(remoteJid, cmd.category, db)) return await sock.sendMessage(remoteJid, { text: 'Categoría desactivada.' }, { quoted: m });
                 if (cmd.adminOnly && !isAdmin) return await sock.sendMessage(remoteJid, { text: Rstr.onlyAdmin }, { quoted: m });

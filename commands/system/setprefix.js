@@ -1,8 +1,8 @@
 export default {
     name: [ 'setprefix', 'prefix' ],
     description: 'Modifica prefijo.',
-    ownerOnly: true,
-    category: 'owner',
+    adminOnly: true,
+    category: 'system',
 
     async execute(sock, m, args, { db, saveDB }) {
         const remoteJid = m.key.remoteJid;
