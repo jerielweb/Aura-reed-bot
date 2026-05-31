@@ -65,8 +65,8 @@ export async function handleMessage(sock, m, db, saveDB) {
 
     const text = m.message.conversation || m.message.extendedTextMessage?.text || m.message.imageMessage?.caption || m.message.videoMessage?.caption || "";
     
-    // --- BLOQUEO TOTAL (INTERRUPTOR) ---
-    const prefix = db.prefix;
+    const groupPrefix = isGroup ? db.groups?.[remoteJid]?.prefix : null;
+    const prefix = groupPrefix || db.prefix;
     const esComando = text.startsWith(prefix);
     const argsForCheck = esComando ? text.slice(prefix.length).trim().split(/ +/) : [];
     const commandNameForCheck = esComando ? argsForCheck[0]?.toLowerCase() : null;

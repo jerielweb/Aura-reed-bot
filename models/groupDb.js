@@ -8,6 +8,7 @@ export const DEFAULT_GROUP = {
     welcome: false,
     disabledCategories: [],
     botOn: true,
+    prefix: null,
     users: {}
 };
 
