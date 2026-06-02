@@ -7,35 +7,37 @@ export default {
     adminOnly: true,
     execute: async (socket, message, args, { db, saveDB, groupMetadata, prefix }) => {
         const remoteJid = message.key.remoteJid;
-        if (!remoteJid.endsWith('@g.us'))
-            let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕━━⬣\n`
-            text += `${fytBold('ACCION INCONPATIBLE')} \n╰━━━━━━━━━━━━⬣\n\n`
-            text += `> Este comando solo funciona en grupos.\n\n`
-            text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`
+        if (!remoteJid.endsWith('@g.us')) {
+            let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕━━⬣\n`;
+            text += `${fytBold('ACCION INCONPATIBLE')} \n╰━━━━━━━━━━━━⬣\n\n`;
+            text += `> Este comando solo funciona en grupos.\n\n`;
+            text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;
 
             return socket.sendMessage(remoteJid, { text }, { quoted: message });
+        }
 
         let userToWarn = message.message?.extendedTextMessage?.contextInfo?.participant || message.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
-        if (!userToWarn)
-
-            let text = `╭〔 ⚠️ ${fytBold('AURA REED')} 〕⬣\n`
-            text += `${fytBold('FALTA OBJETIVO')} \n╰━━━━━━━━━━━━⬣\n\n`
-            text += `┃ > Etiqueta o responde al mensaje de alguien para advertirlo.\n`
-            text += `┃ > de alguien para advertirlo\n`
-            text += `┃ > Ejemplo: ${prefix}warn @usuario [razón]\n\n`
-            text += `╰〔 ⚡ ${fytBold('SYSTEM INFO')} 〕⬣`
+        if (!userToWarn) {
+            let text = `╭〔 ⚠️ ${fytBold('AURA REED')} 〕⬣\n`;
+            text += `${fytBold('FALTA OBJETIVO')} \n╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ > Etiqueta o responde al mensaje de alguien para advertirlo.\n`;
+            text += `┃ > de alguien para advertirlo\n`;
+            text += `┃ > Ejemplo: ${prefix}warn @usuario [razón]\n\n`;
+            text += `╰〔 ⚡ ${fytBold('SYSTEM INFO')} 〕⬣`;
 
             return socket.sendMessage(remoteJid, { text }, { quoted: message });
+        }
 
         const isUserAdmin = groupMetadata?.participants.some(p => p.id === userToWarn && (p.admin === 'admin' || p.admin === 'superadmin'));
-        if (isUserAdmin)
-            let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n`
-            text += `${fytBold('ACCIÓN PROHIBIDA')} \n╰━━━━━━━━━━━━⬣\n\n`
-            text += `┃ > No puedes advertir a un administrador del grupo.\n`
-            text += `┃ > un administrador del grupo.\n\n`
-            text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`
+        if (isUserAdmin) {
+            let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n`;
+            text += `${fytBold('ACCIÓN PROHIBIDA')} \n╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ > No puedes advertir a un administrador del grupo.\n`;
+            text += `┃ > un administrador del grupo.\n\n`;
+            text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;
 
             return socket.sendMessage(remoteJid, { text }, { quoted: message });
+        }
 
         const reason = args.filter(arg => !arg.includes('@')).join(' ') || 'Sin motivo';
         const date = new Date().toLocaleDateString('es-CR', { timeZone: 'America/Costa_Rica' });
@@ -73,7 +75,7 @@ export default {
             text += `┃ 📌 Acción: Advertencia agregada\n`;
             text += `┃ 📊 Warns: [ ${count}/${limit} ]\n`;
             text += `┃ 📝 Razón: ${reason}\n`;
-            text += `┃ ⏰ Fecha: ${date}\n\n`;
+            text += `┃ ⏰ Fecha: ${date}\n\n┃\n`;
             text += `┣━━━━━━━━━━━━━━━━⬣\n`;
             text += `┃ ⚠️ Se ha añadido una\n`;
             text += `┃ ⚠️ advertencia al usuario.\n\n`;

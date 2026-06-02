@@ -1,4 +1,4 @@
-import { fytBold } from "../../models/TextStyle";
+import { fytBold } from "../../models/TextStyle.js";
 
 export default {
     name: ['kick', 'sacar', 'quitar', 'expulsar', 'limpiar'],
