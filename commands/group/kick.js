@@ -63,6 +63,7 @@ export default {
 
             await socket.sendMessage(remoteJid, { text: successText, mentions: usersToKick.length <= 10 ? usersToKick : [] }, { quoted: message });
         } catch (e) {
+
             let text = `╭〔 ⚠️ ${fytBold('AURA REED')} 〕⬣\n`;
             text += `┃ ${fytBold('ERROR DE KICK')} \n`;
             text += `╰━━━━━━━━━━━━⬣\n\n`;

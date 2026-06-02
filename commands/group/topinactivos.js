@@ -1,3 +1,5 @@
+import { fytBold } from "../../models/TextStyle.js";
+
 export default {
     name: ['topinactivos', 'fantasmas'],
     category: 'group',
@@ -5,7 +7,17 @@ export default {
     adminOnly: true,
     execute: async (socket, message, args, { db }) => {
         const remoteJid = message.key.remoteJid;
-        if (!remoteJid.endsWith('@g.us')) return socket.sendMessage(remoteJid, { text: '❌ Este comando solo funciona en grupos.' }, { quoted: message });
+        if (!remoteJid.endsWith('@g.us'))
+
+            // Plantilla del mensaje para que sea más atractivo visualmente
+            let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n`;
+            text += `┃ ${fytBold('ACCION INCONPATIBLE')} \n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ > Este comando solo funciona en grupos.\n\n`;
+            text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;
+
+            // Enviar mensaje de error
+            return socket.sendMessage(remoteJid, { text }, { quoted: message });
 
         const groupMetadata = await socket.groupMetadata(remoteJid);
         const participants = groupMetadata.participants || [];
@@ -62,11 +74,13 @@ export default {
         const startIndex = (currentPage - 1) * pageSize;
         const pageUsers = users.slice(startIndex, startIndex + pageSize);
 
-        let text = `╭〔 👻 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
-        text += `┃ 📉 𝐅𝐀𝐍𝐓𝐀𝐒𝐌𝐀𝐒 𝐃𝐄𝐋 𝐆𝐑𝐔𝐏𝐎\n`;
+
+        // Plantilla del mensaje para que sea más atractivo visualmente
+        let text = `╭〔 👻 ${fytBold('ADMIN SYSTEM')} 〕⬣\n`;
+        text += `┃ 📉 ${fytBold('INACTIVOS DEL GRUPO')}\n`;
         text += `╰━━━━━━━━━━━━⬣\n\n`;
-        text += `┃ ⚠️ 𝐔𝐬𝐮𝐚𝐫𝐢𝐨𝐬 𝐢𝐧𝐚𝐜𝐭𝐢𝐯𝐨𝐬\n`;
-        text += `┃ ⚠️ 𝐪𝐮𝐞 𝐧𝐨 𝐩𝐚𝐫𝐭𝐢𝐜𝐢𝐩𝐚𝐧\n\n`;
+        text += `┃ ⚠️ ${fytBold('Usuarios inactivos')}\n`;
+        text += `┃ ⚠️ ${fytBold('que no participan')}\n\n`;
         text += `┣━━━━━━━━━━━━⬣\n\n`;
 
         const mentions = [];
@@ -75,8 +89,9 @@ export default {
             mentions.push(u.id);
         });
 
-        text += `\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
+        text += `\n╰〔 ⚡ ${fytBold('SYSTEM ACTIVE')} 〕⬣`;
 
+        // Enviar mensaje con menciones a los usuarios inactivos
         await socket.sendMessage(remoteJid, { text, mentions }, { quoted: message });
     }
 };

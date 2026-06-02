@@ -1,11 +1,18 @@
+import { fytBold } from './../../models/TextStyle.js';
+
 export default {
     name: ['link', 'linkgroup', 'grupo'],
     category: 'group',
     description: 'Link del grupo.',
     adminOnly: true,
-    execute: async (socket, message, args) => {
+    execute: async (socket, message, args, {groupMetadata}) => {
         const remoteJid = message.key.remoteJid;
-        if (!remoteJid.endsWith('@g.us')) return socket.sendMessage(remoteJid, { text: '╭〔 ⚠️ 𝐀𝐃𝐌𝐈𝐍 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣\n\n┃ ❌ 𝐀𝐂𝐂𝐈𝐎́𝐍 𝐃𝐄𝐍𝐄𝐆𝐀𝐃𝐀\n┃ > solo funciona en grupos\n\n╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣' }, { quoted: message });
+        let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n`;
+        text += `┃ ${fytBold('ACCION INCONPATIBLE')} \n`;
+        text += `╰━━━━━━━━━━━━⬣\n\n`;
+        text += `┃ > Este comando solo funciona en grupos.\n\n`;
+        text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;
+        if (!remoteJid.endsWith('@g.us')) return socket.sendMessage(remoteJid, { text }, { quoted: message });
 
         let code = null;
 
@@ -25,9 +32,19 @@ export default {
         }
 
         if (code) {
-            return await socket.sendMessage(remoteJid, { text: `Link del grupo/comunidad:\nhttps://chat.whatsapp.com/${code}` }, { quoted: message });
-        }
+            let text = `╭〔 🔗 ${fytBold('LINK DEL GRUPO')} 〕⬣\n\n`;
+            text += `┃ 👥 Grupo: ${groupMetadata.subject}\n`;
+            text += `┃ 🔗 Enlace: https://chat.whatsapp.com/${code}\n\n`;
+            text += `╰〔 ⚡ ${fytBold('AURA REED')} 〕⬣`;
 
-        await socket.sendMessage(remoteJid, { text: 'No pude obtener el enlace. Asegurate de que soy administrador del grupo o comunidad.' }, { quoted: message });
+            return await socket.sendMessage(remoteJid, { text }, { quoted: message });
+        }
+        let text = `╭〔 ⚠️ ${fytBold('AURA REED')} 〕⬣\n`;
+        text += `┃ ${fytBold('ERROR DE LINK')} \n`;
+        text += `╰━━━━━━━━━━━━⬣\n\n`;
+        text += `┃ > No pude obtener el link\n`;
+        text += `┃ > Asegúrate de que soy admin.\n\n`;
+        text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;
+        await socket.sendMessage(remoteJid, { text }, { quoted: message });
     }
 };

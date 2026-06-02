@@ -1,3 +1,5 @@
+import { fytBold } from './../../models/TextStyle.js';
+
 export default {
     name: ['setwarnlimit', 'warnlimit'],
     category: 'group',
@@ -5,10 +7,22 @@ export default {
     adminOnly: true,
     execute: async (socket, message, args, { db, saveDB }) => {
         const remoteJid = message.key.remoteJid;
-        if (!remoteJid.endsWith('@g.us')) return socket.sendMessage(remoteJid, { text: '❌ Este comando solo funciona en grupos.' }, { quoted: message });
+        if (!remoteJid.endsWith('@g.us'))
+
+            // Plantilla del mensaje para que sea más atractivo visualmente
+            let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕━━⬣\n`;
+            text += `${fytBold('ACCION INCONPATIBLE')} \n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `> Este comando solo funciona en grupos.\n\n`;
+            text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;
+
+        // Enviar mensaje de error
+        return socket.sendMessage(remoteJid, { text }, { quoted: message });
 
         const limit = parseInt(args[0]);
         if (isNaN(limit) || limit < 1) {
+
+            // Plantilla del mensaje para que sea más atractivo visualmente
             let text = `╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
             text += `┃ ❌ 𝐔𝐒𝐎 𝐈𝐍𝐂𝐎𝐑𝐑𝐄𝐂𝐓𝐎\n`;
             text += `╰━━━━━━━━━━━━⬣\n\n`;
@@ -17,6 +31,8 @@ export default {
             text += `┣━━━━━━━━━━━━⬣\n\n`;
             text += `┃ ➪ Ejemplo: .setwarnlimit 5\n\n`;
             text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
+
+            // Enviar mensaje de error
             return socket.sendMessage(remoteJid, { text }, { quoted: message });
         }
 
@@ -24,6 +40,7 @@ export default {
         db.groups[remoteJid].warnLimit = limit;
         saveDB(db);
 
+        // Plantilla del mensaje para que sea más atractivo visualmente
         let text = `╭〔 ✅ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
         text += `┃ 🛡️ 𝐂𝐎𝐍𝐅𝐈𝐆𝐔𝐑𝐀𝐂𝐈𝐎́𝐍\n`;
         text += `╰━━━━━━━━━━━━⬣\n\n`;
@@ -31,6 +48,7 @@ export default {
         text += `┃ > actualizado a: ${limit}\n\n`;
         text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
 
+        // Enviar mensaje de éxito
         await socket.sendMessage(remoteJid, { text }, { quoted: message });
     }
 };

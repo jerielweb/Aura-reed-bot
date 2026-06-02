@@ -1,3 +1,5 @@
+import { fytBold } from './../../models/TextStyle.js';
+
 export default {
     name: ['antilink', 'antienlace', 'antigp'],
     category: 'group',
@@ -12,7 +14,7 @@ export default {
 
         const text = message.message?.conversation || message.message?.extendedTextMessage?.text || message.message?.imageMessage?.caption || message.message?.videoMessage?.caption || "";
         if (!text) return;
-        
+
         // Detectar enlaces de grupos de WhatsApp (NO canales)
         const groupLinkRegex = /chat\.whatsapp\.com\//i;
         const isGroupLink = groupLinkRegex.test(text);
@@ -20,7 +22,7 @@ export default {
         if (!isGroupLink) return;
 
         console.log(`[ANTILINK] Enlace de grupo detectado en: ${remoteJid}`);
-        
+
         // El sender raw es necesario para eliminar al participante del grupo
         const rawSender = message.key.fromMe ? socket.user.id : (message.key.participant || message.key.remoteJid);
 
@@ -65,7 +67,16 @@ export default {
     },
     execute: async (socket, message, args, { db, saveDB }) => {
         const remoteJid = message.key.remoteJid;
-        if (!remoteJid.endsWith('@g.us')) return socket.sendMessage(remoteJid, { text: '╭〔 ⚠️ 𝐀𝐃𝐌𝐈𝐍 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣\n\n┃ ❌ 𝐀𝐂𝐂𝐈𝐎́𝐍 𝐃𝐄𝐍𝐄𝐆𝐀𝐃𝐀\n┃ > solo funciona en grupos\n\n╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣' }, { quoted: message });
+        if (!remoteJid.endsWith('@g.us'))
+
+            // Mensaje de éxito Plantilla del mensaje para que sea más atractivo visualmente
+            let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n`;
+            text += `┃ ${fytBold('ACCION INCONPATIBLE')} \n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ > Este comando solo funciona en grupos.\n\n`;
+            text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;
+
+            return socket.sendMessage(remoteJid, { text }, { quoted: message });
 
         if (!db.groups[remoteJid]) db.groups[remoteJid] = { antilink: false, warnLimit: 3, warns: {}, activity: {}, botOn: true };
 
@@ -73,6 +84,8 @@ export default {
         if (status === 'on' || status === '1' || status === 'true' || status === 'activar' || status === 'enable') {
             db.groups[remoteJid].antilink = true;
             saveDB(db);
+
+            // Mensaje de éxito Plantilla del mensaje para que sea más atractivo visualmente
             let text = `╭〔 ✅ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
             text += `┃ 🛡️ 𝐒𝐈𝐒𝐓𝐄𝐌𝐀 𝐀𝐍𝐓𝐈𝐋𝐈𝐍𝐊\n`;
             text += `╰━━━━━━━━━━━━⬣\n\n`;
@@ -83,15 +96,20 @@ export default {
         } else if (status === 'off' || status === '0' || status === 'false' || status === 'desactivar' || status === 'disable') {
             db.groups[remoteJid].antilink = false;
             saveDB(db);
+
+            // Mensaje de éxito Plantilla del mensaje para que sea más atractivo visualmente
             let text = `╭〔 ❌ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
             text += `┃ 🛡️ 𝐒𝐈𝐒𝐓𝐄𝐌𝐀 𝐀𝐍𝐓𝐈𝐋𝐈𝐍𝐊\n`;
             text += `╰━━━━━━━━━━━━⬣\n\n`;
             text += `┃ > El sistema Antilink ha\n`;
             text += `┃ > sido desactivado con éxito.\n\n`;
             text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
+
             await socket.sendMessage(remoteJid, { text }, { quoted: message });
         } else {
             const currentStatus = db.groups[remoteJid]?.antilink ? '✅ Activado' : '❌ Desactivado';
+
+            // Mensaje de éxito Plantilla del mensaje para que sea más atractivo visualmente
             let text = `╭〔 🛡️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
             text += `┃ ⚙️ 𝐒𝐈𝐒𝐓𝐄𝐌𝐀 𝐀𝐍𝐓𝐈𝐋𝐈𝐍𝐊\n`;
             text += `╰━━━━━━━━━━━━⬣\n\n`;
@@ -102,6 +120,7 @@ export default {
             text += `┃ ➪ .antilink off\n`;
             text += `┃ ✦ Desactivar sistema antilink\n\n`;
             text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
+
             await socket.sendMessage(remoteJid, { text }, { quoted: message });
         }
     }

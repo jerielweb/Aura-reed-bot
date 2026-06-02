@@ -38,7 +38,13 @@ export default {
         const accion = args[0]?.toLowerCase();
 
         if (!isGroup) {
-            return await sock.sendMessage(remoteJid, { text: errorMessage('COMANDO INVÁLIDO', 'Este comando solo puede ser utilizado dentro de grupos.') }, { quoted: m });
+            let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n`;
+            text += `┃ ${fytBold('ACCION INCONPATIBLE')} \n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ > Este comando solo funciona en grupos.\n\n`;
+            text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;
+
+            return await sock.sendMessage(remoteJid, { text }, { quoted: m });
         }
 
         if (!isOwner && !isAdmin) {
@@ -47,32 +53,62 @@ export default {
 
         if (!accion) {
             const estado = db.groups?.[remoteJid]?.botOn === false ? 'Desactivado' : 'Activado';
-            return await sock.sendMessage(remoteJid, {
-                text: `╭〔 ⚡ 𝐄𝐒𝐓𝐀𝐃𝐎 𝐃𝐄𝐋 𝐁𝐎𝐓 〕⬣\n┃ Estado: *${estado}*\n┃\n┃ Para activar: *${prefix}bot on*\n┃ Para desactivar: *${prefix}bot off*\n╰━━━━━━━━━━━━⬣`
-            }, { quoted: m });
+
+            // Plantilla del mensaje para que sea más atractivo visualmente
+            let text = `╭〔 ⚡${fytBold('AURA REED')} 〕⬣\n`;
+            text += `┃ ${fytBold('ESTADO DEL BOT')} \n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ > El bot está actualmente: *${estado}*\n`;
+            text += `┃ > Para cambiar el estado, usa:\n`;
+            text += `┃ > *${prefix}bot on* (Para activar)\n`;
+            text += `┃ > *${prefix}bot off* (Para desactivar)\n\n`;
+            text += `╰〔 ⚡ ${fytBold('SYSTEM INFO')} 〕⬣`;
+
+            // Enviar mensaje de información
+            return await sock.sendMessage(remoteJid, { text }, { quoted: m });
         }
 
         // Manejo de la acción "on"
-        if (accion === 'on') {
+        if (accion === 'on' || accion === 'activar' || accion === 'enable' || accion === '1' || accion === 'true') {
             botStatus.groupOn(remoteJid, db, saveDB);
-            return await sock.sendMessage(remoteJid, {
-                text: `╭〔 ✅ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ✨ 𝐁𝐎𝐓 𝐀𝐂𝐓𝐈𝐕𝐀𝐃𝐎\n╰━━━━━━━━━━━━⬣\n\n┃ > Sistema reactivado con exito\n┃ > ¡Hola de nuevo! Ya pueden usar mis comandos.\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐀𝐂𝐓𝐈𝐕𝐄 〕⬣`
-            }, { quoted: m });
+
+            // Plantilla del mensaje para que sea más atractivo visualmente
+            let text = `╭〔 ✅ ${fytBold('AURA REED')} 〕⬣\n`;
+            text += `┃ ${fytBold('BOT ACTIVADO')} \n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ > El bot ha sido reactivado para este grupo.\n`;
+            text += `┃ > ¡Hola de nuevo! Ya pueden usar mis comandos.\n\n`;
+            text += `╰〔 ⚡ ${fytBold('SYSTEM ACTIVE')} 〕⬣`;
+
+            // Enviar mensaje de éxito
+            return await sock.sendMessage(remoteJid, { text }, { quoted: m });
         }
 
         // Manejo de la acción "off"
-        if (accion === 'off') {
+        if (accion === 'off' || accion === 'desactivar' || accion === 'disable' || accion === '0' || accion === 'false') {
             botStatus.groupOff(remoteJid, db, saveDB);
-            return await sock.sendMessage(remoteJid, {
-                text: `╭〔 💤 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ 🔇 𝐁𝐎𝐓 𝐃𝐄𝐒𝐀𝐂𝐓𝐈𝐕𝐀𝐃𝐎\n╰━━━━━━━━━━━━⬣\n\n┃ > El bot ha sido apagado para este grupo.\n┃ > Responderé únicamente a las solicitudes de re-activación.\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐒𝐋𝐄𝐄𝐏 〕⬣`
-            }, { quoted: m });
+
+            // Plantilla del mensaje para que sea más atractivo visualmente
+            let text = `╭〔 💤 ${fytBold('AURA REED')} 〕⬣\n`;
+            text += `┃ 🔇 ${fytBold('BOT DESACTIVADO')} \n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ > El bot ha sido apagado para este grupo.\n`;
+            text += `┃ > Solo responderé a las solicitudes de re-activación.\n\n`;
+            text += `╰〔 ⚡ ${fytBold('SYSTEM SLEEP')} 〕⬣`;
+
+
+            return await sock.sendMessage(remoteJid, { text }, { quoted: m });
         }
 
         // Si no pusieron ni on ni off
-        await sock.sendMessage(remoteJid, {
-            text: warningMessage('USO INCORRECTO', `Parámetros válidos:
-> *${prefix}bot on* (Para encender)
-> *${prefix}bot off* (Para apagar)` )
-        }, { quoted: m });
+            let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n`;
+            text += `┃ ${fytBold('PARÁMETRO INVÁLIDO')} \n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ > Parámetros válidos:\n`;
+            text += `┃ > *${prefix}bot on* (Para encender)\n`;
+            text += `┃ > *${prefix}bot off* (Para apagar)\n\n`;
+            text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;
+
+        await sock.sendMessage(remoteJid, { text }, { quoted: m });
     }
 };

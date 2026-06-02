@@ -1,4 +1,5 @@
 import { errorMessage } from '../../models/messageTemplates.js';
+import { fytBold } from '../../models/TextStyle.js';
 
 export default {
     name: ['open', 'abrir'],
@@ -8,16 +9,34 @@ export default {
     execute: async (socket, message, args) => {
         const remoteJid = message.key.remoteJid;
         if (!remoteJid.endsWith('@g.us')) {
-            return socket.sendMessage(remoteJid, { text: errorMessage('COMANDO INVÁLIDO', 'Este comando solo funciona en grupos.') }, { quoted: message });
+
+            let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n`;
+            text += `┃ ${fytBold('ACCION INCONPATIBLE')} \n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ > Este comando solo funciona en grupos.\n\n`;
+            text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;
+
+            return socket.sendMessage(remoteJid, { text }, { quoted: message });
         }
 
         try {
             await socket.groupSettingUpdate(remoteJid, 'not_announcement');
-            await socket.sendMessage(remoteJid, { 
-                text: `╭〔 👑 𝐀𝐃𝐌𝐈𝐍 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣\n\n┃ ✅ 𝐆𝐑𝐔𝐏𝐎 𝐀𝐁𝐈𝐄𝐑𝐓𝐎\n┃ > ahora todos pueden mensajear\n\n╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣`
+            let text = `╭〔 👑 ${fytBold('ADMIN SYSTEM')} 〕⬣\n\n`;
+            text += `┃ ✅ 𝐆𝐑𝐔𝐏𝐎 𝐀𝐁𝐈𝐄𝐑𝐓𝐎\n\n`
+            text += `┃ > ahora todos pueden mensajear\n\n`;
+            text += `╰〔 ⚡ ${fytBold('AURA REED')} 〕⬣`;
+            await socket.sendMessage(remoteJid, {
+                text
             }, { quoted: message });
         } catch (e) {
-            await socket.sendMessage(remoteJid, { text: errorMessage('ERROR DE ADMIN', 'Ocurrió un error. Asegúrate de que soy admin.') }, { quoted: message });
+            let text = `╭〔 ⚠️ ${fytBold('AURA REED')} 〕⬣\n`;
+            text += `┃ ${fytBold('ERROR DE ADMIN')} \n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ > No pude abrir el grupo.\n`;
+            text += `┃ > Asegúrate de que soy admin.\n\n`;
+            text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;
+
+            await socket.sendMessage(remoteJid, { text }, { quoted: message });
         }
     }
 };

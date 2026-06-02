@@ -1,3 +1,5 @@
+import { fytBold } from "../../models/TextStyle.js";
+
 export default {
     name: ['topactivos', 'activos'],
     category: 'group',
@@ -5,7 +7,17 @@ export default {
     adminOnly: true,
     execute: async (socket, message, args, { db }) => {
         const remoteJid = message.key.remoteJid;
-        if (!remoteJid.endsWith('@g.us')) return socket.sendMessage(remoteJid, { text: '❌ Este comando solo funciona en grupos.' }, { quoted: message });
+        if (!remoteJid.endsWith('@g.us'))
+
+            // Plantilla del mensaje para que sea más atractivo visualmente
+            let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n`;
+            text += `┃ ${fytBold('ACCION INCONPATIBLE')} \n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ > Este comando solo funciona en grupos.\n\n`;
+            text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;
+
+            // Enviar mensaje de error
+            return socket.sendMessage(remoteJid, { text }, { quoted: message });
 
         const groupMetadata = await socket.groupMetadata(remoteJid);
         const participants = groupMetadata.participants || [];
@@ -62,11 +74,12 @@ export default {
         const startIndex = (currentPage - 1) * pageSize;
         const pageUsers = users.slice(startIndex, startIndex + pageSize);
 
-        let text = `╭〔 🔥 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
+        // Plantilla del mensaje para que sea más atractivo visualmente
+        let text = `╭〔 🔥 ${fytBold('ADMIN SYSTEM')} 〕⬣\n`;
         text += `┃ 📈 𝐔𝐒𝐔𝐀𝐑𝐈𝐎𝐒 𝐀𝐂𝐓𝐈𝐕𝐎𝐒\n`;
         text += `╰━━━━━━━━━━━━⬣\n\n`;
-        text += `┃ ⚡ 𝐌𝐢𝐞𝐦𝐛𝐫𝐨𝐬 𝐦𝐚́𝐬\n`;
-        text += `┃ ⚡ 𝐚𝐜𝐭𝐢𝐯𝐨𝐬 𝐝𝐞𝐥 𝐠𝐫𝐮𝐩𝐨\n\n`;
+        text += `┃ ⚡ ${fytBold('Usuarios que')}\n`;
+        text += `┃ ⚡ ${fytBold('si participan')}\n\n`;
         text += `┣━━━━━━━━━━━━⬣\n\n`;
 
         const mentions = [];
@@ -81,8 +94,9 @@ export default {
             mentions.push(u.id);
         });
 
-        text += `\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
+        text += `\n╰〔 ⚡ ${fytBold('SYSTEM ACTIVE')}〕⬣`;
 
+        // Enviar mensaje con menciones a los usuarios activos
         await socket.sendMessage(remoteJid, { text, mentions }, { quoted: message });
     }
 };

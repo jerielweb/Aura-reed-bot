@@ -1,3 +1,5 @@
+import { fytBold } from './../../models/TextStyle.js';
+
 export default {
     name: ['tag', 'tg'],
     category: 'group',
@@ -5,7 +7,17 @@ export default {
     adminOnly: true,
     execute: async (socket, message, args) => {
         const remoteJid = message.key.remoteJid;
-        if (!remoteJid.endsWith('@g.us')) return socket.sendMessage(remoteJid, { text: '❌ Este comando solo funciona en grupos.' }, { quoted: message });
+        if (!remoteJid.endsWith('@g.us'))
+
+            // Plantilla del mensaje para que sea más atractivo visualmente
+            let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n`;
+            text += `┃ ${fytBold('ACCION INCONPATIBLE')} \n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ > Este comando solo funciona en grupos.\n\n`;
+            text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;
+
+            // Enviar mensaje de error
+            return socket.sendMessage(remoteJid, { text }, { quoted: message });
 
         const groupMetadata = await socket.groupMetadata(remoteJid);
         const participants = groupMetadata.participants;
@@ -17,7 +29,17 @@ export default {
         const customMessage = args.join(' ') || quotedText;
 
         if (!customMessage) {
-            return socket.sendMessage(remoteJid, { text: '⚠️ Debes escribir un mensaje o responder a uno existente para poder etiquetar a todos.' },{ quoted: message });
+
+            // Plantilla del mensaje para que sea más atractivo visualmente
+            let text = `╭〔 ⚠️ ${fytBold('AURA REED')} 〕⬣\n`;
+            text += `┃ ${fytBold('FALTA MENSAJE')} \n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ > Debes escribir un mensaje o responder a\n`;
+            text += `┃ > uno existente para poder etiquetar a todos.\n\n`;
+            text += `╰〔 ⚡ ${fytBold('SYSTEM INFO')} 〕⬣`;
+
+            // Enviar mensaje de error
+            return socket.sendMessage(remoteJid, { text },{ quoted: message });
         }
 
         const text = `${customMessage}`;

@@ -1,4 +1,4 @@
-import { Rstr } from '../../controllers/textBots.js';
+import { fytBold } from './../../models/TextStyle.js';
 
 export default {
     name: ['onlyadmin', 'soloadmin', 'adminonly'],
@@ -7,7 +7,13 @@ export default {
     adminOnly: true,
     execute: async (socket, message, args, { db, saveDB }) => {
         const remoteJid = message.key.remoteJid;
-        if (!remoteJid.endsWith('@g.us')) return;
+        if (!remoteJid.endsWith('@g.us')) {
+            let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n`;
+            text += `┃ ${fytBold('ACCION INCONPATIBLE')} \n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ > Este comando solo funciona en grupos.\n\n`;
+            text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;
+        }
 
         if (!db.groups[remoteJid]) {
             db.groups[remoteJid] = { antilink: false, warnLimit: 3, warns: {}, activity: {}, onlyAdmin: false, botOn: true };

@@ -1,4 +1,4 @@
-import { Rstr } from './../../controllers/textBots.js';
+import {fytBold} from './../../models/TextStyle.js';
 
 export default {
     name: ['all', 'todos', 'invocar'],
@@ -7,7 +7,17 @@ export default {
     adminOnly: true,
     execute: async (socket, message, args) => {
         const remoteJid = message.key.remoteJid;
-        if (!remoteJid.endsWith('@g.us')) return socket.sendMessage(remoteJid, { text: Rstr.onlyGroup }, { quoted: message });
+        if (!remoteJid.endsWith('@g.us'))
+
+            // Plantilla del mensaje para que sea más atractivo visualmente
+            let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n`;
+            text += `┃ ${fytBold('ACCION INCONPATIBLE')} \n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ > Este comando solo funciona en grupos.\n\n`;
+            text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;
+
+            // Enviar mensaje de error
+            return socket.sendMessage(remoteJid, { text }, { quoted: message });
 
         const groupMetadata = await socket.groupMetadata(remoteJid);
         const participants = groupMetadata.participants || [];
@@ -17,7 +27,15 @@ export default {
         )];
 
         if (!memberJids.length) {
-            return socket.sendMessage(remoteJid, { text: '⚠️ No se han encontrado participantes válidos en el grupo.' }, { quoted: message });
+            // Plantilla del mensaje para que sea más atractivo visualmente
+            let text = `╭〔 ⚠️ ${fytBold('AURA REED')} 〕⬣\n`;
+            text += `┃ ${fytBold('SIN MIEMBROS VÁLIDOS')} \n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ > No se han encontrado participantes válidos en el grupo.\n\n`;
+            text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;
+
+            // Enviar mensaje de error
+            return socket.sendMessage(remoteJid, { text }, { quoted: message });
         }
 
         const totalMembers = memberJids.length;
@@ -25,15 +43,17 @@ export default {
         const quotedText = quotedMsg?.conversation || quotedMsg?.extendedTextMessage?.text || '𝐀𝐜𝐭𝐢́𝐯𝐞𝐧𝐬𝐞';
         const customMessage = args.join(' ') || quotedText;
 
-        let text = `╭〔 📢 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
-        text += `┃ 🔔 𝐋𝐋𝐀𝐌𝐀𝐍𝐃𝐎 𝐀 𝐓𝐎𝐃𝐎 𝐄𝐋 𝐄𝐐𝐔𝐈𝐏𝐎\n`;
+        // Plantilla del mensaje para que sea más atractivo visualmente
+        let text = `╭〔 📢 ${fytBold('AUR REED')} 〕⬣\n`;
+        text += `┃ 🔔 ${fytBold('INVOCANDO AL GRUPO')}\n`;
         text += `╰━━━━━━━━━━━━⬣\n\n`;
         text += `┃ ✨ ${customMessage}\n`;
-        text += `┃ 👥 𝐌𝐢𝐞𝐦𝐛𝐫𝐨𝐬: ${totalMembers}\n\n`;
+        text += `┃ 👥 ${fytBold('N° de Miembros:')} ${totalMembers}\n\n`;
         text += `┣━━━━━━━━━━━━⬣\n\n`;
         text += memberJids.map(jid => `┃ ➪ @${jid.split('@')[0]}`).join('\n');
         text += `\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
 
+        // Enviar mensaje con menciones a todos los miembros
         await socket.sendMessage(remoteJid, { text, mentions: memberJids });
     }
 };

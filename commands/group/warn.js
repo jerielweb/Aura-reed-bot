@@ -18,6 +18,8 @@ export default {
 
         let userToWarn = message.message?.extendedTextMessage?.contextInfo?.participant || message.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
         if (!userToWarn) {
+
+            // Plantilla del mensaje para que sea más atractivo visualmente
             let text = `╭〔 ⚠️ ${fytBold('AURA REED')} 〕⬣\n`;
             text += `┃ ${fytBold('FALTA OBJETIVO')} \n╰━━━━━━━━━━━━⬣\n\n`;
             text += `┃ > Etiqueta o responde al mensaje de alguien para advertirlo.\n`;
@@ -25,17 +27,21 @@ export default {
             text += `┃ > Ejemplo: ${prefix}warn @usuario [razón]\n\n`;
             text += `╰〔 ⚡ ${fytBold('SYSTEM INFO')} 〕⬣`;
 
+            // Enviar mensaje de error
             return socket.sendMessage(remoteJid, { text }, { quoted: message });
         }
 
         const isUserAdmin = groupMetadata?.participants.some(p => p.id === userToWarn && (p.admin === 'admin' || p.admin === 'superadmin'));
         if (isUserAdmin) {
+
+            // Plantilla del mensaje para que sea más atractivo visualmente
             let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n`;
             text += `┃ ${fytBold('ACCIÓN PROHIBIDA')} \n╰━━━━━━━━━━━━⬣\n\n`;
             text += `┃ > No puedes advertir a\n`;
             text += `┃ > un administrador del grupo.\n\n`;
             text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;
 
+            // Enviar mensaje de error
             return socket.sendMessage(remoteJid, { text }, { quoted: message });
         }
 
@@ -53,6 +59,8 @@ export default {
         const count = db.groups[remoteJid].warns[userToWarn].length;
 
         if (count >= limit) {
+
+            // Plantilla del mensaje para que sea más atractivo visualmente
             let text = `╭〔 🚨 ${fytBold('LÍMITE DE ADVERTENCIAS ALCANZADO')} 〕⬣\n\n`;
             text += `┃ 👤 Usuario: @${userToWarn.split('@')[0]}\n`;
             text += `┃ 📊 Warns: [ ${count}/${limit} ]\n`;
@@ -63,12 +71,15 @@ export default {
             text += `┃ ⚠️ Será expulsado del grupo.\n\n`;
             text += `╰〔 ${fytBold('WARN SYSTEM')} 〕⬣`;
 
+            // Enviar mensaje y expulsar al usuario
             await socket.sendMessage(remoteJid, { text, mentions: [userToWarn] });
             await socket.groupParticipantsUpdate(remoteJid, [userToWarn], "remove");
             db.groups[remoteJid].warns[userToWarn] = [];
             saveDB(db);
         } else {
             const adminUser = message.key.participant || message.key.remoteJid;
+
+            // Plantilla del mensaje para que sea más atractivo visualmente
             let text = `╭〔 ⚠️ ${fytBold('ADVERTENCIA')} 〕⬣\n\n`;
             text += `┃ 👤 Usuario: @${userToWarn.split('@')[0]}\n`;
             text += `┃ 🛡️ Admin: @${adminUser.split('@')[0]}\n`
@@ -81,6 +92,7 @@ export default {
             text += `┃ ⚠️ advertencia al usuario.\n\n`;
             text += `╰〔 ${fytBold('WARN SYSTEM')} 〕⬣`;
 
+            // Enviar mensaje con menciones al usuario advertido y al admin que lo advirtió
             await socket.sendMessage(remoteJid, {
                 text, mentions: [userToWarn, adminUser] },
                 { quoted: message }

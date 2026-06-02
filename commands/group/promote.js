@@ -1,4 +1,5 @@
 import { warningMessage, errorMessage } from '../../models/messageTemplates.js';
+import { fytBold } from './../../models/TextStyle.js';
 
 export default {
     name: ['promote', 'ascender', 'haceradmin'],
@@ -8,7 +9,15 @@ export default {
     execute: async (socket, message, args) => {
         const remoteJid = message.key.remoteJid;
         if (!remoteJid.endsWith('@g.us')) {
-            return socket.sendMessage(remoteJid, { text: errorMessage('COMANDO INVÁLIDO', 'Este comando solo funciona en grupos.') }, { quoted: message });
+
+            // Mensaje de éxito Plantilla del mensaje para que sea más atractivo visualmente
+            let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n`;
+            text += `┃ ${fytBold('ACCION INCONPATIBLE')} \n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ > Este comando solo funciona en grupos.\n\n`;
+            text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;
+
+            return socket.sendMessage(remoteJid, { text }, { quoted: message });
         }
 
         let userToPromote = message.message?.extendedTextMessage?.contextInfo?.participant || message.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
@@ -18,10 +27,26 @@ export default {
 
         try {
             await socket.groupParticipantsUpdate(remoteJid, [userToPromote], "promote");
-            const text = `╭〔 👑 𝐀𝐃𝐌𝐈𝐍 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣\n\n┃ ✅ @${userToPromote.split('@')[0]}\n┃ > ahora es administrador del grupo\n\n╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣`;
+
+            // Mensaje de éxito Plantilla del mensaje para que sea más atractivo visualmente
+            let text = `╭〔  ${fytBold('ADMIN SYSTEM')} 〕⬣\n`
+            text += `┃ > El usuario @${userToPromote.split('@')[0]}\n`;
+            text += `┃ > ahora es administrador del grupo\n\n`;
+            text += `╰〔 ⚡ ${fytBold('AURA REED')} 〕⬣`;
+
             await socket.sendMessage(remoteJid, { text, mentions: [userToPromote] }, { quoted: message });
         } catch (e) {
-            await socket.sendMessage(remoteJid, { text: errorMessage('ERROR DE ADMIN', 'Ocurrió un error. Asegúrate de que soy admin.') }, { quoted: message });
+
+            // Mensaje de éxito Plantilla del mensaje para que sea más atractivo visualmente
+            let text = `╭〔 ❌ ${fytBold('ADMIN SYSTEM')} 〕⬣\n`
+            text += `┃ ${fytBold('ERROR AL DAR ADMIN')}\n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ > No pude darle admin a @${userToPromote.split('@')[0]}\n`;
+            text += `┃ > Asegúrate de que el usuario mencionado\n`;
+            text += `┃ > no es ya admin y que soy admin.\n\n`;
+            text += `╰〔 ⚡ ${fytBold('AURA REED')} 〕⬣`;
+
+            await socket.sendMessage(remoteJid, { text }, { quoted: message });
         }
     }
 };

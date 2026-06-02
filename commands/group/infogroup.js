@@ -1,3 +1,5 @@
+import { fytBold } from './../../models/TextStyle.js';
+
 export default {
     name: ['infogroup', 'infogp', 'ingp'],
     category: 'group',
@@ -6,12 +8,17 @@ export default {
         const remoteJid = message.key.remoteJid;
 
         if (!remoteJid.endsWith('@g.us')) {
-            return await socket.sendMessage(remoteJid, { text: '╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐀𝐂𝐂𝐈𝐎́𝐍 𝐃𝐄𝐍𝐄𝐆𝐀𝐃𝐀\n╰━━━━━━━━━━━━⬣\n\n┃ > Este comando solo funciona en grupos.\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣' }, { quoted: message });
+            let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n`;
+            text += `┃ ${fytBold('ACCION INCONPATIBLE')} \n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ > Este comando solo funciona en grupos.\n\n`;
+            text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;
+            return await socket.sendMessage(remoteJid, { text }, { quoted: message });
         }
 
         try {
             const { subject, id, desc, participants, owner, creation } = groupMetadata;
-            
+
             const groupAdmins = participants.filter(p => p.admin).map(p => p.id);
             const adminCount = groupAdmins.length;
             const memberCount = participants.length;
