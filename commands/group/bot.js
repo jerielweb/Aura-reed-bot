@@ -1,4 +1,5 @@
 import { fytBold } from "../../models/TextStyle.js";
+import { errorMessage, warningMessage } from '../../models/messageTemplates.js';
 
 // ==========================================
 // 1. GESTOR DE ESTADOS PARA MSGHANDLER.JS
@@ -37,11 +38,11 @@ export default {
         const accion = args[0]?.toLowerCase();
 
         if (!isGroup) {
-            return await sock.sendMessage(remoteJid, { text: '⚠️ Este comando solo puede ser utilizado dentro de grupos.' }, { quoted: m });
+            return await sock.sendMessage(remoteJid, { text: errorMessage('COMANDO INVÁLIDO', 'Este comando solo puede ser utilizado dentro de grupos.') }, { quoted: m });
         }
 
         if (!isOwner && !isAdmin) {
-            return await sock.sendMessage(remoteJid, { text: '❌ Solo los administradores del grupo o el Owner pueden modificar el estado del bot.' }, { quoted: m });
+            return await sock.sendMessage(remoteJid, { text: errorMessage('PERMISO DENEGADO', 'Solo los administradores del grupo o el Owner pueden modificar el estado del bot.') }, { quoted: m });
         }
 
         if (!accion) {
@@ -69,7 +70,9 @@ export default {
 
         // Si no pusieron ni on ni off
         await sock.sendMessage(remoteJid, {
-            text: `⚠️ Uso incorrecto. Parámetros válidos:\n> *${prefix}bot on* (Para encender)\n> *${prefix}bot off* (Para apagar)`
+            text: warningMessage('USO INCORRECTO', `Parámetros válidos:
+> *${prefix}bot on* (Para encender)
+> *${prefix}bot off* (Para apagar)` )
         }, { quoted: m });
     }
 };

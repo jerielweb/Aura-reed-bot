@@ -1,3 +1,5 @@
+import { warningMessage, errorMessage } from '../../models/messageTemplates.js';
+
 export default {
     name: ['demote', 'descender', 'quitardadmin'],
     category: 'group',
@@ -5,10 +7,14 @@ export default {
     adminOnly: true,
     execute: async (socket, message, args) => {
         const remoteJid = message.key.remoteJid;
-        if (!remoteJid.endsWith('@g.us')) return socket.sendMessage(remoteJid, { text: '❌ Este comando solo funciona en grupos.' }, { quoted: message });
+        if (!remoteJid.endsWith('@g.us')) {
+            return socket.sendMessage(remoteJid, { text: errorMessage('COMANDO INVÁLIDO', 'Este comando solo funciona en grupos.') }, { quoted: message });
+        }
 
         let userToDemote = message.message?.extendedTextMessage?.contextInfo?.participant || message.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
-        if (!userToDemote) return socket.sendMessage(remoteJid, { text: '⚠️ Etiqueta o responde al mensaje de alguien para quitarle el admin.' }, { quoted: message });
+        if (!userToDemote) {
+            return socket.sendMessage(remoteJid, { text: warningMessage('FALTA USUARIO', 'Etiqueta o responde al mensaje de alguien para quitarle el admin.') }, { quoted: message });
+        }
 
         try {
             await socket.groupParticipantsUpdate(remoteJid, [userToDemote], "demote");

@@ -1,5 +1,5 @@
 export default {
-    name: 'warn',
+    name: ['warn', 'advertir', 'aviso'],
     category: 'group',
     description: 'Advertencias usuarios.',
     adminOnly: true,

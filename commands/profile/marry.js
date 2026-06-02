@@ -1,5 +1,6 @@
 import { resolveLidToRealJid } from '../../models/utils.js';
 import { ensureGroup, getGroupUser } from '../../models/groupDb.js';
+import { fytBold } from '../../models/TextStyle.js';
 import {
     getMarriagePending,
     setMarriagePending,
@@ -23,7 +24,11 @@ export default {
     execute: async (socket, message, args, { db, saveDB, jidRemitente, prefix }) => {
         const remoteJid = message.key.remoteJid;
         if (!remoteJid.endsWith('@g.us')) {
-            return await socket.sendMessage(remoteJid, { text: '❌ Este comando solo funciona en grupos.' }, { quoted: message });
+            return await socket.sendMessage(remoteJid, {
+                text: `╭〔 ⚠️ ${fytBold('COMANDO INVÁLIDO')} 〕⬣
+┃ > Este comando solo funciona en grupos.
+╰〔 ⚡ ${fytBold('AURA REED')} 〕⬣`
+            }, { quoted: message });
         }
 
         const group = ensureGroup(db, remoteJid);
@@ -41,13 +46,21 @@ export default {
                 targetJid = user.marriedTo;
             } else {
                 return await socket.sendMessage(remoteJid, {
-                    text: '⚠️ Menciona o responde a la persona.\n┃ > Matrimonio: *${prefix}marry @usuario*\n┃ > Divorcio (casado): *${prefix}marry @pareja* o *${prefix}marry*'
+                    text: `╭〔 ⚠️ ${fytBold('FALTA OBJETIVO')} 〕⬣
+┃ > Menciona o responde a la persona.
+┃ > Matrimonio: *${prefix}marry @usuario*
+┃ > Divorcio (casado): *${prefix}marry @pareja* o *${prefix}marry*
+╰〔 ⚡ ${fytBold('AURA REED')} 〕⬣`
                 }, { quoted: message });
             }
         }
 
         if (targetJid === jidRemitente) {
-            return await socket.sendMessage(remoteJid, { text: '❌ No puedes usar este comando contigo mismo.' }, { quoted: message });
+            return await socket.sendMessage(remoteJid, {
+                text: `╭〔 ❌ ${fytBold('COMANDO INVÁLIDO')} 〕⬣
+┃ > No puedes usar este comando contigo mismo.
+╰〔 ⚡ ${fytBold('AURA REED')} 〕⬣`
+            }, { quoted: message });
         }
 
         const partner = getGroupUser(db, remoteJid, targetJid, {});
@@ -58,7 +71,11 @@ export default {
                 if (user.marriedTo || partner.marriedTo) {
                     clearMarriagePending(group);
                     saveDB(db);
-                    return await socket.sendMessage(remoteJid, { text: '❌ Ya no es posible casarse: uno de los dos ya está casado/a.' }, { quoted: message });
+                    return await socket.sendMessage(remoteJid, {
+                        text: `╭〔 ❌ ${fytBold('OPERACIÓN NO PERMITIDA')} 〕⬣
+┃ > Ya no es posible casarse: uno de los dos ya está casado/a.
+╰〔 ⚡ ${fytBold('AURA REED')} 〕⬣`
+                    }, { quoted: message });
                 }
                 user.marriedTo = targetJid;
                 partner.marriedTo = jidRemitente;
@@ -72,7 +89,11 @@ export default {
                 if (user.marriedTo !== targetJid || partner.marriedTo !== jidRemitente) {
                     clearMarriagePending(group);
                     saveDB(db);
-                    return await socket.sendMessage(remoteJid, { text: '❌ El matrimonio ya no es válido o no coincide.' }, { quoted: message });
+                    return await socket.sendMessage(remoteJid, {
+                        text: `╭〔 ❌ ${fytBold('ERROR')} 〕⬣
+┃ > El matrimonio ya no es válido o no coincide.
+╰〔 ⚡ ${fytBold('AURA REED')} 〕⬣`
+                    }, { quoted: message });
                 }
                 user.marriedTo = null;
                 partner.marriedTo = null;
@@ -87,7 +108,11 @@ export default {
         if (pending && pending.from === jidRemitente) {
             const left = formatTimeLeft(pending.expiresAt);
             return await socket.sendMessage(remoteJid, {
-                text: `⏳ Ya enviaste una solicitud de *${pending.type === 'marry' ? 'matrimonio' : 'divorcio'}*.\nEspera que @${pending.to.split('@')[0]} confirme con *${prefix}marry* (quedan *${left}*).`,
+                text: `╭〔 ⏳ ${fytBold('SOLICITUD PENDIENTE')} 〕⬣
+┃ > Ya enviaste una solicitud de *${pending.type === 'marry' ? 'matrimonio' : 'divorcio'}*.
+┃ > Espera que @${pending.to.split('@')[0]} confirme con *${prefix}marry*.
+┃ > Tiempo restante: *${left}*
+╰〔 ⚡ ${fytBold('AURA REED')} 〕⬣`,
                 mentions: [pending.to]
             }, { quoted: message });
         }
@@ -95,7 +120,10 @@ export default {
         if (pending && pending.from !== jidRemitente && pending.to !== jidRemitente) {
             const left = formatTimeLeft(pending.expiresAt);
             return await socket.sendMessage(remoteJid, {
-                text: `⏳ Hay otra solicitud en curso entre @${pending.from.split('@')[0]} y @${pending.to.split('@')[0]} (*${left}* restantes).`
+                text: `╭〔 ⏳ ${fytBold('SOLICITUD ACTIVA')} 〕⬣
+┃ > Hay otra solicitud en curso entre @${pending.from.split('@')[0]} y @${pending.to.split('@')[0]}.
+┃ > Tiempo restante: *${left}*
+╰〔 ⚡ ${fytBold('AURA REED')} 〕⬣`
             }, { quoted: message });
         }
 
@@ -103,7 +131,10 @@ export default {
         if (user.marriedTo) {
             if (user.marriedTo !== targetJid) {
                 return await socket.sendMessage(remoteJid, {
-                    text: `❌ Estás casado/a con @${user.marriedTo.split('@')[0]}. Usa *${prefix}marry @${user.marriedTo.split('@')[0]}* para solicitar divorcio.`,
+                    text: `╭〔 ❌ ${fytBold('NO PUEDES DIVORCIAR')} 〕⬣
+┃ > Estás casado/a con @${user.marriedTo.split('@')[0]}.
+┃ > Usa *${prefix}marry @${user.marriedTo.split('@')[0]}* para solicitar divorcio.
+╰〔 ⚡ ${fytBold('AURA REED')} 〕⬣`,
                     mentions: [user.marriedTo]
                 }, { quoted: message });
             }
@@ -119,7 +150,11 @@ export default {
 
         // ——— Iniciar matrimonio ———
         if (partner.marriedTo) {
-            return await socket.sendMessage(remoteJid, { text: '❌ Esa persona ya está casada en este grupo.' }, { quoted: message });
+            return await socket.sendMessage(remoteJid, {
+                text: `╭〔 ❌ ${fytBold('YA CASADO/A')} 〕⬣
+┃ > Esa persona ya está casada en este grupo.
+╰〔 ⚡ ${fytBold('AURA REED')} 〕⬣`
+            }, { quoted: message });
         }
 
         setMarriagePending(group, jidRemitente, targetJid, 'marry');

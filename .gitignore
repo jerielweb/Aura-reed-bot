@@ -15,7 +15,7 @@ scratch/
 *.log
 temp/
 tmp/
-database/
+database/*
 
 bun.lock
 package-lock.json

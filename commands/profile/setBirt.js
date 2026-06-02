@@ -1,5 +1,6 @@
 import { getGroupUser } from '../../models/groupDb.js';
 import { parseBirthday } from '../../models/profileUtils.js';
+import { fytBold } from '../../models/TextStyle.js';
 
 export default {
     name: ['setbirth', 'setbirt', 'cumple', 'cumpleaños'],
@@ -11,7 +12,7 @@ export default {
 
         if (!input) {
             return await socket.sendMessage(remoteJid, {
-                text: '⚠️ Uso: *.setbirth DD/MM* o *.setbirth DD/MM/AAAA*\nEjemplo: *.setbirth 15/08/2002*'
+                text: ''
             }, { quoted: message });
         }
 
@@ -27,7 +28,7 @@ export default {
         saveDB(db);
 
         await socket.sendMessage(remoteJid, {
-            text: `╭〔 🎂 𝐏𝐄𝐑𝐅𝐈𝐋 〕⬣\n┃ ✅ 𝐂𝐮𝐦𝐏𝐋𝐄𝐀𝐍̃𝐎𝐒 𝐆𝐔𝐀𝐑𝐃𝐀𝐃𝐎\n╰━━━━━━━━━━━━⬣\n\n┃ > Fecha: *${birthday}*\n\n╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣`,
+            text: `╭〔 🎂${fytBold('PERFIL')} 〕⬣\n┃ ✅ ${fytBold('CUMPLEAÑOS GUARDADO')}\n╰━━━━━━━━━━━━⬣\n\n┃ > Fecha: *${birthday}*\n\n╰〔 ⚡ ${fytBold('AURA REED')} 〕⬣`,
             mentions: [jidRemitente]
         }, { quoted: message });
     }

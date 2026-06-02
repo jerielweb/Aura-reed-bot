@@ -16,7 +16,7 @@ export default {
 
         const status = args[0]?.toLowerCase();
 
-        if (status === 'on' || status === '1' || status === 'true') {
+        if (status === 'on' || status === '1' || status === 'true' || status === 'activar' || status === 'enable') {
             db.groups[remoteJid].welcome = true;
             saveDB(db);
             let text = `╭〔 ✅ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
@@ -26,7 +26,7 @@ export default {
             text += `┃ > activada con éxito.\n\n`;
             text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
             await socket.sendMessage(remoteJid, { text }, { quoted: message });
-        } else if (status === 'off' || status === '0' || status === 'false') {
+        } else if (status === 'off' || status === '0' || status === 'false' || status === 'desactivar' || status === 'disable') {
             db.groups[remoteJid].welcome = false;
             saveDB(db);
             let text = `╭〔 ❌ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
