@@ -1,4 +1,4 @@
-import {ftyBold, fytBold} from '../../models/TextStyle.js';
+import { fytBold } from '../../models/TextStyle.js';
 
 export default {
     name: ['warn', 'advertir', 'aviso'],
@@ -69,7 +69,7 @@ export default {
             saveDB(db);
         } else {
             const adminUser = message.key.participant || message.key.remoteJid;
-            let text = `╭〔 ⚠️ ${ftyBold('ADVERTENCIA')} 〕⬣\n\n`;
+            let text = `╭〔 ⚠️ ${fytBold('ADVERTENCIA')} 〕⬣\n\n`;
             text += `┃ 👤 Usuario: @${userToWarn.split('@')[0]}\n`;
             text += `┃ 🛡️ Admin: @${adminUser.split('@')[0]}\n`
             text += `┃ 📌 Acción: Advertencia agregada\n`;
