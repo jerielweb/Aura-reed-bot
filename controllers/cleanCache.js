@@ -40,6 +40,9 @@ async function removeOldEntries(folderPath) {
   }
 }
 
+let cleaningCache = false;
+let cacheTimer = null;
+
 async function cleanCache() {
   console.log('[cleanCache] Iniciando limpieza de cache...');
   for (const dir of CLEAN_DIRS) {
@@ -50,22 +53,41 @@ async function cleanCache() {
 }
 
 export async function runCleanCacheIfNeeded(db, saveDB) {
+  if (cleaningCache) {
+    return;
+  }
+
   const now = Date.now();
   const lastRun = db.cleanCacheLastRun || 0;
 
-  if (now - lastRun >= THIRTY_DAYS_MS) {
+  if (now - lastRun < THIRTY_DAYS_MS) {
+    return;
+  }
+
+  cleaningCache = true;
+  try {
     await cleanCache();
     db.cleanCacheLastRun = now;
     await saveDB(db, { immediate: true });
     console.log('[cleanCache] Registro de última ejecución actualizado.');
-  } else {
-    const nextRun = THIRTY_DAYS_MS - (now - lastRun);
-    console.log(`[cleanCache] No es necesario ejecutar aún. Próximo intento en ${Math.round(nextRun / 1000 / 60 / 60 / 24)} días.`);
+  } catch (err) {
+    console.error('[cleanCache] Error durante la limpieza:', err.message);
+  } finally {
+    cleaningCache = false;
   }
 }
 
-export function startCleanCacheInterval(db, saveDB) {
-  setInterval(() => {
-    runCleanCacheIfNeeded(db, saveDB).catch(err => console.error('[cleanCache] Error en intervalo:', err.message));
-  }, THIRTY_DAYS_MS);
+export function startCleanCacheTimer(db, saveDB) {
+  const now = Date.now();
+  const lastRun = db.cleanCacheLastRun || 0;
+  const delay = Math.max(0, THIRTY_DAYS_MS - (now - lastRun));
+
+  if (cacheTimer) {
+    clearTimeout(cacheTimer);
+  }
+
+  cacheTimer = setTimeout(async () => {
+    await runCleanCacheIfNeeded(db, saveDB);
+    startCleanCacheTimer(db, saveDB);
+  }, delay);
 }
