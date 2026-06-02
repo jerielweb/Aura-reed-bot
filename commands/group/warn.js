@@ -32,7 +32,7 @@ export default {
         if (isUserAdmin) {
             let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n`;
             text += `┃ ${fytBold('ACCIÓN PROHIBIDA')} \n╰━━━━━━━━━━━━⬣\n\n`;
-            text += `┃ > No puedes advertir a un administrador del grupo.\n`;
+            text += `┃ > No puedes advertir a\n`;
             text += `┃ > un administrador del grupo.\n\n`;
             text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;
 
@@ -58,7 +58,7 @@ export default {
             text += `┃ 📊 Warns: [ ${count}/${limit} ]\n`;
             text += `┃ 🛡️ Acción: Expulsado por límite de advertencias\n`;
             text += `┃ ⏰ Fecha: ${date}\n\n`;
-            text += `┣━━━━━━━━━━━━━━━━⬣\n`;
+            text += `┣━━━━━━━━━━━━━━━━⬣\n\n`;
             text += `┃ ⚠️ El usuario ha alcanzado el límite de advertencias.\n`;
             text += `┃ ⚠️ Será expulsado del grupo.\n\n`;
             text += `╰〔 ${fytBold('WARN SYSTEM')} 〕⬣`;

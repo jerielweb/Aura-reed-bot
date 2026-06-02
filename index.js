@@ -7,8 +7,12 @@ import './models/settings.js';
 import { handleMessage } from './controllers/msgHandler.js';
 import { handleGroupUpdate } from './controllers/groupEvents.js';
 import { getDB, saveDB, initDB } from './models/db.js';
+import { runCleanCacheIfNeeded, startCleanCacheInterval } from './controllers/cleanCache.js';
 
 await initDB();
+const db = await getDB();
+await runCleanCacheIfNeeded(db, saveDB);
+startCleanCacheInterval(db, saveDB);
 
 async function connectToWhatsApp() {
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
