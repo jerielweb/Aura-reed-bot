@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { fytBold } from '../../models/TextStyle';
+import { fytBold } from '../../models/TextStyle.js';
 
 const badWordsData = JSON.parse(fs.readFileSync('./database/badWords.json', 'utf-8'));
 
