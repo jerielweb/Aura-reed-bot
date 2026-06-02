@@ -50,7 +50,7 @@ export default {
             // 2. Notificar al grupo
             const userName = message.pushName || 'Usuario';
             await socket.sendMessage(remoteJid, {
-                text: `🚫 *Anti-Link Activado*\n\nSe ha eliminado a *${userName}* del grupo por enviar un enlace de otro grupo.\n\n⚠️ Los enlaces de grupos no están permitidos.`,
+                text: `> 🚫 *Anti-Link Activado*\n\nSe ha eliminado a *${userName}* del grupo por enviar un enlace de otro grupo.\n\n⚠️ Los enlaces de grupos no están permitidos.`,
                 quoted: message,
                 mentions: [rawSender]
             });
