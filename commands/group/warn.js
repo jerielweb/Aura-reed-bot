@@ -19,7 +19,7 @@ export default {
         let userToWarn = message.message?.extendedTextMessage?.contextInfo?.participant || message.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
         if (!userToWarn) {
             let text = `╭〔 ⚠️ ${fytBold('AURA REED')} 〕⬣\n`;
-            text += `${fytBold('FALTA OBJETIVO')} \n╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ ${fytBold('FALTA OBJETIVO')} \n╰━━━━━━━━━━━━⬣\n\n`;
             text += `┃ > Etiqueta o responde al mensaje de alguien para advertirlo.\n`;
             text += `┃ > de alguien para advertirlo\n`;
             text += `┃ > Ejemplo: ${prefix}warn @usuario [razón]\n\n`;
@@ -31,7 +31,7 @@ export default {
         const isUserAdmin = groupMetadata?.participants.some(p => p.id === userToWarn && (p.admin === 'admin' || p.admin === 'superadmin'));
         if (isUserAdmin) {
             let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n`;
-            text += `${fytBold('ACCIÓN PROHIBIDA')} \n╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ ${fytBold('ACCIÓN PROHIBIDA')} \n╰━━━━━━━━━━━━⬣\n\n`;
             text += `┃ > No puedes advertir a un administrador del grupo.\n`;
             text += `┃ > un administrador del grupo.\n\n`;
             text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;

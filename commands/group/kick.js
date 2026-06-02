@@ -10,7 +10,7 @@ export default {
 
         if (!remoteJid.endsWith('@g.us')) {
             let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n`;
-            text += `${fytBold('ACCION INCONPATIBLE')} \n`;
+            text += `┃ ${fytBold('ACCION INCONPATIBLE')} \n`;
             text += `╰━━━━━━━━━━━━⬣\n\n`;
             text += `┃ > Este comando solo funciona en grupos.\n\n`;
             text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;
@@ -40,7 +40,7 @@ export default {
 
         if (usersToKick.length === 0) {
             let text = `╭〔 ⚠️ ${fytBold('AURA REED')} 〕⬣\n`
-            text += `${fytBold('ACCIÓN INVÁLIDA')} \n`
+            text += `┃ ${fytBold('ACCIÓN INVÁLIDA')} \n`
             text += `╰━━━━━━━━━━━━⬣\n\n`
             text += `┃ > Menciona a alguien, responde\n`
             text += `┃ > a su mensaje o escribe un\n`
@@ -64,7 +64,7 @@ export default {
             await socket.sendMessage(remoteJid, { text: successText, mentions: usersToKick.length <= 10 ? usersToKick : [] }, { quoted: message });
         } catch (e) {
             let text = `╭〔 ⚠️ ${fytBold('AURA REED')} 〕⬣\n`;
-            text += `${fytBold('ERROR DE KICK')} \n`;
+            text += `┃ ${fytBold('ERROR DE KICK')} \n`;
             text += `╰━━━━━━━━━━━━⬣\n\n`;
             text += `┃ > No pude expulsar a los usuarios.\n`;
             text += `┃ > Asegúrate de que soy admin.\n\n`;

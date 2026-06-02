@@ -58,7 +58,7 @@ export default {
 
         if (targetJid === jidRemitente) {
             let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n`;
-            text += `${fytBold('ACCIÓN INVÁLIDA')}\n`;
+            text += `┃ ${fytBold('ACCIÓN INVÁLIDA')}\n`;
             text += `╰━━━━━━━━━━━━⬣\n\n`;
             text += `┃ > No puedes usar este comando contigo mismo.\n\n`;
             text += `╰〔 ⚡ ${fytBold('SYSTEM ERROR')} 〕⬣`;
@@ -69,8 +69,8 @@ export default {
 
         if (pending && pending.to === jidRemitente && pending.from === targetJid) {
             if (pending.type !== 'divorce') {
-                let text = `╭〔 ❌ ${fytBold('ERROR')} 〕⬣\n`;
-                text += `┃ > Esta solicitud no es de divorcio.\n`;
+                let text = `╭〔 ❌ ${fytBold('ERROR')} 〕⬣\n\n`;
+                text += `┃ > Esta solicitud no es de divorcio.\n\n`;
                 text += `╰〔 ⚡ ${fytBold('AURA REED')} 〕⬣`;
                 return await socket.sendMessage(remoteJid, { text }, { quoted: message });
             }
@@ -78,8 +78,8 @@ export default {
             if (user.marriedTo !== targetJid || partner.marriedTo !== jidRemitente) {
                 clearMarriagePending(group);
                 saveDB(db);
-                let text = `╭〔 ❌ ${fytBold('ERROR')} 〕⬣\n`;
-                text += `┃ > El matrimonio ya no es válido o no coincide.\n`;
+                let text = `╭〔 ❌ ${fytBold('ERROR')} 〕⬣\n\n`;
+                text += `┃ > El matrimonio ya no es válido o no coincide.\n\n`;
                 text += `╰〔 ⚡ ${fytBold('AURA REED')} 〕⬣`;
                 return await socket.sendMessage(remoteJid, { text }, { quoted: message });
             }
