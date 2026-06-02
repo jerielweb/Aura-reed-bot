@@ -1,3 +1,5 @@
+import {fytBold} from './../../models/TextStyle.js'
+
 export default {
     name: ['welcome', 'bienvenida', 'setwelcome'],
     category: 'group',
@@ -19,8 +21,8 @@ export default {
         if (status === 'on' || status === '1' || status === 'true' || status === 'activar' || status === 'enable') {
             db.groups[remoteJid].welcome = true;
             saveDB(db);
-            let text = `╭〔 ✅ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
-            text += `┃ 👋 𝐒𝐈𝐒𝐓𝐄𝐌𝐀 𝐁𝐈𝐄𝐍𝐕𝐄𝐍𝐈𝐃𝐀\n`;
+            let text = `╭〔 ✅ ${fytBold('AURA REED')} 〕⬣\n`;
+            text += `┃ 👋 ${fytBold('SISTEMA DE BIENVENIDA')}\n`;
             text += `╰━━━━━━━━━━━━⬣\n\n`;
             text += `┃ > La bienvenida ha sido\n`;
             text += `┃ > activada con éxito.\n\n`;
@@ -29,8 +31,8 @@ export default {
         } else if (status === 'off' || status === '0' || status === 'false' || status === 'desactivar' || status === 'disable') {
             db.groups[remoteJid].welcome = false;
             saveDB(db);
-            let text = `╭〔 ❌ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
-            text += `┃ 👋 𝐒𝐈𝐒𝐓𝐄𝐌𝐀 𝐁𝐈𝐄𝐍𝐕𝐄𝐍𝐈𝐃𝐀\n`;
+            let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n`;
+            text += `┃ 👋 ${fytBold('SISTEMA DE BIENVENIDA')}\n`;
             text += `╰━━━━━━━━━━━━⬣\n\n`;
             text += `┃ > La bienvenida ha sido\n`;
             text += `┃ > desactivada con éxito.\n\n`;
@@ -38,8 +40,8 @@ export default {
             await socket.sendMessage(remoteJid, { text }, { quoted: message });
         } else {
             const currentStatus = db.groups[remoteJid]?.welcome ? '✅ Activado' : '❌ Desactivado';
-            let text = `╭〔 👋 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
-            text += `┃ ⚙️ 𝐒𝐈𝐒𝐓𝐄𝐌𝐀 𝐁𝐈𝐄𝐍𝐕𝐄𝐍𝐈𝐃𝐀\n`;
+            let text = `╭〔 👋 ${fytBold('AURA REED')} 〕⬣\n`;
+            text += `┃ ⚙️ ${fytBold('SISTEMA DE BIENVENIDA')}\n`;
             text += `╰━━━━━━━━━━━━⬣\n\n`;
             text += `┃ ℹ️ Estado actual: ${currentStatus}\n\n`;
             text += `┣━━━━━━━━━━━━⬣\n\n`;

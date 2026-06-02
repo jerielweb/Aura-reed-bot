@@ -18,13 +18,13 @@ async function resolveTargetFromMessage(message, socket, remoteJid) {
 }
 
 export default {
-    name: ['marry', 'casar', 'matrimonio'],
+    name: ['divorce', 'divorciar', 'separar'],
     category: 'profile',
-    description: 'Solicitar matrimonio.',
+    description: 'Solicitar divorcio.',
     execute: async (socket, message, args, { db, saveDB, jidRemitente, prefix }) => {
         const remoteJid = message.key.remoteJid;
         if (!remoteJid.endsWith('@g.us')) {
-            let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n`;
+            let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕━━⬣\n`;
             text += `${fytBold('ACCION INCONPATIBLE')} \n╰━━━━━━━━━━━━⬣\n\n`;
             text += `> Este comando solo funciona en grupos.\n\n`;
             text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;
@@ -46,8 +46,8 @@ export default {
             } else {
                 let text = `╭〔 ⚠️ ${fytBold('FALTA OBJETIVO')} 〕⬣\n`;
                 text += `┃ > Menciona o responde a la persona.\n`;
+                text += `┃ > Divorcio: *${prefix}divorce @pareja*\n`;
                 text += `┃ > Matrimonio: *${prefix}marry @usuario*\n`;
-                text += `┃ > Divorcio: *${prefix}divorce @pareja* o *${prefix}divorce* (respondiendo)\n`;
                 text += `╰〔 ⚡ ${fytBold('SYSTEM INFO')} 〕⬣`;
                 return await socket.sendMessage(remoteJid, { text }, { quoted: message });
             }
@@ -65,45 +65,43 @@ export default {
         const partner = getGroupUser(db, remoteJid, targetJid, {});
 
         if (pending && pending.to === jidRemitente && pending.from === targetJid) {
-            if (pending.type !== 'marry') {
-                let text = `╭〔 ❌ ${fytBold('ERROR')} 〕⬣\n\n`;
-                text += `┃ > Esta solicitud no es de matrimonio.\n\n`;
+            if (pending.type !== 'divorce') {
+                let text = `╭〔 ❌ ${fytBold('ERROR')} 〕⬣\n`;
+                text += `┃ > Esta solicitud no es de divorcio.\n`;
                 text += `╰〔 ⚡ ${fytBold('AURA REED')} 〕⬣`;
                 return await socket.sendMessage(remoteJid, { text }, { quoted: message });
             }
 
-            if (user.marriedTo || partner.marriedTo) {
+            if (user.marriedTo !== targetJid || partner.marriedTo !== jidRemitente) {
                 clearMarriagePending(group);
                 saveDB(db);
-                let text = `╭〔 ❌ ${fytBold('OPERACIÓN NO PERMITIDA')} 〕⬣\n`;
-                text += `${fytBold('YA ESTAS CASAD@')}\n`;
-                text += `╰━━━━━━━━━━━━⬣\n\n`;
-                text += `┃ > No puedes casarte: ya estás casado/a en este grupo.\n\n`;
-                text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;
+                let text = `╭〔 ❌ ${fytBold('ERROR')} 〕⬣\n`;
+                text += `┃ > El matrimonio ya no es válido o no coincide.\n`;
+                text += `╰〔 ⚡ ${fytBold('AURA REED')} 〕⬣`;
                 return await socket.sendMessage(remoteJid, { text }, { quoted: message });
             }
 
-            user.marriedTo = targetJid;
-            partner.marriedTo = jidRemitente;
+            user.marriedTo = null;
+            partner.marriedTo = null;
             clearMarriagePending(group);
             saveDB(db);
-            let text = `╭〔 💍 ${fytBold('MATRIMONIO')} 〕⬣\n`;
-            text += `┃ 💕 ¡${fytBold('CONFIRMADO')}!\n`;
+
+            let text = `╭〔 💔 ${fytBold('DIVORCIO')} 〕⬣\n`;
+            text += `┃ ✅ ${fytBold('CONFIRMADO')}\n`;
             text += `╰━━━━━━━━━━━━⬣\n\n`;
-            text += `┃ @${jidRemitente.split('@')[0]} 💕 @${targetJid.split('@')[0]}\n`;
-            text += `┃ Se han casado en este grupo.\n`;
-            text += `┃ Los declaro marido y mujer, ¡felicidades! 🎉\n\n`;
+            text += `┃ @${jidRemitente.split('@')[0]} y @${targetJid.split('@')[0]}\n`;
+            text += `┃ han terminado su matrimonio.\n\n`;
             text += `╰〔 ⚡ ${fytBold('AURA REED')} 〕⬣`;
             return await socket.sendMessage(remoteJid, { text, mentions: [jidRemitente, targetJid] }, { quoted: message });
         }
 
         if (pending && pending.from === jidRemitente) {
-            if (pending.type === 'marry') {
+            if (pending.type === 'divorce') {
                 const left = formatTimeLeft(pending.expiresAt);
-                let text = `╭〔 ⏳ ${fytBold('SOLICITUD PENDIENTE')} 〕⬣\n\n`;
-                text += `┃ > Ya enviaste una solicitud de matrimonio.\n`;
-                text += `┃ > Espera que @${pending.to.split('@')[0]} confirme con *${prefix}marry*.\n`;
-                text += `┃ > Tiempo restante: *${left}*\n\n`;
+                let text = `╭〔 ⏳ ${fytBold('SOLICITUD PENDIENTE')} 〕⬣\n`;
+                text += `┃ > Ya enviaste una solicitud de divorcio.\n`;
+                text += `┃ > Espera que @${pending.to.split('@')[0]} confirme con *${prefix}divorce*.\n`;
+                text += `┃ > Tiempo restante: *${left}*\n`;
                 text += `╰〔 ⚡ ${fytBold('AURA REED')} 〕⬣`;
                 return await socket.sendMessage(remoteJid, { text, mentions: [pending.to] }, { quoted: message });
             }
@@ -111,45 +109,39 @@ export default {
 
         if (pending && pending.from !== jidRemitente && pending.to !== jidRemitente) {
             const left = formatTimeLeft(pending.expiresAt);
-            let text = `╭〔 ⏳ ${fytBold('SOLICITUD ACTIVA')} 〕⬣\n\n`;
+            let text = `╭〔 ⏳ ${fytBold('SOLICITUD ACTIVA')} 〕⬣\n`;
             text += `┃ > Hay otra solicitud en curso entre @${pending.from.split('@')[0]} y @${pending.to.split('@')[0]}.\n`;
-            text += `┃ > Tiempo restante: *${left}*\n\n`;
+            text += `┃ > Tiempo restante: *${left}*\n`;
             text += `╰〔 ⚡ ${fytBold('AURA REED')} 〕⬣`;
             return await socket.sendMessage(remoteJid, { text }, { quoted: message });
         }
 
-        if (user.marriedTo) {
-            if (user.marriedTo === targetJid) {
-                let text = `╭〔 ⚠️ ${fytBold('YA CASADOS')} 〕⬣\n\n`;
-                text += `┃ > Ya estás casado/a con @${targetJid.split('@')[0]}.\n`;
-                text += `┃ > Usa *${prefix}divorce @${targetJid.split('@')[0]}* para solicitar divorcio.\n\n`;
-                text += `╰〔 ⚡ ${fytBold('AURA REED')} 〕⬣`;
-                return await socket.sendMessage(remoteJid, { text, mentions: [targetJid] }, { quoted: message });
-            }
-            let text = `╭〔 ❌ ${fytBold('NO PUEDES CASARTE')} 〕⬣\n\n`;
+        if (!user.marriedTo) {
+            let text = `╭〔 ❌ ${fytBold('NO ESTÁS CASAD@')} 〕⬣\n`;
+            text += `┃ > No estás casado/a en este grupo.\n`;
+            text += `┃ > Usa *${prefix}marry @usuario* para solicitar matrimonio.\n`;
+            text += `╰〔 ⚡ ${fytBold('AURA REED')} 〕⬣`;
+            return await socket.sendMessage(remoteJid, { text }, { quoted: message });
+        }
+
+        if (user.marriedTo !== targetJid) {
+            let text = `╭〔 ❌ ${fytBold('NO PUEDES DIVORCIAR')} 〕⬣\n`;
             text += `┃ > Estás casado/a con @${user.marriedTo.split('@')[0]}.\n`;
-            text += `┃ > Primero debes divorciarte para casarte con otra persona.\n\n`;
+            text += `┃ > Usa *${prefix}divorce @${user.marriedTo.split('@')[0]}* para solicitar el divorcio correcto.\n`;
             text += `╰〔 ⚡ ${fytBold('AURA REED')} 〕⬣`;
             return await socket.sendMessage(remoteJid, { text, mentions: [user.marriedTo] }, { quoted: message });
         }
 
-        if (partner.marriedTo) {
-            let text = `╭〔 ❌ ${fytBold('YA CASADO/A')} 〕⬣\n\n`;
-            text += `┃ > Esa persona ya está casada en este grupo.\n\n`;
-            text += `╰〔 ⚡ ${fytBold('AURA REED')} 〕⬣`;
-            return await socket.sendMessage(remoteJid, { text }, { quoted: message });
-        }
-
-        setMarriagePending(group, jidRemitente, targetJid, 'marry');
+        setMarriagePending(group, jidRemitente, targetJid, 'divorce');
         saveDB(db);
         const left = formatTimeLeft(group.marriagePending.expiresAt);
-        let text = `╭〔 💍 ${fytBold('MATRIMONIO')} 〕⬣\n`;
+        let text = `╭〔 💔 ${fytBold('DIVORCIO')} 〕⬣\n`;
         text += `┃ ⏳ ${fytBold('ESPERANDO CONFIRMACIÓN')}\n`;
         text += `╰━━━━━━━━━━━━⬣\n\n`;
-        text += `┃ @${jidRemitente.split('@')[0]} quiere casarse contigo.\n`;
-        text += `┃ @${targetJid.split('@')[0]} acepta con:\n`;
-        text += `┃ ➪ *${prefix}marry @${jidRemitente.split('@')[0]}*\n`;
-        text += `┃ ➪ o *${prefix}marry* (respondiendo)\n\n`;
+        text += `┃ @${jidRemitente.split('@')[0]} solicita divorcio.\n`;
+        text += `┃ @${targetJid.split('@')[0]} confirma con:\n`;
+        text += `┃ ➪ *${prefix}divorce @${jidRemitente.split('@')[0]}*\n`;
+        text += `┃ ➪ o *${prefix}divorce* (respondiendo)\n\n`;
         text += `┃ ⏱️ Tiempo: *${left}*\n\n`;
         text += `╰〔 ⚡ ${fytBold('AURA REED')} 〕⬣`;
         return await socket.sendMessage(remoteJid, { text, mentions: [jidRemitente, targetJid] }, { quoted: message });

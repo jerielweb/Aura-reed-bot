@@ -1,13 +1,21 @@
+import { fytBold } from "../../models/TextStyle";
+
 export default {
-    name: ['kick', 'sacar', 'quitar'],
+    name: ['kick', 'sacar', 'quitar', 'expulsar', 'limpiar'],
     category: 'group',
     description: 'Expulsa a un integrante o a varios por prefijo de país.',
     adminOnly: true,
-    execute: async (socket, message, args, { groupMetadata, isOwner }) => {
+    execute: async (socket, message, args, { groupMetadata, isOwner, prefix }) => {
         const remoteJid = message.key.remoteJid;
 
         if (!remoteJid.endsWith('@g.us')) {
-            return socket.sendMessage(remoteJid, { text: '❌ Este comando solo funciona en grupos.' }, { quoted: message });
+            let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n`;
+            text += `${fytBold('ACCION INCONPATIBLE')} \n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ > Este comando solo funciona en grupos.\n\n`;
+            text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;
+
+            return socket.sendMessage(remoteJid, { text }, { quoted: message });
         }
 
         let usersToKick = [];
@@ -17,8 +25,7 @@ export default {
             usersToKick.push(message.message.extendedTextMessage.contextInfo.participant);
         } else if (message.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0]) {
             usersToKick = message.message.extendedTextMessage.contextInfo.mentionedJid;
-        } 
-        // 2. Caso: Por prefijo de país (ej: .kick 234)
+        }
         else if (args[0]) {
             const prefix = args[0].replace('+', '').trim();
             if (!isNaN(prefix)) {
@@ -26,35 +33,44 @@ export default {
                 usersToKick = participants
                     .map(p => p.id)
                     .filter(id => id.startsWith(prefix) && !id.includes(socket.user.id.split(':')[0]));
-                
-                // Evitar expulsar admins si el comando no es super-específico
                 const admins = participants.filter(p => p.admin).map(p => p.id);
                 usersToKick = usersToKick.filter(id => !admins.includes(id));
             }
         }
 
         if (usersToKick.length === 0) {
-            return socket.sendMessage(remoteJid, {
-                text: '╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐀𝐂𝐂𝐈𝐎́𝐍 𝐈𝐍𝐕𝐀́𝐋𝐈𝐃𝐀\n╰━━━━━━━━━━━━⬣\n\n┃ > Menciona a alguien, responde\n┃ > a su mensaje o escribe un\n┃ > prefijo (ej: .kick 234)\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣'
-            }, { quoted: message });
+            let text = `╭〔 ⚠️ ${fytBold('AURA REED')} 〕⬣\n`
+            text += `${fytBold('ACCIÓN INVÁLIDA')} \n`
+            text += `╰━━━━━━━━━━━━⬣\n\n`
+            text += `┃ > Menciona a alguien, responde\n`
+            text += `┃ > a su mensaje o escribe un\n`
+            text += `┃ > prefijo (ej: ${prefix}kick 234)\n\n`
+            text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`
+
+            return socket.sendMessage(remoteJid, { text }, { quoted: message });
         }
 
         try {
             await socket.groupParticipantsUpdate(remoteJid, usersToKick, "remove");
-            
-            let successText = `╭〔 👑 𝐀𝐃𝐌𝐈𝐍 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣\n\n`;
+
+            let successText = `╭〔 👑 ${fytBold('ADMIN SYSTEM')} 〕⬣\n\n`;
             if (usersToKick.length === 1) {
                 successText += `┃ ✅ @${usersToKick[0].split('@')[0]}\n┃ > fue expulsado del grupo\n`;
             } else {
-                successText += `┃ ✅ 𝐋𝐈𝐌𝐏𝐈𝐄𝐙𝐀 𝐂𝐎𝐌𝐏𝐋𝐄𝐓𝐀\n┃ > Se expulsaron ${usersToKick.length} usuarios\n┃ > con el prefijo solicitado.\n`;
+                successText += `┃ ✅ ${fytBold('LIMPIEZA COMPLETADA')}\n┃ > Se expulsaron ${usersToKick.length} usuarios\n┃ > con el prefijo solicitado.\n`;
             }
-            successText += `\n╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣`;
+            successText += `\n╰〔 ⚡ ${fytBold('SYSTEM INFO')} 〕⬣`;
 
             await socket.sendMessage(remoteJid, { text: successText, mentions: usersToKick.length <= 10 ? usersToKick : [] }, { quoted: message });
         } catch (e) {
-            await socket.sendMessage(remoteJid, { 
-                text: '╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐄𝐑𝐑𝐎𝐑 𝐃𝐄 𝐊𝐈𝐂𝐊\n╰━━━━━━━━━━━━⬣\n\n┃ > No pude expulsar a los usuarios.\n┃ > Asegúrate de que soy admin.\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣' 
-            }, { quoted: message });
+            let text = `╭〔 ⚠️ ${fytBold('AURA REED')} 〕⬣\n`;
+            text += `${fytBold('ERROR DE KICK')} \n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ > No pude expulsar a los usuarios.\n`;
+            text += `┃ > Asegúrate de que soy admin.\n\n`;
+            text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;
+
+            await socket.sendMessage(remoteJid, { text }, { quoted: message });
         }
     }
 };
