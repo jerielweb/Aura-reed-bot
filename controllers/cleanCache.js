@@ -42,6 +42,7 @@ async function removeOldEntries(folderPath) {
 
 let cleaningCache = false;
 let cacheTimer = null;
+const MAX_TIMEOUT_MS = 2 ** 31 - 1;
 
 async function cleanCache() {
   console.log('[cleanCache] Iniciando limpieza de cache...');
@@ -77,10 +78,14 @@ export async function runCleanCacheIfNeeded(db, saveDB) {
   }
 }
 
-export function startCleanCacheTimer(db, saveDB) {
+function scheduleNextRun(db, saveDB) {
   const now = Date.now();
   const lastRun = db.cleanCacheLastRun || 0;
-  const delay = Math.max(0, THIRTY_DAYS_MS - (now - lastRun));
+  let delay = Math.max(0, THIRTY_DAYS_MS - (now - lastRun));
+
+  if (delay > MAX_TIMEOUT_MS) {
+    delay = MAX_TIMEOUT_MS;
+  }
 
   if (cacheTimer) {
     clearTimeout(cacheTimer);
@@ -88,6 +93,10 @@ export function startCleanCacheTimer(db, saveDB) {
 
   cacheTimer = setTimeout(async () => {
     await runCleanCacheIfNeeded(db, saveDB);
-    startCleanCacheTimer(db, saveDB);
+    scheduleNextRun(db, saveDB);
   }, delay);
+}
+
+export function startCleanCacheTimer(db, saveDB) {
+  scheduleNextRun(db, saveDB);
 }
