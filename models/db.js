@@ -50,8 +50,17 @@ async function ensureFiles() {
                 JSON.parse(existing);
             }
         } catch (err) {
-            console.warn(`[DB] Creando archivo por defecto: ${path.basename(file)}`);
-            await fs.writeFile(file, content, 'utf-8');
+            if (file === DB_FILE) {
+                console.warn(`[DB] database.json corrupto o inválido, intentando restaurar desde backup...`);
+                const restored = await restoreDbFileFromBackup();
+                if (!restored) {
+                    console.warn(`[DB] No se pudo restaurar database.json desde backup, reescribiendo con valores por defecto`);
+                    await fs.writeFile(file, content, 'utf-8');
+                }
+            } else {
+                console.warn(`[DB] Creando archivo por defecto: ${path.basename(file)}`);
+                await fs.writeFile(file, content, 'utf-8');
+            }
         }
     }
     
@@ -70,6 +79,20 @@ async function readJson(filePath) {
         return JSON.parse(raw);
     } catch {
         return null;
+    }
+}
+
+async function restoreDbFileFromBackup() {
+    try {
+        const backup = await fs.readFile(DB_BACKUP_FILE, 'utf-8');
+        if (!backup || backup.trim().length === 0) throw new Error('Backup vacío o inválido');
+        JSON.parse(backup);
+        await fs.writeFile(DB_FILE, backup, 'utf-8');
+        console.log('[DB] ✅ database.json restaurado desde backup');
+        return true;
+    } catch (err) {
+        console.warn('[DB] ⚠️ No se pudo restaurar database.json desde backup:', err.message);
+        return false;
     }
 }
 

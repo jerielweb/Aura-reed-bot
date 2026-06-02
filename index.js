@@ -6,13 +6,37 @@ import chalk from 'chalk';
 import './models/settings.js';
 import { handleMessage } from './controllers/msgHandler.js';
 import { handleGroupUpdate } from './controllers/groupEvents.js';
-import { getDB, saveDB, initDB } from './models/db.js';
+import { getDB, saveDB, initDB, flushDB } from './models/db.js';
 import { runCleanCacheIfNeeded, startCleanCacheTimer } from './controllers/cleanCache.js';
 
 await initDB();
 const db = await getDB();
 await runCleanCacheIfNeeded(db, saveDB);
 startCleanCacheTimer(db, saveDB);
+
+function setupExitHandlers() {
+    const saveAndExit = async (signal) => {
+        console.log(`\n[EXIT] Señal recibida: ${signal}. Guardando base de datos...`);
+        try {
+            await flushDB();
+        } catch (err) {
+            console.error('[EXIT] Error guardando DB:', err);
+        }
+        process.exit(signal === 'SIGINT' ? 0 : 1);
+    };
+
+    process.on('SIGINT', () => saveAndExit('SIGINT'));
+    process.on('SIGTERM', () => saveAndExit('SIGTERM'));
+    process.on('beforeExit', async () => {
+        try {
+            await flushDB();
+        } catch (err) {
+            console.error('[EXIT] Error guardando DB en beforeExit:', err);
+        }
+    });
+}
+
+setupExitHandlers();
 
 async function connectToWhatsApp() {
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
