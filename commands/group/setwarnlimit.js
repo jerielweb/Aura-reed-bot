@@ -7,7 +7,7 @@ export default {
     adminOnly: true,
     execute: async (socket, message, args, { db, saveDB }) => {
         const remoteJid = message.key.remoteJid;
-        if (!remoteJid.endsWith('@g.us'))
+        if (!remoteJid.endsWith('@g.us')) {
 
             // Plantilla del mensaje para que sea más atractivo visualmente
             let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕━━⬣\n`;
@@ -16,8 +16,9 @@ export default {
             text += `> Este comando solo funciona en grupos.\n\n`;
             text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;
 
-        // Enviar mensaje de error
-        return socket.sendMessage(remoteJid, { text }, { quoted: message });
+            // Enviar mensaje de error
+            return socket.sendMessage(remoteJid, { text }, { quoted: message });
+        }
 
         const limit = parseInt(args[0]);
         if (isNaN(limit) || limit < 1) {

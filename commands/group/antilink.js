@@ -67,8 +67,7 @@ export default {
     },
     execute: async (socket, message, args, { db, saveDB }) => {
         const remoteJid = message.key.remoteJid;
-        if (!remoteJid.endsWith('@g.us'))
-
+        if (!remoteJid.endsWith('@g.us')) {
             // Mensaje de éxito Plantilla del mensaje para que sea más atractivo visualmente
             let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n`;
             text += `┃ ${fytBold('ACCION INCONPATIBLE')} \n`;
@@ -77,6 +76,7 @@ export default {
             text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;
 
             return socket.sendMessage(remoteJid, { text }, { quoted: message });
+        }
 
         if (!db.groups[remoteJid]) db.groups[remoteJid] = { antilink: false, warnLimit: 3, warns: {}, activity: {}, botOn: true };
 

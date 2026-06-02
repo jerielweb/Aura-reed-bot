@@ -7,7 +7,7 @@ export default {
     adminOnly: true,
     execute: async (socket, message, args, { db }) => {
         const remoteJid = message.key.remoteJid;
-        if (!remoteJid.endsWith('@g.us'))
+        if (!remoteJid.endsWith('@g.us')) {
 
             // Plantilla del mensaje para que sea más atractivo visualmente
             let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n`;
@@ -18,6 +18,7 @@ export default {
 
             // Enviar mensaje de error
             return socket.sendMessage(remoteJid, { text }, { quoted: message });
+        }
 
         const groupMetadata = await socket.groupMetadata(remoteJid);
         const participants = groupMetadata.participants || [];

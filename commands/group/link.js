@@ -7,12 +7,14 @@ export default {
     adminOnly: true,
     execute: async (socket, message, args, {groupMetadata}) => {
         const remoteJid = message.key.remoteJid;
-        let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n`;
-        text += `┃ ${fytBold('ACCION INCONPATIBLE')} \n`;
-        text += `╰━━━━━━━━━━━━⬣\n\n`;
-        text += `┃ > Este comando solo funciona en grupos.\n\n`;
-        text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;
-        if (!remoteJid.endsWith('@g.us')) return socket.sendMessage(remoteJid, { text }, { quoted: message });
+        if (!remoteJid.endsWith('@g.us')) {
+            let text = `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n`;
+            text += `┃ ${fytBold('ACCION INCONPATIBLE')} \n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ > Este comando solo funciona en grupos.\n\n`;
+            text += `╰〔 ⚡ ${fytBold('SYSTEM ALERT')} 〕⬣`;
+            return socket.sendMessage(remoteJid, { text }, { quoted: message });
+        }
 
         let code = null;
 
