@@ -37,7 +37,7 @@ export default {
         try {
             await socket.groupParticipantsUpdate(remoteJid, [userToDemote], "demote");
 
-            let text = `╭〔  ${fytBold('ADMIN SYSTEM')} 〕⬣\n`
+            let text = `╭〔  ${fytBold('ADMIN SYSTEM')} 〕⬣\n\n`
             text += `┃ > El usuario @${userToDemote.split('@')[0]}\n`;
             text += `┃ > ya no es administrador del grupo\n\n`;
             text += `╰〔 ⚡ ${fytBold('AURA REED')} 〕⬣`;
