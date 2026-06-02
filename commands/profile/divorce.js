@@ -44,10 +44,13 @@ export default {
             if (user.marriedTo) {
                 targetJid = user.marriedTo;
             } else {
-                let text = `╭〔 ⚠️ ${fytBold('FALTA OBJETIVO')} 〕⬣\n`;
+                let text = `╭〔 ⚠️ ${fytBold('FALTA OBJETIVO')} 〕⬣\n\n`;
                 text += `┃ > Menciona o responde a la persona.\n`;
-                text += `┃ > Divorcio: *${prefix}divorce @pareja*\n`;
-                text += `┃ > Matrimonio: *${prefix}marry @usuario*\n`;
+                text += `┃ > Matrimonio: *${prefix}divorce @usuario*\n`;
+                text += `┣━━━━━━━━━━━━⬣\n`;
+                text += `┃ > _Ejemplo:_\n`
+                text += `┃ > *${prefix}divorce @pareja*\n`;
+                text += `┃ > *${prefix}divorce* (respondiendo)\n\n`
                 text += `╰〔 ⚡ ${fytBold('SYSTEM INFO')} 〕⬣`;
                 return await socket.sendMessage(remoteJid, { text }, { quoted: message });
             }
