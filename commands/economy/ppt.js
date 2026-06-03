@@ -61,8 +61,6 @@ export default {
 
         saveDB(db);
 
-        saveDB(db);
-
         // 4. Tu diseño de menú de texto exacto
         let menuTexto = `╭〔 🎮 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
         menuTexto += `┃ 𝐏𝐈𝐄𝐃𝐑𝐀, 𝐏𝐀𝐏𝐄𝐋 𝐎 𝐓𝐈𝐉𝐄𝐑𝐀\n`;

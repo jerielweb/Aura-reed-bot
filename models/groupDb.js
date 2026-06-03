@@ -13,8 +13,10 @@ export const DEFAULT_GROUP = {
 };
 
 const ECONOMY_FIELDS = new Set([
-    'coins', 'bank', 'lastWork', 'lastDaily', 'lastWeekly',
-    'lastMonthly', 'lastCrime', 'lastSlut'
+    'coins', 'bank', 'xp', 'level',
+    'lastWork', 'lastDaily', 'lastWeekly', 'lastMonthly',
+    'lastCrime', 'lastSlut', 'lastHunt', 'lastMine', 'lastPpt',
+    'lastSteal', 'lastAdventure'
 ]);
 
 /** Elimina campos de economía del almacén global de usuarios (solo queda data global como Subs). */
