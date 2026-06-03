@@ -106,8 +106,6 @@ export async function handleMessage(sock, m, db, saveDB) {
         } catch (e) { isAdmin = false; }
     }
 
-    await sock.readMessages([m.key]);
-
     try {
         const middlewares = await loadMiddlewares();
         for (const cmd of middlewares) await cmd.middleware(sock, m, { db, saveDB, owners, isAdmin, isBotAdmin, isOwner, groupMetadata, text });
