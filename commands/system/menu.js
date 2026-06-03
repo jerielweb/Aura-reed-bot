@@ -98,6 +98,8 @@ export default {
                 }
             }
         }
+        textoMenu += `> _Usa ${prefix}menu [categoria] para ver una lista de ccomandos especifica_\n\n`;
+        textoMenu += `╰〔 ⚡ ${fytBold('AURA REED BOT')} 〕⬣\n`;
 
         await sock.sendMessage(remoteJid, {
             image: { url: BannerBot },
