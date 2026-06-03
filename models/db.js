@@ -1,6 +1,5 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { stripEconomyFromUsers } from './groupDb.js';
 
 const DATABASE_DIR = path.resolve('./database');
 const DB_FILE = path.join(DATABASE_DIR, 'database.json');
@@ -8,16 +7,15 @@ const USERS_FILE = path.join(DATABASE_DIR, 'users.json');
 const GROUPS_FILE = path.join(DATABASE_DIR, 'groups.json');
 const DB_BACKUP_FILE = path.join(DATABASE_DIR, 'database.backup.json');
 const GROUPS_BACKUP_FILE = path.join(DATABASE_DIR, 'groups.backup.json');
-const USERS_BACKUP_FILE = path.join(DATABASE_DIR, 'users.backup.json');  // 🔴 NUEVO
+const USERS_BACKUP_FILE = path.join(DATABASE_DIR, 'users.backup.json');
 const SAVE_DELAY_MS = 800;
 
 let dbCache = null;
 let groupsCache = null;
-let usersCache = null;  // 🔴 NUEVO: Caché separado para users
+let usersCache = null;
 let saveTimer = null;
 let saving = false;
 
-// Configuración por defecto con datos del propietario principal
 const DEFAULT_DB_CONFIG = {
     prefix: ".",
     owners: [
@@ -45,16 +43,20 @@ async function ensureFiles() {
         try {
             const existing = await fs.readFile(file, 'utf-8');
             if (!existing || existing.trim().length === 0) {
-                console.warn(`[DB] ⚠️ Archivo vacío/corrupto detectado: ${path.basename(file)} - Recreando...`);
+                console.warn(`[DB] Archivo vacio detectado: ${path.basename(file)} - Recreando...`);
                 await fs.writeFile(file, content, 'utf-8');
             } else {
-                JSON.parse(existing); // Validar JSON
+                JSON.parse(existing);
             }
         } catch (err) {
-            console.warn(`[DB] ⚠️ Error validando ${path.basename(file)}: ${err.message}`);
+            console.warn(`[DB] Error validando ${path.basename(file)}: ${err.message}`);
             if (file === GROUPS_FILE) {
-                // Intentar restaurar groups desde backup antes de recrear
                 const backupRestored = await restoreGroupsFromBackup();
+                if (!backupRestored) {
+                    await fs.writeFile(file, content, 'utf-8');
+                }
+            } else if (file === USERS_FILE) {
+                const backupRestored = await restoreUsersFromBackup();
                 if (!backupRestored) {
                     await fs.writeFile(file, content, 'utf-8');
                 }
@@ -64,23 +66,12 @@ async function ensureFiles() {
         }
     }
 
-    // Crear backups iniciales si no existen
-    try {
-        await fs.access(DB_BACKUP_FILE);
-    } catch {
-        await fs.writeFile(DB_BACKUP_FILE, defaultDatabase, 'utf-8');
-    }
-
-    try {
-        await fs.access(GROUPS_BACKUP_FILE);
-    } catch {
-        await fs.writeFile(GROUPS_BACKUP_FILE, defaultGroups, 'utf-8');
-    }
-
-    try {  // 🔴 NUEVO
-        await fs.access(USERS_BACKUP_FILE);
-    } catch {
-        await fs.writeFile(USERS_BACKUP_FILE, defaultUsers, 'utf-8');
+    for (const [file, content] of [[DB_BACKUP_FILE, defaultDatabase], [GROUPS_BACKUP_FILE, defaultGroups], [USERS_BACKUP_FILE, defaultUsers]]) {
+        try {
+            await fs.access(file);
+        } catch {
+            await fs.writeFile(file, content, 'utf-8');
+        }
     }
 }
 
@@ -89,7 +80,7 @@ async function readJson(filePath) {
         const raw = await fs.readFile(filePath, 'utf-8');
         return JSON.parse(raw);
     } catch (err) {
-        console.warn(`[DB] ⚠️ Error leyendo ${path.basename(filePath)}: ${err.message}`);
+        console.warn(`[DB] Error leyendo ${path.basename(filePath)}: ${err.message}`);
         return null;
     }
 }
@@ -99,44 +90,42 @@ async function restoreGroupsFromBackup() {
         const backup = await readJson(GROUPS_BACKUP_FILE);
         if (backup && backup.groups && Object.keys(backup.groups).length > 0) {
             await fs.writeFile(GROUPS_FILE, JSON.stringify(backup, null, 2), 'utf-8');
-            console.log('[DB] ✅ groups.json restaurado desde backup');
+            console.log('[DB] groups.json restaurado desde backup');
             return true;
         }
     } catch (err) {
-        console.warn('[DB] ⚠️ No se pudo restaurar groups.json desde backup:', err.message);
+        console.warn('[DB] No se pudo restaurar groups.json desde backup:', err.message);
     }
     return false;
 }
 
-async function restoreUsersFromBackup() {  // 🔴 NUEVO
+async function restoreUsersFromBackup() {
     try {
         const backup = await readJson(USERS_BACKUP_FILE);
         if (backup && backup.users && Object.keys(backup.users).length > 0) {
             await fs.writeFile(USERS_FILE, JSON.stringify(backup, null, 2), 'utf-8');
-            console.log('[DB] ✅ users.json restaurado desde backup');
+            console.log('[DB] users.json restaurado desde backup');
             return true;
         }
     } catch (err) {
-        console.warn('[DB] ⚠️ No se pudo restaurar users.json desde backup:', err.message);
+        console.warn('[DB] No se pudo restaurar users.json desde backup:', err.message);
     }
     return false;
 }
 
 export async function initDB() {
     if (dbCache && groupsCache && usersCache) {
-        // Ya está inicializado, retornar caché
         return { ...dbCache, groups: groupsCache, users: usersCache };
     }
 
     await ensureFiles();
 
-    const dbData = await readJson(DB_FILE) || {};
-    const usersData = await readJson(USERS_FILE) || { users: {} };
-    const groupsData = await readJson(GROUPS_FILE) || { groups: {} };
+    let dbData = await readJson(DB_FILE) || {};
+    let usersData = await readJson(USERS_FILE) || { users: {} };
+    let groupsData = await readJson(GROUPS_FILE) || { groups: {} };
 
-    // 🔴 VALIDACIÓN: Si groups.json está vacío pero existe backup, restaurar
     if ((!groupsData || !groupsData.groups || Object.keys(groupsData.groups || {}).length === 0)) {
-        console.warn('[DB] ⚠️ Groups vacío detectado en initDB, intentando restaurar desde backup');
+        console.warn('[DB] Groups vacio detectado en initDB, intentando restaurar desde backup');
         const backupRestored = await restoreGroupsFromBackup();
         if (backupRestored) {
             const restored = await readJson(GROUPS_FILE) || { groups: {} };
@@ -144,9 +133,8 @@ export async function initDB() {
         }
     }
 
-    // 🔴 VALIDACIÓN: Si users.json está vacío pero existe backup, restaurar
     if ((!usersData || !usersData.users || Object.keys(usersData.users || {}).length === 0)) {
-        console.warn('[DB] ⚠️ Users vacío detectado en initDB, intentando restaurar desde backup');
+        console.warn('[DB] Users vacio detectado en initDB, intentando restaurar desde backup');
         const backupRestored = await restoreUsersFromBackup();
         if (backupRestored) {
             const restored = await readJson(USERS_FILE) || { users: {} };
@@ -154,9 +142,8 @@ export async function initDB() {
         }
     }
 
-    // Validar configuración
     if (!dbData || !dbData.owners || dbData.owners.length === 0) {
-        console.warn('[DB] ⚠️ Configuración inválida detectada en initDB, usando valores por defecto');
+        console.warn('[DB] Configuracion invalida detectada en initDB, usando valores por defecto');
         dbCache = { ...DEFAULT_DB_CONFIG };
     } else {
         dbCache = {
@@ -167,17 +154,13 @@ export async function initDB() {
         };
     }
 
-    // Guardar groups y users en caché SEPARADO para mejor control
-    // 🔴 ASEGURADO: Caché NUNCA serán null/undefined
     groupsCache = (groupsData?.groups && typeof groupsData.groups === 'object') ? groupsData.groups : {};
     usersCache = (usersData?.users && typeof usersData.users === 'object') ? usersData.users : {};
 
-    // Log de estado inicial
     const groupCount = Object.keys(groupsCache).length;
     const userCount = Object.keys(usersCache).length;
-    console.log(`[DB] ✅ Inicializado: ${groupCount} grupos, ${userCount} usuarios globales`);
+    console.log(`[DB] Inicializado: ${groupCount} grupos, ${userCount} usuarios globales`);
 
-    // Retornar objeto combinado para compatibilidad
     return { ...dbCache, groups: groupsCache, users: usersCache };
 }
 
@@ -190,31 +173,28 @@ export async function getDB() {
 
 async function writeDbFiles(data) {
     if (!data || typeof data !== 'object') {
-        console.error('[DB] ❌ Datos inválidos recibidos en writeDbFiles');
+        console.error('[DB] Datos invalidos recibidos en writeDbFiles');
         return;
     }
 
     try {
-        // PRESERVAR datos existentes si el nuevo está vacío
         const existingDb = await readJson(DB_FILE);
         const existingGroups = await readJson(GROUPS_FILE) || { groups: {} };
-        const existingUsers = await readJson(USERS_FILE) || { users: {} };  // 🔴 NUEVO
+        const existingUsers = await readJson(USERS_FILE) || { users: {} };
 
-        // 🔴 VALIDACIÓN CRÍTICA: Verificar que datos existentes son válidos
         if (!existingGroups || !existingGroups.groups) {
-            console.error('[DB] ❌ ALERTA CRÍTICA: existingGroups corrupto, intentando restaurar');
+            console.error('[DB] ALERTA: existingGroups corrupto, intentando restaurar');
             existingGroups.groups = existingGroups.groups || {};
         }
 
-        if (!existingUsers || !existingUsers.users) {  // 🔴 NUEVO
-            console.error('[DB] ❌ ALERTA CRÍTICA: existingUsers corrupto, intentando restaurar');
+        if (!existingUsers || !existingUsers.users) {
+            console.error('[DB] ALERTA: existingUsers corrupto, intentando restaurar');
             existingUsers.users = existingUsers.users || {};
         }
 
         const existingGroupsCount = Object.keys(existingGroups.groups || {}).length;
-        const existingUsersCount = Object.keys(existingUsers.users || {}).length;  // 🔴 NUEVO
+        const existingUsersCount = Object.keys(existingUsers.users || {}).length;
 
-        // Preparar config (database.json)
         const dbToSave = {
             prefix: (data.prefix && data.prefix.length > 0) ? data.prefix : (existingDb?.prefix ?? DEFAULT_DB_CONFIG.prefix),
             owners: (Array.isArray(data.owners) && data.owners.length > 0) ? data.owners : (existingDb?.owners ?? DEFAULT_DB_CONFIG.owners),
@@ -227,160 +207,134 @@ async function writeDbFiles(data) {
             dbToSave.ownerRoles = existingDb.ownerRoles;
         }
 
-        // Validación crítica: nunca permitir owners vacío
         if (!dbToSave.owners || dbToSave.owners.length === 0) {
             dbToSave.owners = DEFAULT_DB_CONFIG.owners;
-            console.warn('[DB] ⚠️ Owners vacío detectado durante guardado, usando valores por defecto');
+            console.warn('[DB] Owners vacio detectado durante guardado, usando valores por defecto');
         }
 
-        // 🔴 CRÍTICO: Preservar groups si el nuevo está vacío - CON DOBLE VALIDACIÓN
-        let groupsToSave = data.groups;
-        const incomingGroupsCount = groupsToSave ? Object.keys(groupsToSave).length : 0;
+        let groupsToSave;
+        const incomingGroupsCount = data.groups ? Object.keys(data.groups).length : 0;
 
-        if (!groupsToSave || (typeof groupsToSave === 'object' && Object.keys(groupsToSave).length === 0)) {
-            if (existingGroupsCount > 0) {
-                console.warn(`[DB] ⚠️ Groups vacío DETECTADO (incoming: ${incomingGroupsCount}, preservando: ${existingGroupsCount})`);
-                groupsToSave = existingGroups.groups;
-            } else {
-                console.warn('[DB] ⚠️ Advertencia: groups vacío pero no hay grupos previos para preservar');
-                groupsToSave = {};
-            }
+        if (incomingGroupsCount > 0) {
+            groupsToSave = data.groups;
+            console.log(`[DB] Groups actualizado correctamente (${incomingGroupsCount} grupos)`);
+        } else if (existingGroupsCount > 0) {
+            groupsToSave = existingGroups.groups;
         } else {
-            console.log(`[DB] ✅ Groups actualizado correctamente (${incomingGroupsCount} grupos)`);
+            groupsToSave = {};
         }
 
-        // 🔴 NUEVO: Preservar users si el nuevo está vacío
-        let usersToSave = data.users;
-        const incomingUsersCount = usersToSave ? Object.keys(usersToSave).length : 0;
+        let usersToSave;
+        const incomingUsersCount = data.users ? Object.keys(data.users).length : 0;
 
-        if (!usersToSave || (typeof usersToSave === 'object' && Object.keys(usersToSave).length === 0)) {
-            if (existingUsersCount > 0) {
-                console.warn(`[DB] ⚠️ Users vacío DETECTADO (incoming: ${incomingUsersCount}, preservando: ${existingUsersCount})`);
-                usersToSave = existingUsers.users;
-            } else {
-                console.warn('[DB] ⚠️ Advertencia: users vacío pero no hay usuarios previos para preservar');
-                usersToSave = {};
-            }
+        if (incomingUsersCount > 0) {
+            usersToSave = data.users;
+            console.log(`[DB] Users actualizado correctamente (${incomingUsersCount} usuarios)`);
+        } else if (existingUsersCount > 0) {
+            usersToSave = existingUsers.users;
         } else {
-            console.log(`[DB] ✅ Users actualizado correctamente (${incomingUsersCount} usuarios)`);
+            usersToSave = {};
         }
 
-        // 🔴 PROTECCIÓN EXTRA: Validar que groupsToSave sea válido antes de guardar
         if (!groupsToSave || typeof groupsToSave !== 'object') {
-            console.error('[DB] ❌ ALERTA: groupsToSave inválido, restaurando desde existentes');
+            console.error('[DB] ALERTA: groupsToSave invalido, restaurando desde existentes');
             groupsToSave = existingGroups.groups || {};
         }
 
-        // 🔴 NUEVO: Validar que usersToSave sea válido
         if (!usersToSave || typeof usersToSave !== 'object') {
-            console.error('[DB] ❌ ALERTA: usersToSave inválido, restaurando desde existentes');
+            console.error('[DB] ALERTA: usersToSave invalido, restaurando desde existentes');
             usersToSave = existingUsers.users || {};
         }
 
-        // Hacer backup de groups ANTES de guardar (extra seguridad)
-        if (groupsToSave && Object.keys(groupsToSave).length > 0) {
+        if (Object.keys(groupsToSave).length > 0) {
             try {
-                const backupContent = JSON.stringify({ groups: groupsToSave }, null, 2);
-                await fs.writeFile(GROUPS_BACKUP_FILE, backupContent, 'utf-8');
-                console.log(`[DB] ✅ Backup groups: ${Object.keys(groupsToSave).length} grupos guardados`);
+                await fs.writeFile(GROUPS_BACKUP_FILE, JSON.stringify({ groups: groupsToSave }, null, 2), 'utf-8');
             } catch (e) {
-                console.error('[DB] ❌ ERROR CRÍTICO guardando backup de groups:', e.message);
+                console.error('[DB] ERROR guardando backup de groups:', e.message);
             }
         }
 
-        // 🔴 NUEVO: Hacer backup de users ANTES de guardar
-        if (usersToSave && Object.keys(usersToSave).length > 0) {
+        if (Object.keys(usersToSave).length > 0) {
             try {
-                const backupContent = JSON.stringify({ users: usersToSave }, null, 2);
-                await fs.writeFile(USERS_BACKUP_FILE, backupContent, 'utf-8');
-                console.log(`[DB] ✅ Backup users: ${Object.keys(usersToSave).length} usuarios guardados`);
+                await fs.writeFile(USERS_BACKUP_FILE, JSON.stringify({ users: usersToSave }, null, 2), 'utf-8');
             } catch (e) {
-                console.error('[DB] ❌ ERROR CRÍTICO guardando backup de users:', e.message);
+                console.error('[DB] ERROR guardando backup de users:', e.message);
             }
         }
 
-        // Hacer backup de database.json
         if (existingDb && Object.keys(existingDb).length > 0) {
             try {
                 await fs.writeFile(DB_BACKUP_FILE, JSON.stringify(existingDb, null, 2), 'utf-8');
             } catch (e) {
-                console.warn('[DB] ⚠️ Error guardando backup de database:', e.message);
+                console.warn('[DB] Error guardando backup de database:', e.message);
             }
         }
 
-        // Escribir archivos con validación
         const filesToWrite = [
             { file: DB_FILE, data: JSON.stringify(dbToSave, null, 2) },
-            { file: USERS_FILE, data: JSON.stringify({ users: usersToSave }, null, 2) },  // 🔴 CAMBIO: usa usersToSave protegido
+            { file: USERS_FILE, data: JSON.stringify({ users: usersToSave }, null, 2) },
             { file: GROUPS_FILE, data: JSON.stringify({ groups: groupsToSave }, null, 2) }
         ];
 
-        // 🔴 VALIDACIÓN FINAL: Verificar que ningún archivo quedará vacío
         for (const { file, data: content } of filesToWrite) {
             if (!content || content.trim().length === 0) {
-                console.error(`[DB] ❌ ERROR: Intento de escribir archivo VACÍO: ${path.basename(file)}`);
-                throw new Error(`Intento de escribir archivo vacío: ${file}`);
+                console.error(`[DB] ERROR: Intento de escribir archivo VACIO: ${path.basename(file)}`);
+                throw new Error(`Intento de escribir archivo vacio: ${file}`);
             }
         }
 
-        // Escribir archivos
         for (const { file, data: content } of filesToWrite) {
             try {
                 await fs.writeFile(file, content, 'utf-8');
-                console.log(`[DB] ✅ Guardado: ${path.basename(file)}`);
+                console.log(`[DB] Guardado: ${path.basename(file)}`);
             } catch (err) {
-                console.error(`[DB] ❌ Error CRÍTICO escribiendo ${path.basename(file)}:`, err.message);
+                console.error(`[DB] Error CRITICO escribiendo ${path.basename(file)}:`, err.message);
                 throw err;
             }
         }
 
-        // 🔴 POST-VALIDACIÓN: Verificar que los archivos se escribieron correctamente
         const verifyDb = await readJson(DB_FILE);
         const verifyGroups = await readJson(GROUPS_FILE);
-        const verifyUsers = await readJson(USERS_FILE);  // 🔴 NUEVO
+        const verifyUsers = await readJson(USERS_FILE);
 
         if (!verifyDb || !verifyDb.owners || verifyDb.owners.length === 0) {
-            console.error('[DB] ❌ POST-VALIDACIÓN FALLÓ: database.json no tiene owners');
-            throw new Error('Post-validación falló: database.json incompleto');
+            console.error('[DB] POST-VALIDACION FALLO: database.json no tiene owners');
+            throw new Error('Post-validacion fallo: database.json incompleto');
         }
 
         const verifyGroupsCount = verifyGroups?.groups ? Object.keys(verifyGroups.groups).length : 0;
-        const verifyUsersCount = verifyUsers?.users ? Object.keys(verifyUsers.users).length : 0;  // 🔴 NUEVO
+        const verifyUsersCount = verifyUsers?.users ? Object.keys(verifyUsers.users).length : 0;
 
         if (verifyGroupsCount !== incomingGroupsCount && incomingGroupsCount > 0) {
-            console.warn(`[DB] ⚠️ POST-VALIDACIÓN: Groups mismatch (escrito: ${verifyGroupsCount}, esperado: ${incomingGroupsCount})`);
+            console.warn(`[DB] POST-VALIDACION: Groups mismatch (escrito: ${verifyGroupsCount}, esperado: ${incomingGroupsCount})`);
         }
 
-        if (verifyUsersCount !== incomingUsersCount && incomingUsersCount > 0) {  // 🔴 NUEVO
-            console.warn(`[DB] ⚠️ POST-VALIDACIÓN: Users mismatch (escrito: ${verifyUsersCount}, esperado: ${incomingUsersCount})`);
+        if (verifyUsersCount !== incomingUsersCount && incomingUsersCount > 0) {
+            console.warn(`[DB] POST-VALIDACION: Users mismatch (escrito: ${verifyUsersCount}, esperado: ${incomingUsersCount})`);
         }
 
     } catch (err) {
-        console.error('[DB] ❌ Error CRÍTICO en writeDbFiles:', err.message);
+        console.error('[DB] Error CRITICO en writeDbFiles:', err.message);
         throw err;
     }
 }
 
 export async function saveDB(data, options = {}) {
-    // 🔴 CRÍTICO: SIEMPRE preservar groups y users en caché, incluso si vacíos
     if (data && typeof data === 'object') {
         const { groups, users, ...dbData } = data;
 
-        // Actualizar dbCache
         dbCache = dbData;
 
-        // IMPORTANTE: Solo actualizar groupsCache si groups NO está vacío
         if (groups && typeof groups === 'object' && Object.keys(groups).length > 0) {
             groupsCache = groups;
         } else if (groups !== undefined && groups !== null) {
-            console.warn('[DB] ⚠️ ANOMALÍA: saveDB() recibió groups vacío, PRESERVANDO caché anterior');
+            console.warn('[DB] ANOMALIA: saveDB() recibio groups vacio, PRESERVANDO cache anterior');
         }
 
-        // IMPORTANTE: Solo actualizar usersCache si users NO está vacío
         if (users && typeof users === 'object' && Object.keys(users).length > 0) {
             usersCache = users;
         } else if (users !== undefined && users !== null) {
-            console.warn('[DB] ⚠️ ANOMALÍA: saveDB() recibió users vacío, PRESERVANDO caché anterior');
+            console.warn('[DB] ANOMALIA: saveDB() recibio users vacio, PRESERVANDO cache anterior');
         }
     }
 
@@ -402,7 +356,6 @@ export async function saveDB(data, options = {}) {
         if (saving) return;
         saving = true;
         try {
-            // ASEGURADO: Combinar caché actual con datos guardados
             const toSave = { ...dbCache, groups: groupsCache, users: usersCache };
             await writeDbFiles(toSave);
         } catch (err) {
@@ -414,48 +367,45 @@ export async function saveDB(data, options = {}) {
 }
 
 export async function flushDB() {
-    console.log('[DB] 🔄 Flushing database...');
+    console.log('[DB] Flushing database...');
 
     if (saveTimer) {
         clearTimeout(saveTimer);
         saveTimer = null;
     }
 
-    // 🔴 CRÍTICO: Asegurar que tenemos datos antes de guardar
     if (!dbCache) {
-        console.warn('[DB] ⚠️ dbCache vacío en flushDB, nada que guardar');
+        console.warn('[DB] dbCache vacio en flushDB, nada que guardar');
         return;
     }
 
     if (!groupsCache) {
-        console.warn('[DB] ⚠️ groupsCache vacío en flushDB, usando caché vacío pero seguro');
+        console.warn('[DB] groupsCache vacio en flushDB, usando cache vacio pero seguro');
         groupsCache = {};
     }
 
-    if (!usersCache) {  // 🔴 NUEVO
-        console.warn('[DB] ⚠️ usersCache vacío en flushDB, usando caché vacío pero seguro');
+    if (!usersCache) {
+        console.warn('[DB] usersCache vacio en flushDB, usando cache vacio pero seguro');
         usersCache = {};
     }
 
     try {
-        const toSave = { ...dbCache, groups: groupsCache, users: usersCache };  // 🔴 ACTUALIZADO
+        const toSave = { ...dbCache, groups: groupsCache, users: usersCache };
 
-        // Validación antes de guardar
         if (!toSave.groups || typeof toSave.groups !== 'object') {
-            console.error('[DB] ❌ ALERTA EN FLUSH: groups inválido');
+            console.error('[DB] ALERTA EN FLUSH: groups invalido');
             toSave.groups = groupsCache || {};
         }
 
-        if (!toSave.users || typeof toSave.users !== 'object') {  // 🔴 NUEVO
-            console.error('[DB] ❌ ALERTA EN FLUSH: users inválido');
+        if (!toSave.users || typeof toSave.users !== 'object') {
+            console.error('[DB] ALERTA EN FLUSH: users invalido');
             toSave.users = usersCache || {};
         }
 
-        console.log(`[DB] 💾 Guardando: ${Object.keys(toSave.groups || {}).length} grupos, ${Object.keys(toSave.users || {}).length} usuarios`);  // 🔴 ACTUALIZADO
+        console.log(`[DB] Guardando: ${Object.keys(toSave.groups || {}).length} grupos, ${Object.keys(toSave.users || {}).length} usuarios`);
         await writeDbFiles(toSave);
-        console.log('[DB] ✅ Flush completado exitosamente');
+        console.log('[DB] Flush completado exitosamente');
     } catch (err) {
-        console.error('[DB] ❌ ERROR CRÍTICO en flushDB:', err.message);
-        // No lanzar error para permitir que el proceso cierre
+        console.error('[DB] ERROR CRITICO en flushDB:', err.message);
     }
 }
