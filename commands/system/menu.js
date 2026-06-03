@@ -13,18 +13,63 @@ export default {
         const tituloEstilizado = fytBold('AURA REED BOT');
         const chanellink = global.chanellink;
 
+        // Mapear alias en español a carpetas en el proyecto
+        const categoryAliases = {
+            'descargas': 'downloads',
+            'descarga': 'downloads',
+            'sistema': 'system',
+            'propietario': 'owner',
+            'dueño': 'owner',
+            'owner': 'owner',
+            'grupo': 'group',
+            'grupos': 'group',
+            'diversion': 'fun',
+            'diversiones': 'fun',
+            'diversión': 'fun',
+            'utilidades': 'utils',
+            'utiles': 'utils',
+            'busqueda': 'search',
+            'buscador': 'search',
+            'economia': 'economy',
+            'economía': 'economy',
+            'pegatinas': 'sticker',
+            'stickers': 'sticker',
+            'perfil': 'profile'
+        };
+
+        const requested = args && args[0] ? args[0].toLowerCase() : null;
+        let requestedCategory = null;
+        if (requested) {
+            requestedCategory = categoryAliases[requested] || requested;
+        }
+
         let textoMenu = `
 ╭━━〔 ${tituloEstilizado} 〕━━⬣
 
 ┃ 👤 ${fytBold('Usuario:')} @${pushName}
 ┃ 🤖 ${fytBold('Bot:')} Aura Reed
 ┃ ⚡ ${fytBold('Version:')} ${global.version}
-┃ 👑 ${fytBold('Owner:')} Oboe Boy
+┃ 👑 ${fytBold('Owner:')} Jeriel B.
 ┃ ⚡ ${fytBold('Prefix:')} [ ${prefix} ]
 ┃ 📆 ${fytBold('Fecha:')} ${new Date().toLocaleDateString('es-CR')}
 ┃ 💬 ${fytBold('Channel:')} ${chanellink}
 \n`;
-        for (const cat of categories) {
+
+        // Si se solicitó una categoría específica
+        const catsToShow = requestedCategory ? [requestedCategory] : categories;
+
+        // Validar categoría solicitada
+        if (requestedCategory && !categories.includes(requestedCategory)) {
+            let textErr = `╭〔 ⚠️ ${fytBold('AURA REED')} 〕⬣\n`;
+            textErr += `┃ ❌ ${fytBold('CATEGORÍA NO ENCONTRADA')}\n`;
+            textErr += `╰━━━━━━━━━━━━⬣\n\n`;
+            textErr += `┃ > Categorías disponibles:\n`;
+            textErr += `┃ > ${categories.join(', ')}\n\n`;
+            textErr += `╰〔 ⚡ ${fytBold('SYSTEM')} 〕⬣`;
+            return await sock.sendMessage(remoteJid, { text: textErr }, { quoted: m });
+        }
+
+        for (const cat of catsToShow) {
             const folderPath = `./commands/${cat}`;
 
             if (fs.existsSync(folderPath)) {
@@ -41,7 +86,7 @@ export default {
                                 const formattedNames = Array.isArray(cmd.name)
                                     ? cmd.name.map(n => prefix + n).slice(0, 3).join(' • ')
                                     : prefix + cmd.name;
-                                    textoMenu += `┃ ➪ ${fytBold(formattedNames)}\n`;
+                                textoMenu += `┃ ➪ ${fytBold(formattedNames)}\n`;
                                 if (cmd.description) {
                                     textoMenu += `┃ ✦ ${cmd.description}\n\n`;
                                 }
@@ -60,10 +105,13 @@ export default {
             mentions: [m.key.participant || remoteJid]
         }, { quoted: m });
 
-        await sock.sendMessage(remoteJid, {
-            audio: fs.readFileSync(BannerBotMp3),
-            ptt: true,
-            mimetype: 'audio/ogg; codecs=opus'
-        }, { quoted: m });
+        // Si el usuario pidió una categoría específica, evitamos el audio para no saturar
+        if (!requestedCategory) {
+            await sock.sendMessage(remoteJid, {
+                audio: fs.readFileSync(BannerBotMp3),
+                ptt: true,
+                mimetype: 'audio/ogg; codecs=opus'
+            }, { quoted: m });
+        }
     }
 }; 
