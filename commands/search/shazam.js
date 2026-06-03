@@ -1,4 +1,5 @@
 import axios from 'axios';
+import yts from 'yt-search';
 import { downloadMediaMessage } from '@whiskeysockets/baileys';
 import fs from 'fs';
 import ffmpeg from 'fluent-ffmpeg';
@@ -120,6 +121,24 @@ export default {
             const appleUrl = r.apple_music?.url || null;
             const otherLinks = r.song_link || null;
 
+            // Buscar enlace de YouTube cuando no viene directo
+            let youtubeUrl = r.youtube?.url || (r.youtube?.videoId ? `https://youtu.be/${r.youtube.videoId}` : null);
+            if (!youtubeUrl) {
+                try {
+                    const youtubeQuery = [title, artist]
+                        .filter(v => v && v !== 'Desconocido')
+                        .join(' ');
+                    if (youtubeQuery) {
+                        const searchResults = await yts(youtubeQuery);
+                        if (searchResults?.videos?.length) {
+                            youtubeUrl = searchResults.videos[0].url;
+                        }
+                    }
+                } catch (e) {
+                    console.log('[shazam] YouTube search failed:', e?.message || e);
+                }
+            }
+
             // Extraer imagen: preferencia Spotify -> Apple Music
             let image = null;
             if (r.spotify?.album?.images && r.spotify.album.images.length) {
@@ -139,6 +158,7 @@ export default {
             text += `┃ > Escúchala completa aquí:\n`;
             text += `┃ > ▶️ Spotify: ${spotifyUrl || 'No disponible'}\n`;
             text += `┃ > 🍎 Apple Music: ${appleUrl || 'No disponible'}\n`;
+            text += `┃ > ▶️ YouTube: ${youtubeUrl || 'No disponible'}\n`;
             text += `┃ > ▶️ Mas Apps: ${otherLinks || 'No disponible'}\n\n`;
             text += `╰━━〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐀𝐂𝐓𝐈𝐕𝐄 〕━━⬣`;
 
