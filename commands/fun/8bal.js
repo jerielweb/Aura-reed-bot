@@ -10,6 +10,12 @@ export default {
 
         if (!pregunta) {
             const uso = prefix ? `${prefix}8bal <pregunta>` : `8bal <pregunta>`;
+
+            let text = `╭〔 ⚠️ ${fytBold('FALTA PREGUNTA')} 〕⬣\n\n`;
+            text += `┃ > Debes escribir una pregunta para que la bola 8 pueda responder.\n`;
+            text += `┃ > Uso: *${uso}*\n\n`;
+            text += `╰〔 ⚡ ${fytBold('SYSTEM INFO')} 〕⬣`;
+
             return await sock.sendMessage(targetJid, { text: `⚠️ Uso: ${uso}` }, { quoted: m });
         }
 
