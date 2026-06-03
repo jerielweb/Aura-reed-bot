@@ -1,7 +1,7 @@
 import { downloadMediaMessage } from '@whiskeysockets/baileys';
 import sharp from 'sharp';
 import ffmpeg from 'fluent-ffmpeg';
-import ffmpegPath from '@ffmpeg-installer/ffmpeg';
+import ffmpegPath from 'ffmpeg-static';
 import ffprobePath from '@ffprobe-installer/ffprobe';
 import fs from 'fs';
 import os from 'os';
@@ -9,7 +9,7 @@ import path from 'path';
 import { fytBold } from '../../models/TextStyle.js';
 import { ffmpegSemaphore } from '../../controllers/downloadUtils.js';
 
-ffmpeg.setFfmpegPath(ffmpegPath.path);
+ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath.path);
 
 async function convertWebpToGif(buffer) {

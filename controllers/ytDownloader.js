@@ -1,13 +1,13 @@
 import axios from 'axios';
 import ffmpeg from 'fluent-ffmpeg';
-import ffmpegPath from '@ffmpeg-installer/ffmpeg';
+import ffmpegPath from 'ffmpeg-static';
 import ffprobePath from '@ffprobe-installer/ffprobe';
 import fs from 'fs';
 import path from 'path';
 import { ensureDirectory, downloadStreamToFile, ffmpegSemaphore } from './downloadUtils.js';
 
 // CONFIGURACIÓN CRUCIAL: Forzamos el uso de los binarios estáticos integrados con soporte AV1
-ffmpeg.setFfmpegPath(ffmpegPath.path);
+ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath.path);
 
 class YTDownloader {

@@ -3,10 +3,10 @@ import fs from 'fs'
 import path from 'path'
 import os from 'os'
 import ffmpeg from 'fluent-ffmpeg'
-import ffmpegPath from '@ffmpeg-installer/ffmpeg'
+import ffmpegPath from 'ffmpeg-static'
 import { ffmpegSemaphore } from '../../controllers/downloadUtils.js'
 
-ffmpeg.setFfmpegPath(ffmpegPath.path)
+ffmpeg.setFfmpegPath(ffmpegPath)
 
 function buildUrl(base, path) {
   return `${base.replace(/\/+$|\s+$/, '')}/${path.replace(/^\/+/, '')}`

@@ -3,9 +3,9 @@ import yts from 'yt-search';
 import { downloadMediaMessage } from '@whiskeysockets/baileys';
 import fs from 'fs';
 import ffmpeg from 'fluent-ffmpeg';
-import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
+import ffmpegInstaller from 'ffmpeg-static';
 
-ffmpeg.setFfmpegPath(ffmpegInstaller.path);
+ffmpeg.setFfmpegPath(ffmpegInstaller);
 
 const token = process.env.AUDD_API_TOKEN || global.apiShazam?.apikey || '257b4fe430651b5c9fbaa9d5203531f8';
 

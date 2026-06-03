@@ -1,14 +1,14 @@
 import { downloadMediaMessage } from '@whiskeysockets/baileys';
 import { fytBold } from '../../models/TextStyle.js';
 import ffmpeg from 'fluent-ffmpeg';
-import ffmpegPath from '@ffmpeg-installer/ffmpeg';
+import ffmpegPath from 'ffmpeg-static';
 import ffprobePath from '@ffprobe-installer/ffprobe';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { ffmpegSemaphore } from '../../controllers/downloadUtils.js';
 
-ffmpeg.setFfmpegPath(ffmpegPath.path);
+ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath.path);
 
 // Función robusta para desempaquetar y limpiar el mensaje multimedia

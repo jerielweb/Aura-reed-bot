@@ -1,14 +1,14 @@
 import axios from 'axios';
 import { Downloader } from '@tobyg74/tiktok-api-dl';
 import ffmpeg from 'fluent-ffmpeg';
-import ffmpegPath from '@ffmpeg-installer/ffmpeg';
+import ffmpegPath from 'ffmpeg-static';
 import ffprobePath from '@ffprobe-installer/ffprobe';
 import fs from 'fs';
 import path from 'path';
 import { ensureDirectory, downloadStreamToFile, ffmpegSemaphore } from './downloadUtils.js';
 
 // Configurar rutas de FFmpeg
-ffmpeg.setFfmpegPath(ffmpegPath.path);
+ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath.path);
 
 class TikTokDownloader {
