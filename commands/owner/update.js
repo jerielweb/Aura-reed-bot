@@ -19,7 +19,7 @@ export default {
 
         await socket.sendMessage(remoteJid, { text }, { quoted: message });
 
-        exec('git pull', async (err, stdout, stderr) => {
+        exec('git reset --hard && git pull', async (err, stdout, stderr) => {
             if (err) {
                 let textErr = `╭〔 ❌ ${fytBold('AURA REED')} 〕⬣\n`;
                 textErr += `┃ ⚠️ ${fytBold('ERROR DE UPDATE')}\n`;
