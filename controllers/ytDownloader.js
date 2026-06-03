@@ -6,7 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import { ensureDirectory, downloadStreamToFile, ffmpegSemaphore } from './downloadUtils.js';
 
-// Configurar rutas de FFmpeg
+// CONFIGURACIÓN CRUCIAL: Forzamos el uso de los binarios estáticos integrados con soporte AV1
 ffmpeg.setFfmpegPath(ffmpegPath.path);
 ffmpeg.setFfprobePath(ffprobePath.path);
 
@@ -40,7 +40,6 @@ class YTDownloader {
                 fn: async () => {
                     const endpoint = type === 'audio' ? 'faa/ytmp3' : 'faa/ytmp4';
                     const res = await axios.get(`${global.Apis.appiFaa.url}${endpoint}?url=${encodeURIComponent(url)}`, { timeout: 20000 });
-                    // Según captura: result.download_url
                     return res.data?.result?.download_url || res.data?.result?.url || res.data?.url;
                 }
             },
@@ -49,7 +48,6 @@ class YTDownloader {
                 fn: async () => {
                     const endpoint = type === 'audio' ? 'download/ytmp3' : 'download/ytmp4';
                     const res = await axios.get(`${global.Apis.deliriusApi.url}${endpoint}?url=${encodeURIComponent(url)}`, { timeout: 20000 });
-                    // Según captura: data.download (es un string directo)
                     return res.data?.data?.download || res.data?.result?.url || res.data?.url;
                 }
             }
@@ -106,7 +104,10 @@ class YTDownloader {
                     '-c:a aac',
                     '-movflags +faststart'
                 ])
-                .on('error', reject)
+                .on('error', (err) => {
+                    console.error('[FFmpeg Error]:', err.message);
+                    reject(err);
+                })
                 .on('end', resolve)
                 .save(cachePath);
         }));
