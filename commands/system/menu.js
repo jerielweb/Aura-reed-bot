@@ -98,7 +98,11 @@ export default {
                 }
             }
         }
-        textoMenu += `> _Usa ${prefix}menu [categoria] para ver una lista de ccomandos especifica_\n\n`;
+        if (!requestedCategory) {
+            textoMenu += `┏━━〔 ${fytBold('OTROS COMANDOS')} 〕━━⬣\n`;
+            textoMenu += `┃ ➪ ${fytBold(prefix + 'menu <categoría>')}\n`;
+            textoMenu += `┃ ✦ Muestra el menú de una categoría específica.\n\n`;
+        }
         textoMenu += `╰〔 ⚡ ${fytBold('AURA REED BOT')} 〕⬣\n`;
 
         await sock.sendMessage(remoteJid, {
