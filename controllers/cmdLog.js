@@ -68,17 +68,17 @@ export function cmdLog({ numeroReal, rango, commandName, isGroup, text, jidRemit
     const nombreUsuario = pushName || 'Usuario Desconocido';
 
     // Líneas base del diseño original
-    let lineasDinamicas = `${chalk.blue.bold('│')} ${chalk.gray('👤 ')} ${chalk.bold('Usuario:')}   ${chalk.white(nombreUsuario)}\n`;
-    lineasDinamicas += `${chalk.blue.bold('│')} ${chalk.gray('🎖️ ')} ${chalk.bold('Rango:')}     ${chalk.magenta(rolRango)}\n`;
+    let lineasDinamicas = `${chalk.blue.bold('│')} ${chalk.white('👤 ')} ${chalk.bold('Usuario:')}   ${chalk.white(nombreUsuario)}\n`;
+    lineasDinamicas += `${chalk.blue.bold('│')} ${chalk.white('🎖️ ')} ${chalk.bold('Rango:')}     ${chalk.magenta(rolRango)}\n`;
 
     if (isGroup) {
         const nombreGrupo = groupMetadata?.subject || 'Grupo Desconocido';
-        lineasDinamicas += `${chalk.blue.bold('│')} ${chalk.gray('🏠 ')} ${chalk.bold('Grupo:')}     ${chalk.white(nombreGrupo)}\n`;
+        lineasDinamicas += `${chalk.blue.bold('│')} ${chalk.white('🏠 ')} ${chalk.bold('Grupo:')}     ${chalk.white(nombreGrupo)}\n`;
     }
 
-    lineasDinamicas += `${chalk.blue.bold('│')} ${chalk.gray('🕒 ')} ${chalk.bold('Fecha:')}     ${chalk.white(fecha)}\n`;
-    lineasDinamicas += `${chalk.blue.bold('│')} ${chalk.gray('📱 ')} ${chalk.bold('Número:')}    +${chalk.white(senderNumber)}\n`;
-    lineasDinamicas += `${chalk.blue.bold('│')} ${chalk.gray('💬 ')} ${chalk.bold('Chat:')}      ${chatTipo}\n`;
+    lineasDinamicas += `${chalk.blue.bold('│')} ${chalk.white('🕒 ')} ${chalk.bold('Fecha:')}     ${chalk.white(fecha)}\n`;
+    lineasDinamicas += `${chalk.blue.bold('│')} ${chalk.white('📱 ')} ${chalk.bold('Número:')}    +${chalk.white(senderNumber)}\n`;
+    lineasDinamicas += `${chalk.blue.bold('│')} ${chalk.white('💬 ')} ${chalk.bold('Chat:')}      ${chatTipo}\n`;
 
     // Impresión en consola manteniendo la caja limpia intacta
     console.log(

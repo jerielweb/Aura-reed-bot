@@ -1,5 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
+import chalk from 'chalk';
 
 const DATABASE_DIR = path.resolve('./database');
 const DB_FILE = path.join(DATABASE_DIR, 'database.json');
@@ -43,13 +44,13 @@ async function ensureFiles() {
         try {
             const existing = await fs.readFile(file, 'utf-8');
             if (!existing || existing.trim().length === 0) {
-                console.warn(`[DB] Archivo vacio detectado: ${path.basename(file)} - Recreando...`);
+                console.warn(chalk.yellow(`[DB] Archivo vacio detectado: ${path.basename(file)} - Recreando...`));
                 await fs.writeFile(file, content, 'utf-8');
             } else {
                 JSON.parse(existing);
             }
         } catch (err) {
-            console.warn(`[DB] Error validando ${path.basename(file)}: ${err.message}`);
+            console.warn(chalk.yellow(`[DB] Error validando ${path.basename(file)}: ${err.message}`));
             if (file === GROUPS_FILE) {
                 const backupRestored = await restoreGroupsFromBackup();
                 if (!backupRestored) {
@@ -80,7 +81,7 @@ async function readJson(filePath) {
         const raw = await fs.readFile(filePath, 'utf-8');
         return JSON.parse(raw);
     } catch (err) {
-        console.warn(`[DB] Error leyendo ${path.basename(filePath)}: ${err.message}`);
+        console.warn(chalk.yellow(`[DB] Error leyendo ${path.basename(filePath)}: ${err.message}`));
         return null;
     }
 }
@@ -90,11 +91,11 @@ async function restoreGroupsFromBackup() {
         const backup = await readJson(GROUPS_BACKUP_FILE);
         if (backup && backup.groups && Object.keys(backup.groups).length > 0) {
             await fs.writeFile(GROUPS_FILE, JSON.stringify(backup, null, 2), 'utf-8');
-            console.log('[DB] groups.json restaurado desde backup');
+            console.log(chalk.gray('[DB] groups.json restaurado desde backup'));
             return true;
         }
     } catch (err) {
-        console.warn('[DB] No se pudo restaurar groups.json desde backup:', err.message);
+        console.warn(chalk.yellow(`[DB] No se pudo restaurar groups.json desde backup: ${err.message}`));
     }
     return false;
 }
@@ -104,11 +105,11 @@ async function restoreUsersFromBackup() {
         const backup = await readJson(USERS_BACKUP_FILE);
         if (backup && backup.users && Object.keys(backup.users).length > 0) {
             await fs.writeFile(USERS_FILE, JSON.stringify(backup, null, 2), 'utf-8');
-            console.log('[DB] users.json restaurado desde backup');
+            console.log(chalk.gray('[DB] users.json restaurado desde backup'));
             return true;
         }
     } catch (err) {
-        console.warn('[DB] No se pudo restaurar users.json desde backup:', err.message);
+        console.warn(chalk.yellow(err.message));
     }
     return false;
 }
@@ -125,7 +126,7 @@ export async function initDB() {
     let groupsData = await readJson(GROUPS_FILE) || { groups: {} };
 
     if ((!groupsData || !groupsData.groups || Object.keys(groupsData.groups || {}).length === 0)) {
-        console.warn('[DB] Groups vacio detectado en initDB, intentando restaurar desde backup');
+        console.warn(chalk.yellow('[DB] Groups vacio detectado en initDB, intentando restaurar desde backup'));
         const backupRestored = await restoreGroupsFromBackup();
         if (backupRestored) {
             const restored = await readJson(GROUPS_FILE) || { groups: {} };
@@ -134,7 +135,7 @@ export async function initDB() {
     }
 
     if ((!usersData || !usersData.users || Object.keys(usersData.users || {}).length === 0)) {
-        console.warn('[DB] Users vacio detectado en initDB, intentando restaurar desde backup');
+        console.warn(chalk.yellow('[DB] Users vacio detectado en initDB, intentando restaurar desde backup'));
         const backupRestored = await restoreUsersFromBackup();
         if (backupRestored) {
             const restored = await readJson(USERS_FILE) || { users: {} };
@@ -143,7 +144,7 @@ export async function initDB() {
     }
 
     if (!dbData || !dbData.owners || dbData.owners.length === 0) {
-        console.warn('[DB] Configuracion invalida detectada en initDB, usando valores por defecto');
+        console.warn(chalk.yellow('[DB] Configuracion invalida detectada en initDB, usando valores por defecto'));
         dbCache = { ...DEFAULT_DB_CONFIG };
     } else {
         dbCache = {
@@ -159,7 +160,7 @@ export async function initDB() {
 
     const groupCount = Object.keys(groupsCache).length;
     const userCount = Object.keys(usersCache).length;
-    console.log(`[DB] Inicializado: ${groupCount} grupos, ${userCount} usuarios globales`);
+    console.log(chalk.gray(`[DB] Inicializado: ${groupCount} grupos, ${userCount} usuarios globales`));
 
     return { ...dbCache, groups: groupsCache, users: usersCache };
 }
@@ -173,7 +174,7 @@ export async function getDB() {
 
 async function writeDbFiles(data) {
     if (!data || typeof data !== 'object') {
-        console.error('[DB] Datos invalidos recibidos en writeDbFiles');
+        console.error(chalk.red('[DB] Datos invalidos recibidos en writeDbFiles'));
         return;
     }
 
@@ -183,12 +184,12 @@ async function writeDbFiles(data) {
         const existingUsers = await readJson(USERS_FILE) || { users: {} };
 
         if (!existingGroups || !existingGroups.groups) {
-            console.error('[DB] ALERTA: existingGroups corrupto, intentando restaurar');
+            console.error(chalk.red('[DB] ALERTA: existingGroups corrupto, intentando restaurar'));
             existingGroups.groups = existingGroups.groups || {};
         }
 
         if (!existingUsers || !existingUsers.users) {
-            console.error('[DB] ALERTA: existingUsers corrupto, intentando restaurar');
+            console.error(chalk.red('[DB] ALERTA: existingUsers corrupto, intentando restaurar'));
             existingUsers.users = existingUsers.users || {};
         }
 
@@ -209,7 +210,7 @@ async function writeDbFiles(data) {
 
         if (!dbToSave.owners || dbToSave.owners.length === 0) {
             dbToSave.owners = DEFAULT_DB_CONFIG.owners;
-            console.warn('[DB] Owners vacio detectado durante guardado, usando valores por defecto');
+            console.warn(chalk.yellow('[DB] Owners vacio detectado durante guardado, usando valores por defecto'));
         }
 
         let groupsToSave;
@@ -217,7 +218,7 @@ async function writeDbFiles(data) {
 
         if (incomingGroupsCount > 0) {
             groupsToSave = data.groups;
-            console.log(`[DB] Groups actualizado correctamente (${incomingGroupsCount} grupos)`);
+            console.log(chalk.gray(`[DB] Groups actualizado correctamente (${incomingGroupsCount} grupos)`));
         } else if (existingGroupsCount > 0) {
             groupsToSave = existingGroups.groups;
         } else {
@@ -229,7 +230,7 @@ async function writeDbFiles(data) {
 
         if (incomingUsersCount > 0) {
             usersToSave = data.users;
-            console.log(`[DB] Users actualizado correctamente (${incomingUsersCount} usuarios)`);
+            console.log(chalk.gray(`[DB] Users actualizado correctamente (${incomingUsersCount} usuarios)`));
         } else if (existingUsersCount > 0) {
             usersToSave = existingUsers.users;
         } else {
@@ -237,12 +238,12 @@ async function writeDbFiles(data) {
         }
 
         if (!groupsToSave || typeof groupsToSave !== 'object') {
-            console.error('[DB] ALERTA: groupsToSave invalido, restaurando desde existentes');
+            console.error(chalk.red('[DB] ALERTA: groupsToSave invalido, restaurando desde existentes'));
             groupsToSave = existingGroups.groups || {};
         }
 
         if (!usersToSave || typeof usersToSave !== 'object') {
-            console.error('[DB] ALERTA: usersToSave invalido, restaurando desde existentes');
+            console.error(chalk.red('[DB] ALERTA: usersToSave invalido, restaurando desde existentes'));
             usersToSave = existingUsers.users || {};
         }
 
@@ -250,7 +251,7 @@ async function writeDbFiles(data) {
             try {
                 await fs.writeFile(GROUPS_BACKUP_FILE, JSON.stringify({ groups: groupsToSave }, null, 2), 'utf-8');
             } catch (e) {
-                console.error('[DB] ERROR guardando backup de groups:', e.message);
+                console.error(chalk.red('[DB] ERROR guardando backup de groups:'), e.message);
             }
         }
 
@@ -258,7 +259,7 @@ async function writeDbFiles(data) {
             try {
                 await fs.writeFile(USERS_BACKUP_FILE, JSON.stringify({ users: usersToSave }, null, 2), 'utf-8');
             } catch (e) {
-                console.error('[DB] ERROR guardando backup de users:', e.message);
+                console.error(chalk.red('[DB] ERROR guardando backup de users:'), e.message);
             }
         }
 
@@ -266,7 +267,7 @@ async function writeDbFiles(data) {
             try {
                 await fs.writeFile(DB_BACKUP_FILE, JSON.stringify(existingDb, null, 2), 'utf-8');
             } catch (e) {
-                console.warn('[DB] Error guardando backup de database:', e.message);
+                console.warn(chalk.yellow('[DB] Error guardando backup de database:'), e.message);
             }
         }
 
@@ -278,7 +279,7 @@ async function writeDbFiles(data) {
 
         for (const { file, data: content } of filesToWrite) {
             if (!content || content.trim().length === 0) {
-                console.error(`[DB] ERROR: Intento de escribir archivo VACIO: ${path.basename(file)}`);
+                console.error(chalk.red(`[DB] ERROR: Intento de escribir archivo VACIO: ${path.basename(file)}`));
                 throw new Error(`Intento de escribir archivo vacio: ${file}`);
             }
         }
@@ -286,9 +287,9 @@ async function writeDbFiles(data) {
         for (const { file, data: content } of filesToWrite) {
             try {
                 await fs.writeFile(file, content, 'utf-8');
-                console.log(`[DB] Guardado: ${path.basename(file)}`);
+                console.log(chalk.gray(`[DB] Guardado: ${path.basename(file)}`));
             } catch (err) {
-                console.error(`[DB] Error CRITICO escribiendo ${path.basename(file)}:`, err.message);
+                console.error(chalk.red(`[DB] Error CRITICO escribiendo ${path.basename(file)}:`), err.message);
                 throw err;
             }
         }
@@ -298,23 +299,23 @@ async function writeDbFiles(data) {
         const verifyUsers = await readJson(USERS_FILE);
 
         if (!verifyDb || !verifyDb.owners || verifyDb.owners.length === 0) {
-            console.error('[DB] POST-VALIDACION FALLO: database.json no tiene owners');
-            throw new Error('Post-validacion fallo: database.json incompleto');
+            console.error(chalk.red('[DB] POST-VALIDACION FALLO: database.json no tiene owners'));
+            throw new Error(chalk.red('Post-validacion fallo: database.json incompleto'));
         }
 
         const verifyGroupsCount = verifyGroups?.groups ? Object.keys(verifyGroups.groups).length : 0;
         const verifyUsersCount = verifyUsers?.users ? Object.keys(verifyUsers.users).length : 0;
 
         if (verifyGroupsCount !== incomingGroupsCount && incomingGroupsCount > 0) {
-            console.warn(`[DB] POST-VALIDACION: Groups mismatch (escrito: ${verifyGroupsCount}, esperado: ${incomingGroupsCount})`);
+            console.warn(chalk.yellow(`[DB] POST-VALIDACION: Groups mismatch (escrito: ${verifyGroupsCount}, esperado: ${incomingGroupsCount})`));
         }
 
         if (verifyUsersCount !== incomingUsersCount && incomingUsersCount > 0) {
-            console.warn(`[DB] POST-VALIDACION: Users mismatch (escrito: ${verifyUsersCount}, esperado: ${incomingUsersCount})`);
+            console.warn(chalk.yellow(`[DB] POST-VALIDACION: Users mismatch (escrito: ${verifyUsersCount}, esperado: ${incomingUsersCount})`));
         }
 
     } catch (err) {
-        console.error('[DB] Error CRITICO en writeDbFiles:', err.message);
+        console.error(chalk.red('[DB] Error CRITICO en writeDbFiles:'), err.message);
         throw err;
     }
 }
@@ -328,13 +329,13 @@ export async function saveDB(data, options = {}) {
         if (groups && typeof groups === 'object' && Object.keys(groups).length > 0) {
             groupsCache = groups;
         } else if (groups !== undefined && groups !== null) {
-            console.warn('[DB] ANOMALIA: saveDB() recibio groups vacio, PRESERVANDO cache anterior');
+            console.warn(chalk.yellow('[DB] ANOMALIA: saveDB() recibio groups vacio, PRESERVANDO cache anterior'));
         }
 
         if (users && typeof users === 'object' && Object.keys(users).length > 0) {
             usersCache = users;
         } else if (users !== undefined && users !== null) {
-            console.warn('[DB] ANOMALIA: saveDB() recibio users vacio, PRESERVANDO cache anterior');
+            console.warn(chalk.yellow('[DB] ANOMALIA: saveDB() recibio users vacio, PRESERVANDO cache anterior'));
         }
     }
 
@@ -359,7 +360,7 @@ export async function saveDB(data, options = {}) {
             const toSave = { ...dbCache, groups: groupsCache, users: usersCache };
             await writeDbFiles(toSave);
         } catch (err) {
-            console.error('[DB] Error guardando base de datos:', err.message);
+            console.error(chalk.red('[DB] Error guardando base de datos:'), err.message);
         } finally {
             saving = false;
         }
@@ -367,7 +368,7 @@ export async function saveDB(data, options = {}) {
 }
 
 export async function flushDB() {
-    console.log('[DB] Flushing database...');
+    console.log(chalk.gray('[DB] Flushing database...'));
 
     if (saveTimer) {
         clearTimeout(saveTimer);
@@ -375,17 +376,17 @@ export async function flushDB() {
     }
 
     if (!dbCache) {
-        console.warn('[DB] dbCache vacio en flushDB, nada que guardar');
+        console.warn(chalk.yellow('[DB] dbCache vacio en flushDB, nada que guardar'));
         return;
     }
 
     if (!groupsCache) {
-        console.warn('[DB] groupsCache vacio en flushDB, usando cache vacio pero seguro');
+        console.warn(chalk.yellow('[DB] groupsCache vacio en flushDB, usando cache vacio pero seguro'));
         groupsCache = {};
     }
 
     if (!usersCache) {
-        console.warn('[DB] usersCache vacio en flushDB, usando cache vacio pero seguro');
+        console.warn(chalk.yellow('[DB] usersCache vacio en flushDB, usando cache vacio pero seguro'));
         usersCache = {};
     }
 
@@ -393,19 +394,19 @@ export async function flushDB() {
         const toSave = { ...dbCache, groups: groupsCache, users: usersCache };
 
         if (!toSave.groups || typeof toSave.groups !== 'object') {
-            console.error('[DB] ALERTA EN FLUSH: groups invalido');
+            console.error(chalk.red('[DB] ALERTA EN FLUSH: groups invalido'));
             toSave.groups = groupsCache || {};
         }
 
         if (!toSave.users || typeof toSave.users !== 'object') {
-            console.error('[DB] ALERTA EN FLUSH: users invalido');
+            console.error(chalk.red('[DB] ALERTA EN FLUSH: users invalido'));
             toSave.users = usersCache || {};
         }
 
-        console.log(`[DB] Guardando: ${Object.keys(toSave.groups || {}).length} grupos, ${Object.keys(toSave.users || {}).length} usuarios`);
+        console.log(chalk.gray(`[DB] Guardando: ${Object.keys(toSave.groups || {}).length} grupos, ${Object.keys(toSave.users || {}).length} usuarios`));
         await writeDbFiles(toSave);
-        console.log('[DB] Flush completado exitosamente');
+        console.log(chalk.gray('[DB] Flush completado exitosamente'));
     } catch (err) {
-        console.error('[DB] ERROR CRITICO en flushDB:', err.message);
+        console.error(chalk.red('[DB] ERROR CRITICO en flushDB:'), err.message);
     }
 }

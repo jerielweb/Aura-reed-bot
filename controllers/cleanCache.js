@@ -1,5 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
+import chalk from 'chalk';
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 const CLEAN_DIRS = ['tmp', 'scratch'];
@@ -21,21 +22,21 @@ async function removeOldEntries(folderPath) {
           const remaining = await fs.readdir(entryPath);
           if (remaining.length === 0) {
             await fs.rmdir(entryPath);
-            console.log(`[cleanCache] Removed empty folder: ${entryPath}`);
+            console.log(chalk.gray(`[cleanCache] Removed empty folder: ${entryPath}`));
           }
         } else if (isStale(stats.mtimeMs)) {
           await fs.rm(entryPath, { force: true });
-          console.log(`[cleanCache] Removed stale file: ${entryPath}`);
+          console.log(chalk.gray(`[cleanCache] Removed stale file: ${entryPath}`));
         }
       } catch (err) {
         if (err.code !== 'ENOENT') {
-          console.error(`[cleanCache] Error procesando ${entryPath}:`, err.message);
+          console.error(chalk.red(`[cleanCache] Error procesando ${entryPath}:`), err.message);
         }
       }
     }
   } catch (err) {
     if (err.code !== 'ENOENT') {
-      console.error(`[cleanCache] Error leyendo carpeta ${folderPath}:`, err.message);
+      console.error(chalk.red(`[cleanCache] Error leyendo carpeta ${folderPath}:`), err.message);
     }
   }
 }
@@ -45,12 +46,12 @@ let cacheTimer = null;
 const MAX_TIMEOUT_MS = 2 ** 31 - 1;
 
 async function cleanCache() {
-  console.log('[cleanCache] Iniciando limpieza de cache...');
+  console.log(chalk.gray('[cleanCache] Iniciando limpieza de cache...'));
   for (const dir of CLEAN_DIRS) {
     const folderPath = path.resolve(dir);
     await removeOldEntries(folderPath);
   }
-  console.log('[cleanCache] Limpieza de cache completada.');
+  console.log(chalk.gray('[cleanCache] Limpieza de cache completada.'));
 }
 
 export async function runCleanCacheIfNeeded(db, saveDB) {
@@ -70,9 +71,9 @@ export async function runCleanCacheIfNeeded(db, saveDB) {
     await cleanCache();
     db.cleanCacheLastRun = now;
     await saveDB(db, { immediate: true });
-    console.log('[cleanCache] Registro de última ejecución actualizado.');
+    console.log(chalk.gray('[cleanCache] Registro de última ejecución actualizado.'));
   } catch (err) {
-    console.error('[cleanCache] Error durante la limpieza:', err.message);
+    console.error(chalk.red('[cleanCache] Error durante la limpieza:'), err.message);
   } finally {
     cleaningCache = false;
   }

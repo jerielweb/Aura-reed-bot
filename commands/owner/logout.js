@@ -42,10 +42,10 @@ export default {
             }
 
             // Delete local auth folder
-            const authFolder = path.resolve('./auth_info_baileys');
+            const authFolder = path.resolve('./sessions/principal');
             if (fs.existsSync(authFolder)) {
                 fs.rmSync(authFolder, { recursive: true, force: true });
-                console.log('🗑️  Carpeta auth_info_baileys eliminada.');
+                console.log('🗑️  Carpeta sessions/principal eliminada.');
             }
 
             console.log('🔴 Sesión cerrada. Reiniciando proceso...');
