@@ -43,7 +43,12 @@ export async function getReactionUrl(type) {
     const apis = [
         // API 1: nekos.best
         (async () => {
-            const res = await axios.get(`https://nekos.best/api/v2/${reactionType}`, { timeout: 10000 });
+            const res = await axios.get(`https://nekos.best/api/v2/${reactionType}`, {
+                timeout: 10000,
+                headers: {
+                    'User-Agent': 'AuraReedBot/2.2.0 (https://github.com/this-xys/baileys)'
+                }
+            });
             const url = res.data?.results?.[0]?.url;
             if (!url) throw new Error('nekos.best no devolvió URL');
             console.log(`[Reactions] Ganador: nekos.best`);
@@ -52,7 +57,12 @@ export async function getReactionUrl(type) {
         // API 2: Alyacore
         (async () => {
             const key = global.Apis?.apiAiya?.apikey || 'oboe';
-            const res = await axios.get(`https://api.alyacore.xyz/sfw/interaction?inter=${reactionType}&key=${key}`, { timeout: 10000 });
+            const res = await axios.get(`https://api.alyacore.xyz/sfw/interaction?inter=${reactionType}&key=${key}`, {
+                timeout: 10000,
+                headers: {
+                    'User-Agent': 'AuraReedBot/2.2.0 (https://github.com/this-xys/baileys)'
+                }
+            });
             const url = res.data?.result;
             if (!url || res.data?.status !== true) throw new Error('Alyacore no devolvió URL');
             console.log(`[Reactions] Ganador: Alyacore`);
