@@ -97,24 +97,15 @@ export async function getReactionPath(videoUrl) {
 }
 
 /**
- * Función todo-en-uno: obtiene la reacción, la cachea y determina el formato de envío.
- * Devuelve el buffer con los parámetros adecuados según sea GIF o MP4.
+ * Función todo-en-uno: obtiene la reacción, la cachea y devuelve el buffer original
+ * para ser reproducido en bucle (tipo GIF) en WhatsApp.
  *
  * @param {string} type Tipo de reacción (hug, kiss, slap, pat, etc.)
- * @returns {Promise<{ image: Buffer, mimetype: 'image/gif' } | { video: Buffer, mimetype: 'video/mp4', gifPlayback: true }>}
+ * @returns {Promise<{ video: Buffer, mimetype: 'video/mp4', gifPlayback: true }>}
  */
 export async function getReactionGif(type) {
     const videoUrl  = await getReactionUrl(type);
     const localPath = await getReactionPath(videoUrl);
-    const ext       = path.extname(localPath).toLowerCase();
     const buffer    = await fs.promises.readFile(localPath);
-
-    if (ext === '.gif') {
-        console.log(`[Reactions] Enviando GIF directo para: ${type}`);
-        return { image: buffer, mimetype: 'image/gif' };
-    } else {
-        console.log(`[Reactions] Enviando MP4 con gifPlayback para: ${type}`);
-        return { video: buffer, mimetype: 'video/mp4', gifPlayback: true };
-    }
+    return { video: buffer, mimetype: 'video/mp4', gifPlayback: true };
 }
-
