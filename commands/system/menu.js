@@ -34,7 +34,9 @@ export default {
             'economía': 'economy',
             'pegatinas': 'sticker',
             'stickers': 'sticker',
-            'perfil': 'profile'
+            'perfil': 'profile',
+            'interacion': 'interaction',
+            'interacciones': 'interaction'
         };
 
         const requested = args && args[0] ? args[0].toLowerCase() : null;
