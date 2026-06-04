@@ -149,6 +149,7 @@ export async function getReactionGif(type) {
     const localPath = await getReactionPath(videoUrl);
     const gifPath   = await ensureGif(localPath);
     const buffer    = await fs.promises.readFile(gifPath);
-    return { image: buffer, mimetype: 'image/gif' };
+    // Baileys requiere 'video' (no 'image') con gifPlayback:true para GIFs animados
+    return { video: buffer, mimetype: 'video/mp4', gifPlayback: true };
 }
 
