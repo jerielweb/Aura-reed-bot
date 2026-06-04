@@ -87,12 +87,14 @@ async function connectToWhatsApp() {
         }`
 
         console.log(menu);
-        const option = await question(chalk.cyan.bold('Seleccione una opción (1 o 2) > '));
+        console.log(chalk.cyan.bold('Seleccione una opción (1 o 2) '));
+        const option = await question(chalk.cyan.bold('> '));
         
         isPairingChoiceMade = true;
         if (option === '2') {
             chosenPairingCode = true;
-            let num = await question(chalk.cyan.bold('Ingrese el número de teléfono con código de país (solo números, ej: 50612345678): '));
+            console.log(chalk.cyan.bold('Ingrese el número de teléfono con código de país (solo números, ej: 50612345678): '));
+            let num = await question(chalk.cyan.bold('> '));
             chosenPhoneNumber = num.replace(/[^0-9]/g, '');
             if (!chosenPhoneNumber) {
                 console.log(chalk.red('Número inválido. Se usará el método de Código QR por defecto.'));
