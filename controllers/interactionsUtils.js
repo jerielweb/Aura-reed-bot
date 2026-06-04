@@ -140,18 +140,21 @@ async function ensureMp4(inputPath) {
     return mp4Path;
 }
 
-/**
- * Función todo-en-uno: obtiene la reacción, la cachea y asegura que sea un MP4 compatible.
- * Devuelve el buffer listo para enviarse como imagen animada (GIF) en WhatsApp.
- *
- * @param {string} type Tipo de reacción (hug, kiss, slap, pat, etc.)
- * @returns {Promise<{ video: Buffer, mimetype: 'video/mp4', gifPlayback: true }>}
- */
 export async function getReactionGif(type) {
     const videoUrl  = await getReactionUrl(type);
     const localPath = await getReactionPath(videoUrl);
-    const mp4Path   = await ensureMp4(localPath);
-    const buffer    = await fs.promises.readFile(mp4Path);
+    const ext       = path.extname(localPath).toLowerCase();
+    
+    let finalPath;
+    if (ext === '.gif') {
+        console.log(`[Reactions] Neko (GIF) detectado -> Aplicando conversión H.264...`);
+        finalPath = await ensureMp4(localPath);
+    } else {
+        console.log(`[Reactions] Alyacore (MP4) detectado -> Enviando directo sin conversión.`);
+        finalPath = localPath;
+    }
+    
+    const buffer = await fs.promises.readFile(finalPath);
     // Baileys requiere 'video' (no 'image') con gifPlayback:true para GIFs animados
     return { video: buffer, mimetype: 'video/mp4', gifPlayback: true };
 }
