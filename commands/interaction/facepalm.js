@@ -3,9 +3,9 @@ import { resolveLidToRealJid } from '../../models/utils.js';
 import { fytBold } from '../../models/TextStyle.js';
 
 export default {
-    name: ['facepalm'],
+    name: ['facepalm', 'palmada', 'decepcion', 'decepción', 'quepeo', 'cara'],
     category: 'interaction',
-    description: 'Envía una reacción "facepalm" en formato GIF animado.',
+    description: 'Hacer Facepalm',
     async execute(sock, m, args, { prefix, jidRemitente }) {
         const remoteJid = m.key.remoteJid;
         const ctx = m.message?.extendedTextMessage?.contextInfo;

@@ -3,9 +3,9 @@ import { resolveLidToRealJid } from '../../models/utils.js';
 import { fytBold } from '../../models/TextStyle.js';
 
 export default {
-    name: ['cringe'],
+    name: ['cringe', 'pena', 'penajena', 'incomodo', 'incomoda', 'grima'],
     category: 'interaction',
-    description: 'Envía una reacción "cringe" en formato GIF animado.',
+    description: 'Dar Cringe',
     async execute(sock, m, args, { prefix, jidRemitente }) {
         const remoteJid = m.key.remoteJid;
         const ctx = m.message?.extendedTextMessage?.contextInfo;

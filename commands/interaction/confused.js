@@ -3,9 +3,9 @@ import { resolveLidToRealJid } from '../../models/utils.js';
 import { fytBold } from '../../models/TextStyle.js';
 
 export default {
-    name: ['confused'],
+    name: ['confused', 'confundido', 'confundida', 'confusion', 'desorientado', 'duda'],
     category: 'interaction',
-    description: 'Envía una reacción "confused" en formato GIF animado.',
+    description: 'Estar Confundido/a',
     async execute(sock, m, args, { prefix, jidRemitente }) {
         const remoteJid = m.key.remoteJid;
         const ctx = m.message?.extendedTextMessage?.contextInfo;

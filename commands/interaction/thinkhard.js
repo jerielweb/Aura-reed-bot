@@ -3,9 +3,9 @@ import { resolveLidToRealJid } from '../../models/utils.js';
 import { fytBold } from '../../models/TextStyle.js';
 
 export default {
-    name: ['thinkhard'],
+    name: ['thinkhard', 'pensarmucho', 'reflexion', 'concentrarse', 'pensarintenso'],
     category: 'interaction',
-    description: 'Envía una reacción "thinkhard" en formato GIF animado.',
+    description: 'Pensar Intensamente',
     async execute(sock, m, args, { prefix, jidRemitente }) {
         const remoteJid = m.key.remoteJid;
         const ctx = m.message?.extendedTextMessage?.contextInfo;

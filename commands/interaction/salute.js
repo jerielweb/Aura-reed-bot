@@ -3,9 +3,9 @@ import { resolveLidToRealJid } from '../../models/utils.js';
 import { fytBold } from '../../models/TextStyle.js';
 
 export default {
-    name: ['salute'],
+    name: ['salute', 'saludar', 'respeto', 'saludo militar', 'firmes', 'saludando'],
     category: 'interaction',
-    description: 'Envía una reacción "salute" en formato GIF animado.',
+    description: 'Hacer Saludo Militar',
     async execute(sock, m, args, { prefix, jidRemitente }) {
         const remoteJid = m.key.remoteJid;
         const ctx = m.message?.extendedTextMessage?.contextInfo;

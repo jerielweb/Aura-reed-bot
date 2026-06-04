@@ -3,9 +3,9 @@ import { resolveLidToRealJid } from '../../models/utils.js';
 import { fytBold } from '../../models/TextStyle.js';
 
 export default {
-    name: ['scared'],
+    name: ['scared', 'asustado', 'asustada', 'miedo', 'temblando', 'temor'],
     category: 'interaction',
-    description: 'Envía una reacción "scared" en formato GIF animado.',
+    description: 'Estar Asustado/a',
     async execute(sock, m, args, { prefix, jidRemitente }) {
         const remoteJid = m.key.remoteJid;
         const ctx = m.message?.extendedTextMessage?.contextInfo;

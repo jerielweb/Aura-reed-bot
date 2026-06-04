@@ -3,9 +3,9 @@ import { resolveLidToRealJid } from '../../models/utils.js';
 import { fytBold } from '../../models/TextStyle.js';
 
 export default {
-    name: ['punch'],
+    name: ['punch', 'golpear', 'puñetazo', 'golpe', 'puño', 'pegar', 'trompazo'],
     category: 'interaction',
-    description: 'Envía una reacción "punch" en formato GIF animado.',
+    description: 'Dar un Puñetazo',
     async execute(sock, m, args, { prefix, jidRemitente }) {
         const remoteJid = m.key.remoteJid;
         const ctx = m.message?.extendedTextMessage?.contextInfo;

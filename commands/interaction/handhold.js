@@ -3,9 +3,9 @@ import { resolveLidToRealJid } from '../../models/utils.js';
 import { fytBold } from '../../models/TextStyle.js';
 
 export default {
-    name: ['handhold'],
+    name: ['handhold', 'tomarmano', 'agarrarmano', 'tomarsemano', 'tomadosdelamano'],
     category: 'interaction',
-    description: 'Envía una reacción "handhold" en formato GIF animado.',
+    description: 'Tomarse de la Mano',
     async execute(sock, m, args, { prefix, jidRemitente }) {
         const remoteJid = m.key.remoteJid;
         const ctx = m.message?.extendedTextMessage?.contextInfo;

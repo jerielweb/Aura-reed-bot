@@ -3,9 +3,9 @@ import { resolveLidToRealJid } from '../../models/utils.js';
 import { fytBold } from '../../models/TextStyle.js';
 
 export default {
-    name: ['dramatic'],
+    name: ['dramatic', 'drammatico', 'dramatica', 'drama', 'dramatizar', 'dramatico'],
     category: 'interaction',
-    description: 'Envía una reacción "dramatic" en formato GIF animado.',
+    description: 'Hacer un Drama',
     async execute(sock, m, args, { prefix, jidRemitente }) {
         const remoteJid = m.key.remoteJid;
         const ctx = m.message?.extendedTextMessage?.contextInfo;

@@ -3,9 +3,9 @@ import { resolveLidToRealJid } from '../../models/utils.js';
 import { fytBold } from '../../models/TextStyle.js';
 
 export default {
-    name: ['baka'],
+    name: ['baka', 'tonto', 'tonta', 'idiota', 'imbécil', 'bobo', 'boba', 'dummy'],
     category: 'interaction',
-    description: 'Envía una reacción "baka" en formato GIF animado.',
+    description: 'Llamar Tonto/a',
     async execute(sock, m, args, { prefix, jidRemitente }) {
         const remoteJid = m.key.remoteJid;
         const ctx = m.message?.extendedTextMessage?.contextInfo;
@@ -30,7 +30,7 @@ export default {
 
             if (targetJid && targetJid !== jidRemitente) {
                 mentions.push(targetJid);
-                caption = senderTag + ' ' + fytBold('le dice baka (tonto/a) a') + ' @' + targetJid.split('@')[0];
+                caption = senderTag + ' ' + fytBold('le dice baka a') + ' @' + targetJid.split('@')[0];
             } else {
                 caption = senderTag + ' ' + fytBold('se siente baka 🙄');
             }

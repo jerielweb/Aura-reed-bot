@@ -3,9 +3,9 @@ import { resolveLidToRealJid } from '../../models/utils.js';
 import { fytBold } from '../../models/TextStyle.js';
 
 export default {
-    name: ['smile'],
+    name: ['smile', 'sonreir', 'sonreír', 'sonrisa', 'sonriendo'],
     category: 'interaction',
-    description: 'Envía una reacción "smile" en formato GIF animado.',
+    description: 'Sonreír',
     async execute(sock, m, args, { prefix, jidRemitente }) {
         const remoteJid = m.key.remoteJid;
         const ctx = m.message?.extendedTextMessage?.contextInfo;

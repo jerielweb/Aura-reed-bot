@@ -3,9 +3,9 @@ import { resolveLidToRealJid } from '../../models/utils.js';
 import { fytBold } from '../../models/TextStyle.js';
 
 export default {
-    name: ['tickle'],
+    name: ['tickle', 'cosquillas', 'cosquillear', 'cosquilla', 'cosquillitas'],
     category: 'interaction',
-    description: 'Envía una reacción "tickle" en formato GIF animado.',
+    description: 'Hacer Cosquillas',
     async execute(sock, m, args, { prefix, jidRemitente }) {
         const remoteJid = m.key.remoteJid;
         const ctx = m.message?.extendedTextMessage?.contextInfo;

@@ -3,9 +3,9 @@ import { resolveLidToRealJid } from '../../models/utils.js';
 import { fytBold } from '../../models/TextStyle.js';
 
 export default {
-    name: ['bully'],
+    name: ['bully', 'molestar', 'intimidar', 'abusar', 'fastidiar', 'burlar'],
     category: 'interaction',
-    description: 'Envía una reacción "bully" en formato GIF animado.',
+    description: 'Molestar a Alguien',
     async execute(sock, m, args, { prefix, jidRemitente }) {
         const remoteJid = m.key.remoteJid;
         const ctx = m.message?.extendedTextMessage?.contextInfo;

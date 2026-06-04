@@ -3,9 +3,9 @@ import { resolveLidToRealJid } from '../../models/utils.js';
 import { fytBold } from '../../models/TextStyle.js';
 
 export default {
-    name: ['bath'],
+    name: ['bath', 'baño', 'bañar', 'ducha', 'ducharse', 'bañarse', 'baña'],
     category: 'interaction',
-    description: 'Envía una reacción "bath" en formato GIF animado.',
+    description: 'Tomar un Baño',
     async execute(sock, m, args, { prefix, jidRemitente }) {
         const remoteJid = m.key.remoteJid;
         const ctx = m.message?.extendedTextMessage?.contextInfo;

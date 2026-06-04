@@ -3,9 +3,9 @@ import { resolveLidToRealJid } from '../../models/utils.js';
 import { fytBold } from '../../models/TextStyle.js';
 
 export default {
-    name: ['wave'],
+    name: ['wave', 'saludar', 'hola', 'hols', 'hi', 'hello', 'heloo', 'holas', 'helow', 'helowww', 'holis', 'halu', 'hallow', 'holahola', 'holitas', 'holita', 'helo', 'ola'],
     category: 'interaction',
-    description: 'Envía una reacción "wave" en formato GIF animado.',
+    description: 'Mandar Saludos',
     async execute(sock, m, args, { prefix, jidRemitente }) {
         const remoteJid = m.key.remoteJid;
         const ctx = m.message?.extendedTextMessage?.contextInfo;

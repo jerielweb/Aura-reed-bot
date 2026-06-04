@@ -3,9 +3,9 @@ import { resolveLidToRealJid } from '../../models/utils.js';
 import { fytBold } from '../../models/TextStyle.js';
 
 export default {
-    name: ['sleep'],
+    name: ['sleep', 'dormir', 'durmiendo', 'sueño', 'zeta', 'zzz', 'mimir'],
     category: 'interaction',
-    description: 'Envía una reacción "sleep" en formato GIF animado.',
+    description: 'Dormir',
     async execute(sock, m, args, { prefix, jidRemitente }) {
         const remoteJid = m.key.remoteJid;
         const ctx = m.message?.extendedTextMessage?.contextInfo;

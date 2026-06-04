@@ -3,9 +3,9 @@ import { resolveLidToRealJid } from '../../models/utils.js';
 import { fytBold } from '../../models/TextStyle.js';
 
 export default {
-    name: ['poke'],
+    name: ['poke', 'picar', 'molestar', 'picotear', 'picarle'],
     category: 'interaction',
-    description: 'Envía una reacción "poke" en formato GIF animado.',
+    description: 'Picar con el Dedo',
     async execute(sock, m, args, { prefix, jidRemitente }) {
         const remoteJid = m.key.remoteJid;
         const ctx = m.message?.extendedTextMessage?.contextInfo;

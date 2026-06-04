@@ -3,9 +3,9 @@ import { resolveLidToRealJid } from '../../models/utils.js';
 import { fytBold } from '../../models/TextStyle.js';
 
 export default {
-    name: ['kabedon'],
+    name: ['kabedon', 'rinconear', 'acorralar', 'pared'],
     category: 'interaction',
-    description: 'Envía una reacción "kabedon" en formato GIF animado.',
+    description: 'Hacer Kabedon',
     async execute(sock, m, args, { prefix, jidRemitente }) {
         const remoteJid = m.key.remoteJid;
         const ctx = m.message?.extendedTextMessage?.contextInfo;

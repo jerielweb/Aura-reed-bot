@@ -3,9 +3,9 @@ import { resolveLidToRealJid } from '../../models/utils.js';
 import { fytBold } from '../../models/TextStyle.js';
 
 export default {
-    name: ['slap'],
+    name: ['slap', 'cachetada', 'bofetada', 'bofetón', 'pegar', 'cachetazo'],
     category: 'interaction',
-    description: 'Envía una reacción "slap" en formato GIF animado.',
+    description: 'Dar una Bofetada',
     async execute(sock, m, args, { prefix, jidRemitente }) {
         const remoteJid = m.key.remoteJid;
         const ctx = m.message?.extendedTextMessage?.contextInfo;

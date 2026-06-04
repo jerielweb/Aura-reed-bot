@@ -3,9 +3,9 @@ import { resolveLidToRealJid } from '../../models/utils.js';
 import { fytBold } from '../../models/TextStyle.js';
 
 export default {
-    name: ['bored'],
+    name: ['bored', 'aburrido', 'aburrida', 'aburrimiento', 'aburrirse', 'aburro'],
     category: 'interaction',
-    description: 'Envía una reacción "bored" en formato GIF animado.',
+    description: 'Expresar Aburrimiento',
     async execute(sock, m, args, { prefix, jidRemitente }) {
         const remoteJid = m.key.remoteJid;
         const ctx = m.message?.extendedTextMessage?.contextInfo;

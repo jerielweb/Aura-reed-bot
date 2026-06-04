@@ -3,9 +3,9 @@ import { resolveLidToRealJid } from '../../models/utils.js';
 import { fytBold } from '../../models/TextStyle.js';
 
 export default {
-    name: ['clap'],
+    name: ['clap', 'aplaudir', 'aplauso', 'aplausos', 'aplaude'],
     category: 'interaction',
-    description: 'Envía una reacción "clap" en formato GIF animado.',
+    description: 'Aplaudir',
     async execute(sock, m, args, { prefix, jidRemitente }) {
         const remoteJid = m.key.remoteJid;
         const ctx = m.message?.extendedTextMessage?.contextInfo;

@@ -3,9 +3,9 @@ import { resolveLidToRealJid } from '../../models/utils.js';
 import { fytBold } from '../../models/TextStyle.js';
 
 export default {
-    name: ['snuggle'],
+    name: ['snuggle', 'acurrucarse', 'mimos', 'abrigar', 'acurrucadito'],
     category: 'interaction',
-    description: 'Envía una reacción "snuggle" en formato GIF animado.',
+    description: 'Acurrucarse con Alguien',
     async execute(sock, m, args, { prefix, jidRemitente }) {
         const remoteJid = m.key.remoteJid;
         const ctx = m.message?.extendedTextMessage?.contextInfo;

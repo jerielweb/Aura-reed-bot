@@ -3,9 +3,9 @@ import { resolveLidToRealJid } from '../../models/utils.js';
 import { fytBold } from '../../models/TextStyle.js';
 
 export default {
-    name: ['seduce'],
+    name: ['seduce', 'seducir', 'coquetear', 'ligar', 'enamorar', 'coqueto'],
     category: 'interaction',
-    description: 'Envía una reacción "seduce" en formato GIF animado.',
+    description: 'Seducir a Alguien',
     async execute(sock, m, args, { prefix, jidRemitente }) {
         const remoteJid = m.key.remoteJid;
         const ctx = m.message?.extendedTextMessage?.contextInfo;
