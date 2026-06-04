@@ -101,54 +101,55 @@ export async function getReactionPath(videoUrl) {
 }
 
 /**
- * Convierte cualquier video o imagen animada a un GIF real usando FFmpeg.
- * Si ya existe el GIF cacheado, lo retorna al instante.
+ * Convierte cualquier gif o imagen animada a un MP4 real compatible con WhatsApp usando FFmpeg.
+ * Si ya existe el MP4 cacheado, lo retorna al instante.
  * @param {string} inputPath Ruta del archivo de entrada
- * @returns {Promise<string>} Ruta del GIF resultante
+ * @returns {Promise<string>} Ruta del MP4 resultante
  */
-async function ensureGif(inputPath) {
+async function ensureMp4(inputPath) {
     const ext = path.extname(inputPath).toLowerCase();
-    const gifPath = inputPath.replace(/\.[^.]+$/, '.gif');
+    const mp4Path = inputPath.replace(/\.[^.]+$/, '.mp4');
 
-    // Si ya tenemos el GIF cacheado, carga instantánea
-    if (fs.existsSync(gifPath)) {
-        console.log(`[Reactions GIF] GIF cacheado encontrado: ${path.basename(gifPath)}`);
-        return gifPath;
+    // Si el archivo ya es un MP4 real, usarlo directamente
+    if (ext === '.mp4') return inputPath;
+
+    // Si ya tenemos el MP4 cacheado/convertido, carga instantánea
+    if (fs.existsSync(mp4Path)) {
+        console.log(`[Reactions MP4] MP4 cacheado encontrado: ${path.basename(mp4Path)}`);
+        return mp4Path;
     }
 
-    // Si el archivo ya es un GIF real, usarlo directamente
-    if (ext === '.gif') return inputPath;
-
-    // Convertir a GIF con FFmpeg (paleta optimizada para calidad máxima)
-    console.log(`[Reactions FFmpeg] Convirtiendo ${ext} → GIF ...`);
+    // Convertir a MP4 con FFmpeg (compatible con WhatsApp: H.264 + YUV420p)
+    console.log(`[Reactions FFmpeg] Convirtiendo ${ext} → MP4 ...`);
     await ffmpegSemaphore.run(() => new Promise((resolve, reject) => {
         ffmpeg(inputPath)
-            .complexFilter([
-                // Genera paleta de 256 colores óptima y la aplica → GIF de alta calidad
-                'fps=15,scale=480:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=256[p];[s1][p]paletteuse=dither=bayer'
+            .videoFilters('scale=trunc(iw/2)*2:trunc(ih/2)*2')
+            .outputOptions([
+                '-c:v libx264',
+                '-pix_fmt yuv420p',
+                '-an'
             ])
-            .outputOptions(['-loop', '0'])   // Loop infinito
-            .toFormat('gif')
+            .toFormat('mp4')
             .on('end', resolve)
             .on('error', reject)
-            .save(gifPath);
+            .save(mp4Path);
     }));
 
-    return gifPath;
+    return mp4Path;
 }
 
 /**
- * Función todo-en-uno: obtiene la reacción, la cachea y la convierte a GIF real.
- * Devuelve el buffer listo para enviarse como imagen animada en WhatsApp.
+ * Función todo-en-uno: obtiene la reacción, la cachea y asegura que sea un MP4 compatible.
+ * Devuelve el buffer listo para enviarse como imagen animada (GIF) en WhatsApp.
  *
  * @param {string} type Tipo de reacción (hug, kiss, slap, pat, etc.)
- * @returns {Promise<{ image: Buffer, mimetype: 'image/gif' }>}
+ * @returns {Promise<{ video: Buffer, mimetype: 'video/mp4', gifPlayback: true }>}
  */
 export async function getReactionGif(type) {
     const videoUrl  = await getReactionUrl(type);
     const localPath = await getReactionPath(videoUrl);
-    const gifPath   = await ensureGif(localPath);
-    const buffer    = await fs.promises.readFile(gifPath);
+    const mp4Path   = await ensureMp4(localPath);
+    const buffer    = await fs.promises.readFile(mp4Path);
     // Baileys requiere 'video' (no 'image') con gifPlayback:true para GIFs animados
     return { video: buffer, mimetype: 'video/mp4', gifPlayback: true };
 }
