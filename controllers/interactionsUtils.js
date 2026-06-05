@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegPath from 'ffmpeg-static';
 import { downloadStreamToFile, ensureDirectory, ffmpegSemaphore } from './downloadUtils.js';
+import chalk from 'chalk';
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 
@@ -115,12 +116,12 @@ async function ensureMp4(inputPath) {
 
     // Si ya tenemos el MP4 cacheado/convertido, carga instantánea
     if (fs.existsSync(mp4Path)) {
-        console.log(`[Reactions MP4] MP4 cacheado encontrado: ${path.basename(mp4Path)}`);
+        console.log(chalk.gray(`[Reactions MP4] MP4 cacheado encontrado: ${path.basename(mp4Path)}`));
         return mp4Path;
     }
 
     // Convertir a MP4 con FFmpeg (compatible con WhatsApp: H.264 + YUV420p)
-    console.log(`[Reactions FFmpeg] Convirtiendo ${ext} → MP4 ...`);
+    console.log(chalk.gray(`[Reactions FFmpeg] Convirtiendo ${ext} → MP4 ...`));
     await ffmpegSemaphore.run(() => new Promise((resolve, reject) => {
         ffmpeg(inputPath)
             .videoFilters('scale=trunc(iw/2)*2:trunc(ih/2)*2')
@@ -147,10 +148,10 @@ export async function getReactionGif(type) {
     
     let finalPath;
     if (ext === '.gif') {
-        console.log(`[Reactions] Neko (GIF) detectado -> Aplicando conversión H.264...`);
+        console.log(chalk.gray(`[Reactions] Neko (GIF) detectado -> Aplicando conversión H.264...`));
         finalPath = await ensureMp4(localPath);
     } else {
-        console.log(`[Reactions] Alyacore (MP4) detectado -> Enviando directo sin conversión.`);
+        console.log(chalk.gray(`[Reactions] Alyacore (MP4) detectado -> Enviando directo sin conversión.`));
         finalPath = localPath;
     }
     

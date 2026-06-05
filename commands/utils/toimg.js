@@ -29,8 +29,8 @@ async function convertWebpToGif(buffer) {
     }));
 
     const gifBuffer = await fs.promises.readFile(tempOut);
-    await fs.promises.unlink(tempIn).catch(() => {});
-    await fs.promises.unlink(tempOut).catch(() => {});
+    await fs.promises.unlink(tempIn).catch(() => { });
+    await fs.promises.unlink(tempOut).catch(() => { });
     return gifBuffer;
 }
 

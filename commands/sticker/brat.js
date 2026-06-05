@@ -153,10 +153,9 @@ export default {
 
       // Obtener el nombre del usuario y formatear metadatos
       const pushName = message.pushName || 'Usuario'
-      const packName = '𝐀𝐮𝐫𝐚 𝐑𝐞𝐞𝐝 🧠 𝐖𝐚𝐁𝐨𝐭'
+      const packName = '𝐀𝐮𝐫𝐚 𝐑𝐞𝐞𝐝'
       const author = `@${pushName}`
 
-      console.log(`[Brat] Inyectando metadatos para ${pushName}...`)
       let finalStickerBuffer
       try {
         const { addStickerMetadata } = await import('../../controllers/stickerMetadata.js')

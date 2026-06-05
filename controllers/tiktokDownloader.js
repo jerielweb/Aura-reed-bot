@@ -183,6 +183,7 @@ class TikTokDownloader {
             ffmpeg(tempIn)
                 .outputOptions([
                     '-vn',
+                    '-preset ultrafast',
                     '-acodec libmp3lame',
                     '-ac 2',
                     '-ab 192k',

@@ -98,7 +98,7 @@ export async function downloadStreamToFile(url, filePath, options = {}) {
             responseType: 'stream',
             timeout,
             headers: {
-                'User-Agent': 'AuraReedBot/2.2.0 (https://github.com/this-xys/baileys)',
+                'User-Agent': `AuraReedBot/${global.version} (https://github.com/this-xys/baileys)`,
                 ...headers
             }
         });

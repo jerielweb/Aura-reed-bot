@@ -3,7 +3,7 @@ import chalk from 'chalk';
 import { resolveLidToRealJid } from '../models/utils.js';
 import { trackGroupActivity } from '../models/groupDb.js';
 import { cmdLog } from './cmdLog.js';
-import { Rstr } from '../controllers/textBots.js';
+import { Rstr } from './textBots.js';
 import { isCategoryEnabled, default as cmdManagerCmd } from './cmdManager.js';
 import { botStatus } from '../commands/group/bot.js';
 
@@ -64,7 +64,7 @@ export async function handleMessage(sock, m, db, saveDB) {
     const senderRaw = m.key.participant || remoteJid;
 
     const text = m.message.conversation || m.message.extendedTextMessage?.text || m.message.imageMessage?.caption || m.message.videoMessage?.caption || "";
-    
+
     const groupPrefix = isGroup ? db.groups?.[remoteJid]?.prefix : null;
     const prefix = groupPrefix || db.prefix;
     const esComando = text.startsWith(prefix);
@@ -116,7 +116,7 @@ export async function handleMessage(sock, m, db, saveDB) {
     } else {
         const args = text.slice(prefix.length).trim().split(/ +/);
         const commandName = args.shift().toLowerCase();
-        
+
         cmdLog({ numeroReal, rango: isOwner ? 'OWNER 👑' : (isAdmin ? 'ADMIN 🛡️' : 'USUARIO 👤'), commandName, isGroup, text, pushName: m.pushName, groupMetadata, m, prefix });
 
         const allCommands = await loadCommands();

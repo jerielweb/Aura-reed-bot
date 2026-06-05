@@ -98,6 +98,7 @@ class YTDownloader {
             ffmpeg(tempIn)
                 .outputOptions([
                     '-c:v libx264',
+                    '-preset ultrafast',
                     '-profile:v baseline',
                     '-level 3.0',
                     '-pix_fmt yuv420p',

@@ -42,11 +42,11 @@ function normalizeDelirius(res) {
     }
     const validVideos = res.list.filter(v => v.url && v.url !== '/');
     if (validVideos.length === 0) throw new Error('Delirius: No se encontraron videos válidos');
-    
+
     // Priorizar HD/720p/1080p
     const hdVideo = validVideos.find(v => v.quality && (v.quality.includes('HD') || v.quality.includes('720p') || v.quality.includes('1080p')));
     const video = hdVideo || validVideos[0];
-    
+
     return {
         url: video.url,
         quality: video.quality || 'N/A',
@@ -61,10 +61,10 @@ function normalizeAlyacore(res) {
     }
     const validVideos = res.resultados.filter(v => v.url && v.url !== '/');
     if (validVideos.length === 0) throw new Error('Alyacore: No se encontraron videos válidos');
-    
+
     const hdVideo = validVideos.find(v => v.quality && (v.quality.includes('HD') || v.quality.includes('720p') || v.quality.includes('1080p')));
     const video = hdVideo || validVideos[0];
-    
+
     return {
         url: video.url,
         quality: video.quality || 'N/A',
@@ -79,10 +79,10 @@ function normalizeStellar(res) {
     }
     const validVideos = res.resultados.filter(v => v.url && v.url !== '/');
     if (validVideos.length === 0) throw new Error('StellarWA: No se encontraron videos válidos');
-    
+
     const hdVideo = validVideos.find(v => v.quality && (v.quality.includes('HD') || v.quality.includes('720p') || v.quality.includes('1080p')));
     const video = hdVideo || validVideos[0];
-    
+
     return {
         url: video.url,
         quality: video.quality || 'N/A',
@@ -100,8 +100,8 @@ export default {
         const url = args[0] ? args[0].trim() : '';
 
         if (!url) {
-            return await socket.sendMessage(remoteJid, { 
-                text: `╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐅𝐀𝐋𝐓𝐀 𝐄𝐍𝐋𝐀𝐂𝐄\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, proporciona un enlace\n┃ > de Facebook o Facebook Reels.\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣` 
+            return await socket.sendMessage(remoteJid, {
+                text: `╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐅𝐀𝐋𝐓𝐀 𝐄𝐍𝐋𝐀𝐂𝐄\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, proporciona un enlace\n┃ > de Facebook o Facebook Reels.\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`
             }, { quoted: message });
         }
 
@@ -112,7 +112,7 @@ export default {
 
         try {
             console.log(`[FB Downloader] Buscando video para la URL: ${url}`);
-            
+
             // Carrera en paralelo de las 3 APIs
             const fbTasks = [
                 (async () => {
@@ -156,7 +156,7 @@ export default {
             await downloadStreamToFile(videoUrl, tempPath, { timeout: 120000 });
 
             // Enviar el video a WhatsApp
-        await socket.sendMessage(remoteJid, { react: { text: '✅', key: message.key } });
+            await socket.sendMessage(remoteJid, { react: { text: '✅', key: message.key } });
             await socket.sendMessage(remoteJid, {
                 video: { url: tempPath },
                 mimetype: 'video/mp4',
@@ -167,8 +167,8 @@ export default {
         } catch (error) {
             console.error('Error en Facebook Downloader:', error);
             await socket.sendMessage(remoteJid, { react: { text: '❌', key: message.key } });
-            await socket.sendMessage(remoteJid, { 
-                text: `╭〔 ❌ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ⚠️ 𝐄𝐑𝐑𝐎𝐑 𝐃𝐄 𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message || 'Ocurrió un error inesperado al procesar el video de Facebook.'}\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣` 
+            await socket.sendMessage(remoteJid, {
+                text: `╭〔 ❌ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ⚠️ 𝐄𝐑𝐑𝐎𝐑 𝐃𝐄 𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message || 'Ocurrió un error inesperado al procesar el video de Facebook.'}\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`
             }, { quoted: message });
         } finally {
             // Eliminar archivo temporal

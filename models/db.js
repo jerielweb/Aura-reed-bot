@@ -20,7 +20,7 @@ let saving = false;
 const DEFAULT_DB_CONFIG = {
     prefix: ".",
     owners: [
-        "50689237369@s.whatsapp.net",
+        "50670375314@s.whatsapp.net",
         "50577839681@s.whatsapp.net",
         "5214183357841@s.whatsapp.net",
         "50578391933@s.whatsapp.net"
