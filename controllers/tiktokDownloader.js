@@ -6,6 +6,77 @@ import ffprobePath from '@ffprobe-installer/ffprobe';
 import fs from 'fs';
 import path from 'path';
 import { ensureDirectory, downloadStreamToFile, ffmpegSemaphore } from './downloadUtils.js';
+import formatNumbers from './functions/formatNumbers.js';
+
+const getFirstValue = (...values) => values.find(value => value !== undefined && value !== null);
+const getFirstNonEmpty = (...values) => values.find(value => value !== undefined && value !== null && value !== '');
+const getFirstUrl = (value) => {
+    if (!value) return null;
+    if (typeof value === 'string') return value;
+    if (Array.isArray(value)) return value[0];
+    if (value.url_list && Array.isArray(value.url_list)) return value.url_list[0];
+    return null;
+};
+
+const normalizeDuration = (value) => {
+    if (value === undefined || value === null) return 0;
+    const raw = String(value).trim();
+    const match = raw.match(/(\d+(?:\.\d+)?)/);
+    if (!match) return 0;
+    const numero = Number(match[0]);
+    if (!Number.isFinite(numero) || numero <= 0) return 0;
+    return numero > 1000 ? Math.round(numero / 1000) : Math.round(numero);
+};
+
+const parseDelimitedNumber = (value) => {
+    if (value === undefined || value === null) return 0;
+    const raw = String(value).trim();
+    if (!raw) return 0;
+    // Delirius returns thousands as dot separators like 523.256, not decimals.
+    if (/^\d{1,3}(?:\.\d{3})+$/.test(raw)) {
+        return Number(raw.replace(/\./g, ''));
+    }
+    const normalized = raw.replace(/,/g, '');
+    const numero = Number(normalized);
+    return Number.isFinite(numero) ? numero : 0;
+};
+
+export function parseDownloaderResult(result) {
+    if (!result) return null;
+
+    const parsed = result.resultNotParsed || result.raw || result;
+
+    const videoObj = result.video || parsed.content?.video || parsed.video || parsed.playback || {};
+    const musicObj = result.music || parsed.content?.music || parsed.music || {};
+    const stats = parsed.content?.statistics || parsed.statistics || result.statistics || {};
+
+    const videoUrl = getFirstUrl(
+        videoObj.playAddr || videoObj.downloadAddr || videoObj.url || videoObj.play_addr || videoObj.download_addr || parsed.url || parsed.data?.video
+    );
+
+    const videoID = parsed.content?.aweme_id || parsed.id || parsed.aweme_id || result.id || `tiktok_${Date.now()}`;
+
+    const desc = getFirstNonEmpty(result.desc, parsed.content?.desc, parsed.title, result.title) || '';
+
+    const likesVal = stats?.digg_count || stats?.likeCount || stats?.like_count || stats?.like || 0;
+    const viewsVal = stats?.play_count || stats?.playCount || stats?.play || stats?.views || 0;
+    const coverVal = getFirstUrl(videoObj.cover || parsed.content?.video?.cover || parsed.cover || parsed.thumb) || '';
+    const audioUrl = getFirstUrl(musicObj.playUrl || musicObj.downloadUrl || musicObj.url || parsed.content?.music?.play_url || parsed.music?.playUrl || parsed.playUrl);
+    const durationVal = parsed.content?.video?.duration || parsed.duration || result.duration || parsed.content?.duration || 0;
+
+    if (!videoUrl) return null;
+
+    return {
+        id: videoID,
+        title: desc,
+        likes: formatNumbers(likesVal || 0),
+        views: formatNumbers(viewsVal || 0),
+        cover: coverVal,
+        videoUrl,
+        audioUrl,
+        duration: normalizeDuration(durationVal || 0)
+    };
+}
 
 // Configurar rutas de FFmpeg
 ffmpeg.setFfmpegPath(ffmpegPath);
@@ -33,9 +104,10 @@ class TikTokDownloader {
                         url: first.url,
                         title: first.title || '',
                         author: first.author?.nickname || first.author?.username || 'TikTok User',
-                        views: first.play || 0,
-                        likes: first.like || 0,
-                        cover: first.hd || ''
+                        views: formatNumbers(parseDelimitedNumber(first.play || 0)),
+                        likes: formatNumbers(parseDelimitedNumber(first.like || 0)),
+                        duration: normalizeDuration(first.duration || first.videoDuration || first.dur || 0),
+                        cover: first.hd || first.cover || first.author?.avatar || ''
                     };
                 }
             },
@@ -55,6 +127,7 @@ class TikTokDownloader {
                         author: first.author?.nickname || username || 'TikTok User',
                         views: first.stats?.views || 0,
                         likes: first.stats?.likes || 0,
+                        duration: normalizeDuration(first.duration || first.dur || first.stats?.duration || 0),
                         cover: first.cover || ''
                     };
                 }
@@ -80,24 +153,43 @@ class TikTokDownloader {
         // Intentar tobyg74/tiktok-api-dl primero (Scraper Local)
         try {
             console.log('[TikTokDownloader] Intentando descargar metadatos con tobyg74/tiktok-api-dl...');
-            const dlResult = await Downloader(url);
-            if (dlResult && dlResult.status === 'success' && dlResult.result) {
-                const res = dlResult.result;
-                const vUrl = res.video?.playAddr?.[0] || res.video?.downloadAddr?.[0];
-                if (vUrl) {
-                    console.log('[TikTokDownloader] Éxito usando tobyg74/tiktok-api-dl');
-                    return {
-                        id: res.id,
-                        title: res.desc || '',
-                        author: res.author?.nickname || res.author?.username || 'TikTok User',
-                        cover: res.video?.cover?.[0] || res.music?.coverThumb?.[0] || '',
-                        views: res.statistics?.playCount || 0,
-                        likes: res.statistics?.likeCount || 0,
-                        videoUrl: vUrl,
-                        audioUrl: res.music?.playUrl?.[0],
-                        duration: res.music?.duration || Math.round((res.video?.duration || 0) / 1000) || 0
-                    };
-                }
+
+            const result = await Downloader(url);
+
+            // Algunas implementaciones devuelven un objeto "raw"/"resultNotParsed" o estructuras distintas.
+            const parsed = result.resultNotParsed || result.raw || result;
+
+            // Normalizar referencias a objetos de video/música/estadísticas
+            const videoObj = result.video || parsed.content?.video || parsed.video || parsed.playback || {};
+            const musicObj = result.music || parsed.content?.music || parsed.music || {};
+            const stats = parsed.content?.statistics || parsed.statistics || result.statistics || {};
+
+            const videoUrl = getFirstUrl(
+                videoObj.playAddr || videoObj.downloadAddr || videoObj.url || videoObj.play_addr || videoObj.download_addr || parsed.url || parsed.data?.video
+            );
+
+            const videoID = parsed.content?.aweme_id || parsed.id || parsed.aweme_id || result.id || `tiktok_${Date.now()}`;
+
+            const desc = getFirstNonEmpty(result.desc, parsed.content?.desc, parsed.title, result.title) || '';
+
+            const likesVal = stats?.digg_count || stats?.likeCount || stats?.like_count || stats?.like || 0;
+            const viewsVal = stats?.play_count || stats?.playCount || stats?.play || stats?.views || 0;
+            const coverVal = getFirstUrl(videoObj.cover || parsed.content?.video?.cover || parsed.cover || parsed.thumb) || '';
+            const audioUrl = getFirstUrl(musicObj.playUrl || musicObj.downloadUrl || musicObj.url || parsed.content?.music?.play_url || parsed.music?.playUrl || parsed.playUrl);
+            const durationVal = parsed.content?.video?.duration || parsed.duration || result.duration || parsed.content?.duration || 0;
+
+            if (videoUrl) {
+                console.log('[TikTokDownloader] Éxito usando tobyg74/tiktok-api-dl');
+                return {
+                    id: videoID,
+                    title: desc,
+                    likes: formatNumbers(likesVal || 0),
+                    views: formatNumbers(viewsVal || 0),
+                    cover: coverVal,
+                    videoUrl,
+                    audioUrl,
+                    duration: normalizeDuration(durationVal || 0)
+                };
             }
         } catch (e) {
             console.error('[TikTokDownloader] tobyg74/tiktok-api-dl falló, usando APIs de respaldo:', e.message);
@@ -111,17 +203,27 @@ class TikTokDownloader {
                     const res = await axios.get(`${deliriusUrl}download/tiktok?url=${encodeURIComponent(url)}`, { timeout: 20000 });
                     const data = res.data?.data;
                     if (!data) throw new Error('No data in Delirius');
-                    const videoUrl = data.meta?.media?.find(m => m.type === 'video')?.org || data.meta?.media?.[0]?.org || data.url;
+
+                    // Extraer URL de video desde media
+                    let videoUrl = null;
+                    if (data.meta?.media && Array.isArray(data.meta.media)) {
+                        const videoMedia = data.meta.media.find(m => m.type === 'video');
+                        videoUrl = videoMedia?.org || videoMedia?.hd || videoMedia?.wm;
+                    }
+                    videoUrl = videoUrl || data.url;
+
+                    if (!videoUrl) throw new Error('[Delirius] No video URL found');
+
                     return {
                         id: data.id || `tiktok_${Date.now()}`,
                         title: data.title || '',
                         author: data.author?.nickname || data.author?.username || 'TikTok User',
-                        cover: '',
-                        views: data.repro || 0,
-                        likes: data.like || 0,
+                        cover: data.cover || '',
+                        views: formatNumbers(parseDelimitedNumber(data.repro || 0)),
+                        likes: formatNumbers(parseDelimitedNumber(data.like || 0)),
                         videoUrl,
-                        audioUrl: data.music?.url || data.music_info?.url,
-                        duration: data.duration || 0
+                        audioUrl: data.music?.playUrl?.[0] || data.music?.url,
+                        duration: normalizeDuration(data.duration || 0)
                     };
                 }
             },
@@ -131,27 +233,78 @@ class TikTokDownloader {
                     const res = await axios.get(`${faaUrl}faa/tiktok?url=${encodeURIComponent(url)}`, { timeout: 20000 });
                     const result = res.data?.result;
                     if (!result) throw new Error('No result in Faa');
+
+                    // Extraer URL de video (preferir alternativa sin watermark)
+                    const videoUrl = result.alternatives?.selected || result.data || result.url;
+                    if (!videoUrl) throw new Error('[Faa] No video URL found');
+
                     return {
                         id: result.id || `tiktok_${Date.now()}`,
                         title: result.title || '',
                         author: result.author?.nickname || result.author?.username || 'TikTok User',
                         cover: result.cover || '',
-                        views: result.stats?.views || 0,
-                        likes: result.stats?.likes || 0,
-                        videoUrl: result.data || result.url,
+                        views: formatNumbers(result.stats?.views || 0),
+                        likes: formatNumbers(result.stats?.likes || 0),
+                        videoUrl,
                         audioUrl: result.music_info?.url,
-                        duration: result.duration ? parseInt(result.duration) : 0
+                        duration: result.duration ? normalizeDuration(parseInt(String(result.duration).match(/\d+/)?.[0] || 0)) : 0
                     };
                 }
             }
         ];
 
         try {
-            return await Promise.any(apis.map(api => api.fn().then(info => {
+            const winner = await Promise.any(apis.map(api => api.fn().then(info => {
                 if (!info.videoUrl) throw new Error(`[${api.name}] No videoUrl returned`);
                 console.log(`[TikTokDownloader Descarga] Ganador: ${api.name}`);
-                return info;
+                return { info, name: api.name };
             })));
+
+            let info = winner.info;
+
+            // Si la fuente ganadora devuelve 0/ vacío para views o likes,
+            // intentamos llamar secuencialmente a las otras APIs para completar esos valores.
+            const viewsEmpty = !info.views || info.views === 0 || info.views === '0' || info.views === '0.0';
+            const likesEmpty = !info.likes || info.likes === 0 || info.likes === '0' || info.likes === '0.0';
+
+            if (viewsEmpty || likesEmpty) {
+                for (const api of apis) {
+                    // Saltar la que ya ganó
+                    if (api.name === winner.name) continue;
+                    try {
+                        const candidate = await api.fn();
+                        if (!candidate) continue;
+                        if ((viewsEmpty) && candidate.views) {
+                            info.views = candidate.views;
+                        }
+                        if ((likesEmpty) && candidate.likes) {
+                            info.likes = candidate.likes;
+                        }
+                        // Completar otros campos si faltan
+                        if ((!info.duration || info.duration === 0) && candidate.duration) {
+                            info.duration = candidate.duration;
+                        }
+                        if ((!info.cover || info.cover === '') && candidate.cover) {
+                            info.cover = candidate.cover;
+                        }
+                        if ((!info.audioUrl || info.audioUrl === '') && candidate.audioUrl) {
+                            info.audioUrl = candidate.audioUrl;
+                        }
+                        if ((!info.title || info.title === '') && candidate.title) {
+                            info.title = candidate.title;
+                        }
+                        if ((!info.author || info.author === '') && candidate.author) {
+                            info.author = candidate.author;
+                        }
+                        // Si ya tenemos ambos, salimos
+                        if (info.views && info.likes) break;
+                    } catch (e) {
+                        // ignorar errores de candidatos secundarios
+                    }
+                }
+            }
+
+            return info;
         } catch (e) {
             console.error('[TikTokDownloader Descarga] Todas las fuentes de descarga fallaron:', e.errors || e.message);
             throw new Error('Todas las APIs de descarga de TikTok están saturadas o caídas. Intenta más tarde.');
@@ -208,7 +361,7 @@ class TikTokDownloader {
         }
 
         const tempIn = path.join(this.tempDir, `raw_${info.id}.mp4`);
-        
+
         console.log(`[TikTokDownloader] Descargando video desde: ${info.videoUrl}`);
         await downloadStreamToFile(info.videoUrl, tempIn, { timeout: 60000 });
 

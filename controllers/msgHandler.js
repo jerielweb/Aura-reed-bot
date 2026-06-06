@@ -1,11 +1,11 @@
 import fs from 'fs';
 import chalk from 'chalk';
-import { resolveLidToRealJid } from '../models/utils.js';
-import { trackGroupActivity } from '../models/groupDb.js';
+import { resolveLidToRealJid } from './../models/utils.js';
+import { trackGroupActivity } from './../models/groupDb.js';
 import { cmdLog } from './cmdLog.js';
 import { Rstr } from './textBots.js';
 import { isCategoryEnabled, default as cmdManagerCmd } from './cmdManager.js';
-import { botStatus } from '../commands/group/bot.js';
+import { botStatus } from './../commands/group/bot.js';
 
 const categories = ['owner', 'system', 'group', 'downloads', 'economy', 'search', 'fun', 'utils', 'sticker', 'profile', 'interaction'];
 
@@ -132,7 +132,14 @@ export async function handleMessage(sock, m, db, saveDB) {
                 if (isGroup && !isCategoryEnabled(remoteJid, cmd.category, db)) return await sock.sendMessage(remoteJid, { text: 'Categoría desactivada.' }, { quoted: m });
                 if (cmd.adminOnly && !isAdmin) return await sock.sendMessage(remoteJid, { text: Rstr.onlyAdmin }, { quoted: m });
 
-                await cmd.execute(sock, m, args, { prefix, db, saveDB, isOwner, isAdmin, isBotAdmin, owners, groupMetadata, numeroReal, jidRemitente });
+                try {
+                    await cmd.execute(sock, m, args, { prefix, db, saveDB, isOwner, isAdmin, isBotAdmin, owners, groupMetadata, numeroReal, jidRemitente });
+                } catch (err) {
+                    console.error(`[msgHandler] Error ejecutando comando ${commandName}:`, err);
+                    await sock.sendMessage(remoteJid, {
+                        text: '⚠️ Ocurrió un error al ejecutar el comando. Revisa la consola del bot.'
+                    }, { quoted: m });
+                }
                 return;
             }
         }

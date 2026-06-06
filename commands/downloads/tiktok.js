@@ -30,8 +30,9 @@ export default {
                 videoData = {
                     title: searchResult.title || 'Video de TikTok',
                     author: searchResult.author || 'TikTok User',
-                    duration: 'N/A',
-                    views: searchResult.views || 0,
+                    duration: searchResult.duration ? `${searchResult.duration}s` : 'N/A',
+                    views: searchResult.views || '0',
+                    likes: searchResult.likes || '0',
                     thumbnail: searchResult.cover,
                     url: finalUrl
                 };
@@ -42,7 +43,8 @@ export default {
                     title: info.title || 'Video de TikTok',
                     author: info.author || 'TikTok User',
                     duration: info.duration ? `${info.duration}s` : 'N/A',
-                    views: info.views || 0,
+                    views: info.views || '0',
+                    likes: info.likes || '0',
                     thumbnail: info.cover,
                     url: finalUrl
                 };
@@ -51,7 +53,8 @@ export default {
             const title = videoData.title;
             const author = videoData.author;
             const duration = videoData.duration;
-            const views = typeof videoData.views === 'number' ? videoData.views : 0;
+            const views = videoData.views || '0';
+            const likes = videoData.likes || '0';
             const thumbnail = videoData.thumbnail;
 
             let caption = `╭〔 🎬 𝐓𝐈𝐊𝐓𝐎𝐊 𝐕𝐈𝐃𝐄𝐎 〕━⬣\n\n`;
@@ -62,6 +65,7 @@ export default {
             caption += `┃ > 𝐀𝐮𝐭𝐨𝐫 › ${author}\n`;
             caption += `┃ > 𝐃𝐮𝐫𝐚𝐜𝐢𝐨́𝐧 › ${duration}\n`;
             caption += `┃ > 𝐕𝐢𝐬𝐭𝐚𝐬 › ${formatter(views)}\n`;
+            caption += `┃ > Likes › ${formatter(likes)}\n`;
             caption += `┃ > 𝐌𝐨𝐝𝐨 › Video (MP4)\n`;
             caption += `┃ > 𝐄𝐧𝐥𝐚𝐜𝐞 › ${finalUrl}\n\n`;
             caption += `┣━━━━━━━━━━━━⬣\n\n`;

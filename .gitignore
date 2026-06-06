@@ -20,7 +20,7 @@ database/*
 bun.lock
 package-lock.json
 
-
+tests
 # Sesiones de sub-bots
 sessions/
 

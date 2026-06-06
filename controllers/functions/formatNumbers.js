@@ -1,7 +1,13 @@
 export default function fomatNumber(valor) {
-    const numero = parseInt(valor, 10);
+    if (valor === null || valor === undefined) return '0';
+    const raw = String(valor).trim();
+    if (!raw) return '0';
 
-    if (isNaN(numero)) return valor;
+    if (/^[\d,.]+[kKmMbBtT]$/.test(raw)) return raw.toUpperCase();
+
+    const normalized = raw.replace(/,/g, '');
+    const numero = Number(normalized);
+    if (!Number.isFinite(numero)) return raw;
 
     if (numero >= 1e12) {
         return `${(numero / 1e12).toFixed(1)}T`;
