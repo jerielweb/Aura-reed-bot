@@ -167,7 +167,7 @@ export async function createSubBot(sock, m, type, phoneNumber = null) {
             defaultQueryTimeoutMs: 0,
             keepAliveIntervalMs: 10000,
             syncFullHistory: false,
-            markOnlineOnConnect: false
+            markOnlineOnConnect: true
         });
 
         // Registrar en el mapa
