@@ -76,7 +76,7 @@ export function formatProfileText(user, pushName, jid) {
     let text = `╭〔 👤 𝐏𝐄𝐑𝐅𝐈𝐋 〕⬣\n`;
     text += `┃ 📋 𝐃𝐀𝐓𝐎𝐒 𝐃𝐄 𝐔𝐒𝐔𝐀𝐑𝐈𝐎\n`;
     text += `╰━━━━━━━━━━━━⬣\n\n`;
-    text += `┃ 👤 𝐍𝐨𝐦𝐛𝐫𝐞 › *${pushName || 'Usuario'}*\n`;
+    text += `┃ 👤 𝐍𝐨𝐦𝐛𝐫𝐞 › *${`@${pushName}` || 'Usuario'}*\n`;
     text += `┃ 🆔 𝐈𝐃 › ${jid.split('@')[0]}\n\n`;
     text += `┃ ⚧️ 𝐆𝐞́𝐧𝐞𝐫𝐨 › ${genre}\n`;
     text += `┃ 🎂 𝐂𝐮𝐦𝐩𝐥𝐞𝐚𝐧̃𝐨𝐬 › ${birthday}\n`;
