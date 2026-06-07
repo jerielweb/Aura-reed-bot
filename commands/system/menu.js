@@ -1,6 +1,7 @@
 import fs from 'fs';
 import { fytBold } from "../../models/TextStyle.js";
 
+
 export default {
     name: ['menu', 'help', 'h'],
     description: 'Muestra el menú completo.',
@@ -9,7 +10,7 @@ export default {
         const BannerBotMp3 = './assets/audio/menu_music.opus'
         const remoteJid = m.key.remoteJid;
         const pushName = m.pushName || 'Usuario';
-        const categories = ['system', 'owner', 'group', 'fun', 'utils', 'downloads', 'search', 'economy', 'sticker', 'profile', 'interaction'];
+        const categories = ['system', 'owner', 'group', 'fun', 'utils', 'downloads', 'search', 'economy', 'sticker', 'profile', 'interaction', 'AI'];
         const tituloEstilizado = fytBold('AURA REED BOT');
         const chanellink = global.chanellink;
 
@@ -36,7 +37,12 @@ export default {
             'stickers': 'sticker',
             'perfil': 'profile',
             'interacion': 'interaction',
-            'interacciones': 'interaction'
+            'interacciones': 'interaction',
+            'interacción': 'interaction',
+            'IA': 'AI',
+            'ai': 'AI',
+            'inteligencia artificial': 'AI',
+            'inteligenciaartificial': 'AI'
         };
 
         const requested = args && args[0] ? args[0].toLowerCase() : null;

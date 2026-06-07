@@ -7,7 +7,7 @@ import { Rstr } from './textBots.js';
 import { isCategoryEnabled, default as cmdManagerCmd } from './cmdManager.js';
 import { botStatus } from './../commands/group/bot.js';
 
-const categories = ['owner', 'system', 'group', 'downloads', 'economy', 'search', 'fun', 'utils', 'sticker', 'profile', 'interaction'];
+const categories = ['owner', 'system', 'group', 'downloads', 'economy', 'search', 'fun', 'utils', 'sticker', 'profile', 'interaction', 'AI'];
 
 let middlewareCache = null;
 let middlewareCacheTime = 0;
