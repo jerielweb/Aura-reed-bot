@@ -16,6 +16,7 @@ let groupsCache = null;
 let usersCache = null;
 let saveTimer = null;
 let saving = false;
+let initialized = false;
 
 const DEFAULT_DB_CONFIG = {
     prefix: ".",
@@ -33,52 +34,14 @@ const DEFAULT_DB_CONFIG = {
     }
 };
 
-async function ensureFiles() {
+async function ensureDir() {
     await fs.mkdir(DATABASE_DIR, { recursive: true });
-
-    const defaultDatabase = JSON.stringify(DEFAULT_DB_CONFIG, null, 2);
-    const defaultUsers = JSON.stringify({ users: {} }, null, 2);
-    const defaultGroups = JSON.stringify({ groups: {} }, null, 2);
-
-    for (const [file, content] of [[DB_FILE, defaultDatabase], [USERS_FILE, defaultUsers], [GROUPS_FILE, defaultGroups]]) {
-        try {
-            const existing = await fs.readFile(file, 'utf-8');
-            if (!existing || existing.trim().length === 0) {
-                console.warn(chalk.yellow(`[DB] Archivo vacio detectado: ${path.basename(file)} - Recreando...`));
-                await fs.writeFile(file, content, 'utf-8');
-            } else {
-                JSON.parse(existing);
-            }
-        } catch (err) {
-            console.warn(chalk.yellow(`[DB] Error validando ${path.basename(file)}: ${err.message}`));
-            if (file === GROUPS_FILE) {
-                const backupRestored = await restoreGroupsFromBackup();
-                if (!backupRestored) {
-                    await fs.writeFile(file, content, 'utf-8');
-                }
-            } else if (file === USERS_FILE) {
-                const backupRestored = await restoreUsersFromBackup();
-                if (!backupRestored) {
-                    await fs.writeFile(file, content, 'utf-8');
-                }
-            } else {
-                await fs.writeFile(file, content, 'utf-8');
-            }
-        }
-    }
-
-    for (const [file, content] of [[DB_BACKUP_FILE, defaultDatabase], [GROUPS_BACKUP_FILE, defaultGroups], [USERS_BACKUP_FILE, defaultUsers]]) {
-        try {
-            await fs.access(file);
-        } catch {
-            await fs.writeFile(file, content, 'utf-8');
-        }
-    }
 }
 
 async function readJson(filePath) {
     try {
         const raw = await fs.readFile(filePath, 'utf-8');
+        if (!raw || raw.trim().length === 0) return null;
         return JSON.parse(raw);
     } catch (err) {
         console.warn(chalk.yellow(`[DB] Error leyendo ${path.basename(filePath)}: ${err.message}`));
@@ -86,77 +49,116 @@ async function readJson(filePath) {
     }
 }
 
-async function restoreGroupsFromBackup() {
+async function atomicWrite(filePath, data) {
+    const tempFile = filePath + '.tmp';
+    const content = JSON.stringify(data, null, 2);
+    if (!content || content.trim().length === 0) {
+        throw new Error(`Intento de escribir archivo vacio: ${filePath}`);
+    }
+    await fs.writeFile(tempFile, content, 'utf-8');
+    await fs.rename(tempFile, filePath);
+}
+
+async function restoreFromBackup(backupPath, targetPath) {
     try {
-        const backup = await readJson(GROUPS_BACKUP_FILE);
-        if (backup && backup.groups && Object.keys(backup.groups).length > 0) {
-            await fs.writeFile(GROUPS_FILE, JSON.stringify(backup, null, 2), 'utf-8');
-            console.log(chalk.gray('[DB] groups.json restaurado desde backup'));
+        const backup = await readJson(backupPath);
+        if (backup && Object.keys(backup).length > 0) {
+            await atomicWrite(targetPath, backup);
+            console.log(chalk.gray(`[DB] ${path.basename(targetPath)} restaurado desde backup`));
             return true;
         }
     } catch (err) {
-        console.warn(chalk.yellow(`[DB] No se pudo restaurar groups.json desde backup: ${err.message}`));
+        console.warn(chalk.yellow(`[DB] No se pudo restaurar ${path.basename(targetPath)}: ${err.message}`));
     }
     return false;
 }
 
-async function restoreUsersFromBackup() {
-    try {
-        const backup = await readJson(USERS_BACKUP_FILE);
-        if (backup && backup.users && Object.keys(backup.users).length > 0) {
-            await fs.writeFile(USERS_FILE, JSON.stringify(backup, null, 2), 'utf-8');
-            console.log(chalk.gray('[DB] users.json restaurado desde backup'));
-            return true;
+async function ensureFiles() {
+    await ensureDir();
+
+    const defaults = [
+        [DB_FILE, DEFAULT_DB_CONFIG],
+        [USERS_FILE, { users: {} }],
+        [GROUPS_FILE, { groups: {} }]
+    ];
+
+    for (const [file, defaultContent] of defaults) {
+        try {
+            await fs.access(file);
+            const data = await readJson(file);
+            if (!data) {
+                console.warn(chalk.yellow(`[DB] Archivo vacio/corrupto: ${path.basename(file)} - Restaurando...`));
+                const backupMap = {
+                    [DB_FILE]: DB_BACKUP_FILE,
+                    [USERS_FILE]: USERS_BACKUP_FILE,
+                    [GROUPS_FILE]: GROUPS_BACKUP_FILE
+                };
+                const restored = await restoreFromBackup(backupMap[file], file);
+                if (!restored) {
+                    await atomicWrite(file, defaultContent);
+                }
+            }
+        } catch {
+            await atomicWrite(file, defaultContent);
         }
-    } catch (err) {
-        console.warn(chalk.yellow(err.message));
     }
-    return false;
+
+    const backupDefaults = [
+        [DB_BACKUP_FILE, DEFAULT_DB_CONFIG],
+        [GROUPS_BACKUP_FILE, { groups: {} }],
+        [USERS_BACKUP_FILE, { users: {} }]
+    ];
+    for (const [file, content] of backupDefaults) {
+        try {
+            await fs.access(file);
+        } catch {
+            await atomicWrite(file, content);
+        }
+    }
 }
 
 export async function initDB() {
-    if (dbCache && groupsCache && usersCache) {
+    if (initialized && dbCache && groupsCache && usersCache) {
         return { ...dbCache, groups: groupsCache, users: usersCache };
     }
 
     await ensureFiles();
 
-    let dbData = await readJson(DB_FILE) || {};
-    let usersData = await readJson(USERS_FILE) || { users: {} };
-    let groupsData = await readJson(GROUPS_FILE) || { groups: {} };
-
-    if ((!groupsData || !groupsData.groups || Object.keys(groupsData.groups || {}).length === 0)) {
-        console.warn(chalk.yellow('[DB] Groups vacio detectado en initDB, intentando restaurar desde backup'));
-        const backupRestored = await restoreGroupsFromBackup();
-        if (backupRestored) {
-            const restored = await readJson(GROUPS_FILE) || { groups: {} };
-            groupsData.groups = restored.groups;
-        }
-    }
-
-    if ((!usersData || !usersData.users || Object.keys(usersData.users || {}).length === 0)) {
-        console.warn(chalk.yellow('[DB] Users vacio detectado en initDB, intentando restaurar desde backup'));
-        const backupRestored = await restoreUsersFromBackup();
-        if (backupRestored) {
-            const restored = await readJson(USERS_FILE) || { users: {} };
-            usersData.users = restored.users;
-        }
-    }
+    let dbData = await readJson(DB_FILE);
+    let usersData = await readJson(USERS_FILE);
+    let groupsData = await readJson(GROUPS_FILE);
 
     if (!dbData || !dbData.owners || dbData.owners.length === 0) {
-        console.warn(chalk.yellow('[DB] Configuracion invalida detectada en initDB, usando valores por defecto'));
-        dbCache = { ...DEFAULT_DB_CONFIG };
-    } else {
-        dbCache = {
-            prefix: dbData.prefix ?? DEFAULT_DB_CONFIG.prefix,
-            owners: dbData.owners || DEFAULT_DB_CONFIG.owners,
-            ownerRoles: dbData.ownerRoles || {},
-            maxSubBots: dbData.maxSubBots ?? DEFAULT_DB_CONFIG.maxSubBots
-        };
+        console.warn(chalk.yellow('[DB] Configuracion invalida, restaurando desde backup...'));
+        const restored = await restoreFromBackup(DB_BACKUP_FILE, DB_FILE);
+        if (restored) dbData = await readJson(DB_FILE);
+        if (!dbData || !dbData.owners || dbData.owners.length === 0) {
+            dbData = { ...DEFAULT_DB_CONFIG };
+        }
     }
 
-    groupsCache = (groupsData?.groups && typeof groupsData.groups === 'object') ? groupsData.groups : {};
-    usersCache = (usersData?.users && typeof usersData.users === 'object') ? usersData.users : {};
+    if (!usersData || !usersData.users) {
+        const restored = await restoreFromBackup(USERS_BACKUP_FILE, USERS_FILE);
+        if (restored) usersData = await readJson(USERS_FILE);
+        if (!usersData || !usersData.users) usersData = { users: {} };
+    }
+
+    if (!groupsData || !groupsData.groups) {
+        const restored = await restoreFromBackup(GROUPS_BACKUP_FILE, GROUPS_FILE);
+        if (restored) groupsData = await readJson(GROUPS_FILE);
+        if (!groupsData || !groupsData.groups) groupsData = { groups: {} };
+    }
+
+    dbCache = {
+        prefix: dbData.prefix ?? DEFAULT_DB_CONFIG.prefix,
+        owners: dbData.owners || DEFAULT_DB_CONFIG.owners,
+        ownerRoles: dbData.ownerRoles || {},
+        maxSubBots: dbData.maxSubBots ?? DEFAULT_DB_CONFIG.maxSubBots
+    };
+
+    groupsCache = groupsData.groups;
+    usersCache = usersData.users;
+    initialized = true;
 
     const groupCount = Object.keys(groupsCache).length;
     const userCount = Object.keys(usersCache).length;
@@ -166,7 +168,7 @@ export async function initDB() {
 }
 
 export async function getDB() {
-    if (!dbCache) {
+    if (!initialized) {
         await initDB();
     }
     return { ...dbCache, groups: groupsCache, users: usersCache };
@@ -179,140 +181,69 @@ async function writeDbFiles(data) {
     }
 
     try {
-        const existingDb = await readJson(DB_FILE);
+        const existingDb = await readJson(DB_FILE) || {};
         const existingGroups = await readJson(GROUPS_FILE) || { groups: {} };
         const existingUsers = await readJson(USERS_FILE) || { users: {} };
 
-        if (!existingGroups || !existingGroups.groups) {
-            console.error(chalk.red('[DB] ALERTA: existingGroups corrupto, intentando restaurar'));
-            existingGroups.groups = existingGroups.groups || {};
-        }
-
-        if (!existingUsers || !existingUsers.users) {
-            console.error(chalk.red('[DB] ALERTA: existingUsers corrupto, intentando restaurar'));
-            existingUsers.users = existingUsers.users || {};
-        }
-
-        const existingGroupsCount = Object.keys(existingGroups.groups || {}).length;
-        const existingUsersCount = Object.keys(existingUsers.users || {}).length;
-
         const dbToSave = {
-            prefix: (data.prefix && data.prefix.length > 0) ? data.prefix : (existingDb?.prefix ?? DEFAULT_DB_CONFIG.prefix),
-            owners: (Array.isArray(data.owners) && data.owners.length > 0) ? data.owners : (existingDb?.owners ?? DEFAULT_DB_CONFIG.owners),
-            maxSubBots: Number.isFinite(Number(data.maxSubBots)) ? Number(data.maxSubBots) : (existingDb?.maxSubBots ?? DEFAULT_DB_CONFIG.maxSubBots)
+            prefix: data.prefix ?? existingDb.prefix ?? DEFAULT_DB_CONFIG.prefix,
+            owners: (Array.isArray(data.owners) && data.owners.length > 0) 
+                ? data.owners 
+                : (existingDb.owners ?? DEFAULT_DB_CONFIG.owners),
+            maxSubBots: Number.isFinite(Number(data.maxSubBots)) 
+                ? Number(data.maxSubBots) 
+                : (existingDb.maxSubBots ?? DEFAULT_DB_CONFIG.maxSubBots),
+            ownerRoles: data.ownerRoles ?? existingDb.ownerRoles ?? {}
         };
 
-        if (data.ownerRoles && Object.keys(data.ownerRoles).length > 0) {
-            dbToSave.ownerRoles = data.ownerRoles;
-        } else if (existingDb?.ownerRoles) {
-            dbToSave.ownerRoles = existingDb.ownerRoles;
-        }
-
-        if (!dbToSave.owners || dbToSave.owners.length === 0) {
-            dbToSave.owners = DEFAULT_DB_CONFIG.owners;
-            console.warn(chalk.yellow('[DB] Owners vacio detectado durante guardado, usando valores por defecto'));
-        }
-
         let groupsToSave;
-        const incomingGroupsCount = data.groups ? Object.keys(data.groups).length : 0;
-
-        if (incomingGroupsCount > 0) {
+        if (data.groups && typeof data.groups === 'object' && Object.keys(data.groups).length > 0) {
             groupsToSave = data.groups;
-            console.log(chalk.gray(`[DB] Groups actualizado correctamente (${incomingGroupsCount} grupos)`));
-        } else if (existingGroupsCount > 0) {
+        } else if (existingGroups.groups && Object.keys(existingGroups.groups).length > 0) {
             groupsToSave = existingGroups.groups;
         } else {
             groupsToSave = {};
         }
 
         let usersToSave;
-        const incomingUsersCount = data.users ? Object.keys(data.users).length : 0;
-
-        if (incomingUsersCount > 0) {
+        if (data.users && typeof data.users === 'object' && Object.keys(data.users).length > 0) {
             usersToSave = data.users;
-            console.log(chalk.gray(`[DB] Users actualizado correctamente (${incomingUsersCount} usuarios)`));
-        } else if (existingUsersCount > 0) {
+        } else if (existingUsers.users && Object.keys(existingUsers.users).length > 0) {
             usersToSave = existingUsers.users;
         } else {
             usersToSave = {};
         }
 
-        if (!groupsToSave || typeof groupsToSave !== 'object') {
-            console.error(chalk.red('[DB] ALERTA: groupsToSave invalido, restaurando desde existentes'));
-            groupsToSave = existingGroups.groups || {};
+        const existingGroupsCount = Object.keys(existingGroups.groups || {}).length;
+        const existingUsersCount = Object.keys(existingUsers.users || {}).length;
+        const newGroupsCount = Object.keys(groupsToSave).length;
+        const newUsersCount = Object.keys(usersToSave).length;
+
+        if (existingGroupsCount > 0 && newGroupsCount === 0) {
+            console.error(chalk.red('[DB] BLOQUEADO: Intento de borrar todos los grupos. Abortando escritura de groups.'));
+            groupsToSave = existingGroups.groups;
         }
 
-        if (!usersToSave || typeof usersToSave !== 'object') {
-            console.error(chalk.red('[DB] ALERTA: usersToSave invalido, restaurando desde existentes'));
-            usersToSave = existingUsers.users || {};
+        if (existingUsersCount > 0 && newUsersCount === 0) {
+            console.error(chalk.red('[DB] BLOQUEADO: Intento de borrar todos los usuarios. Abortando escritura de users.'));
+            usersToSave = existingUsers.users;
         }
 
         if (Object.keys(groupsToSave).length > 0) {
-            try {
-                await fs.writeFile(GROUPS_BACKUP_FILE, JSON.stringify({ groups: groupsToSave }, null, 2), 'utf-8');
-            } catch (e) {
-                console.error(chalk.red('[DB] ERROR guardando backup de groups:'), e.message);
-            }
+            await atomicWrite(GROUPS_BACKUP_FILE, { groups: groupsToSave });
         }
-
         if (Object.keys(usersToSave).length > 0) {
-            try {
-                await fs.writeFile(USERS_BACKUP_FILE, JSON.stringify({ users: usersToSave }, null, 2), 'utf-8');
-            } catch (e) {
-                console.error(chalk.red('[DB] ERROR guardando backup de users:'), e.message);
-            }
+            await atomicWrite(USERS_BACKUP_FILE, { users: usersToSave });
         }
-
         if (existingDb && Object.keys(existingDb).length > 0) {
-            try {
-                await fs.writeFile(DB_BACKUP_FILE, JSON.stringify(existingDb, null, 2), 'utf-8');
-            } catch (e) {
-                console.warn(chalk.yellow('[DB] Error guardando backup de database:'), e.message);
-            }
+            await atomicWrite(DB_BACKUP_FILE, existingDb);
         }
 
-        const filesToWrite = [
-            { file: DB_FILE, data: JSON.stringify(dbToSave, null, 2) },
-            { file: USERS_FILE, data: JSON.stringify({ users: usersToSave }, null, 2) },
-            { file: GROUPS_FILE, data: JSON.stringify({ groups: groupsToSave }, null, 2) }
-        ];
+        await atomicWrite(DB_FILE, dbToSave);
+        await atomicWrite(USERS_FILE, { users: usersToSave });
+        await atomicWrite(GROUPS_FILE, { groups: groupsToSave });
 
-        for (const { file, data: content } of filesToWrite) {
-            if (!content || content.trim().length === 0) {
-                console.error(chalk.red(`[DB] ERROR: Intento de escribir archivo VACIO: ${path.basename(file)}`));
-                throw new Error(`Intento de escribir archivo vacio: ${file}`);
-            }
-        }
-
-        for (const { file, data: content } of filesToWrite) {
-            try {
-                await fs.writeFile(file, content, 'utf-8');
-                console.log(chalk.gray(`[DB] Guardado: ${path.basename(file)}`));
-            } catch (err) {
-                console.error(chalk.red(`[DB] Error CRITICO escribiendo ${path.basename(file)}:`), err.message);
-                throw err;
-            }
-        }
-
-        const verifyDb = await readJson(DB_FILE);
-        const verifyGroups = await readJson(GROUPS_FILE);
-        const verifyUsers = await readJson(USERS_FILE);
-
-        if (!verifyDb || !verifyDb.owners || verifyDb.owners.length === 0) {
-            console.error(chalk.red('[DB] POST-VALIDACION FALLO: database.json no tiene owners'));
-            throw new Error(chalk.red('Post-validacion fallo: database.json incompleto'));
-        }
-
-        const verifyGroupsCount = verifyGroups?.groups ? Object.keys(verifyGroups.groups).length : 0;
-        const verifyUsersCount = verifyUsers?.users ? Object.keys(verifyUsers.users).length : 0;
-
-        if (verifyGroupsCount !== incomingGroupsCount && incomingGroupsCount > 0) {
-            console.warn(chalk.yellow(`[DB] POST-VALIDACION: Groups mismatch (escrito: ${verifyGroupsCount}, esperado: ${incomingGroupsCount})`));
-        }
-
-        if (verifyUsersCount !== incomingUsersCount && incomingUsersCount > 0) {
-            console.warn(chalk.yellow(`[DB] POST-VALIDACION: Users mismatch (escrito: ${verifyUsersCount}, esperado: ${incomingUsersCount})`));
-        }
+        console.log(chalk.gray(`[DB] Guardado: DB config, ${Object.keys(groupsToSave).length} grupos, ${Object.keys(usersToSave).length} usuarios`));
 
     } catch (err) {
         console.error(chalk.red('[DB] Error CRITICO en writeDbFiles:'), err.message);
@@ -324,18 +255,16 @@ export async function saveDB(data, options = {}) {
     if (data && typeof data === 'object') {
         const { groups, users, ...dbData } = data;
 
-        dbCache = dbData;
+        if (Object.keys(dbData).length > 0) {
+            dbCache = { ...dbCache, ...dbData };
+        }
 
         if (groups && typeof groups === 'object' && Object.keys(groups).length > 0) {
             groupsCache = groups;
-        } else if (groups !== undefined && groups !== null) {
-            console.warn(chalk.yellow('[DB] ANOMALIA: saveDB() recibio groups vacio, PRESERVANDO cache anterior'));
         }
 
         if (users && typeof users === 'object' && Object.keys(users).length > 0) {
             usersCache = users;
-        } else if (users !== undefined && users !== null) {
-            console.warn(chalk.yellow('[DB] ANOMALIA: saveDB() recibio users vacio, PRESERVANDO cache anterior'));
         }
     }
 
@@ -345,7 +274,8 @@ export async function saveDB(data, options = {}) {
         if (saving) return;
         saving = true;
         try {
-            await writeDbFiles(data);
+            const toSave = { ...dbCache, groups: groupsCache, users: usersCache };
+            await writeDbFiles(toSave);
         } finally {
             saving = false;
         }
@@ -375,35 +305,17 @@ export async function flushDB() {
         saveTimer = null;
     }
 
-    if (!dbCache) {
-        console.warn(chalk.yellow('[DB] dbCache vacio en flushDB, nada que guardar'));
+    if (!initialized || !dbCache) {
+        console.warn(chalk.yellow('[DB] DB no inicializada en flushDB'));
         return;
     }
 
-    if (!groupsCache) {
-        console.warn(chalk.yellow('[DB] groupsCache vacio en flushDB, usando cache vacio pero seguro'));
-        groupsCache = {};
-    }
-
-    if (!usersCache) {
-        console.warn(chalk.yellow('[DB] usersCache vacio en flushDB, usando cache vacio pero seguro'));
-        usersCache = {};
-    }
-
     try {
-        const toSave = { ...dbCache, groups: groupsCache, users: usersCache };
-
-        if (!toSave.groups || typeof toSave.groups !== 'object') {
-            console.error(chalk.red('[DB] ALERTA EN FLUSH: groups invalido'));
-            toSave.groups = groupsCache || {};
-        }
-
-        if (!toSave.users || typeof toSave.users !== 'object') {
-            console.error(chalk.red('[DB] ALERTA EN FLUSH: users invalido'));
-            toSave.users = usersCache || {};
-        }
-
-        console.log(chalk.gray(`[DB] Guardando: ${Object.keys(toSave.groups || {}).length} grupos, ${Object.keys(toSave.users || {}).length} usuarios`));
+        const toSave = { 
+            ...dbCache, 
+            groups: groupsCache || {}, 
+            users: usersCache || {} 
+        };
         await writeDbFiles(toSave);
         console.log(chalk.gray('[DB] Flush completado exitosamente'));
     } catch (err) {
