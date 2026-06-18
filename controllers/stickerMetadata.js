@@ -6,7 +6,7 @@ import webpmux from 'node-webpmux';
  * @param {string} [author]
  * @returns {Promise<Buffer>}
  */
-export async function addStickerMetadata(webpBuffer, packName = '𝐀𝐮𝐫𝐚 𝐑𝐞𝐞𝐝 🧠 𝐖𝐚𝐁𝐨𝐭', author = '@Usuario') {
+export async function addStickerMetadata(webpBuffer, packName = '𝐀𝐮𝐫𝐚 𝐑𝐞𝐞𝐝', author = '@Usuario') {
     try {
         const img = new webpmux.Image();
         await img.load(webpBuffer);

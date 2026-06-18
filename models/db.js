@@ -22,13 +22,13 @@ const DEFAULT_DB_CONFIG = {
     prefix: ".",
     owners: [
         "50670375314@s.whatsapp.net",
-        "50577839681@s.whatsapp.net",
+        "50581253065@s.whatsapp.net",
         "5214183357841@s.whatsapp.net",
         "50578391933@s.whatsapp.net"
     ],
     maxSubBots: 20,
     ownerRoles: {
-        "50577839681@s.whatsapp.net": "Diseñador",
+        "50581253065@s.whatsapp.net": "Soporte",
         "5214183357841@s.whatsapp.net": "Colaborador",
         "50578391933@s.whatsapp.net": "Soporte"
     }
