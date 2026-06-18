@@ -10,7 +10,6 @@ import { handleMessage } from './controllers/msgHandler.js';
 import { handleGroupUpdate } from './controllers/groupEvents.js';
 import { getDB, saveDB, initDB, flushDB } from './models/db.js';
 import { runCleanCacheIfNeeded, startCleanCacheTimer } from './controllers/cleanCache.js';
-import { extractLidMappingsFromMessage, decorateSocketForLidResolution, resolveLidToRealJid } from './models/utils.js';
 
 await initDB();
 const db = await getDB();
@@ -113,8 +112,6 @@ async function connectToWhatsApp() {
         logger: pino({ level: 'silent' })
     });
 
-    decorateSocketForLidResolution(sock);
-
     sock.ev.on('creds.update', saveCreds);
 
     if (chosenPairingCode && !isRegistered) {
@@ -132,20 +129,11 @@ async function connectToWhatsApp() {
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
         if (type !== 'notify') return;
         const m = messages[0];
-        
-        // Extraer y guardar mappings de LID
-        extractLidMappingsFromMessage(m);
-
         const db = await getDB();
         await handleMessage(sock, m, db, saveDB);
     });
 
     sock.ev.on('group-participants.update', async (update) => {
-        if (update.participants) {
-            for (let i = 0; i < update.participants.length; i++) {
-                update.participants[i] = await resolveLidToRealJid(update.participants[i], sock, update.id);
-            }
-        }
         await handleGroupUpdate(sock, update, getDB);
     });
 
