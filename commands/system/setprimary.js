@@ -6,7 +6,7 @@ export default {
     adminOnly: true,
     category: 'system',
 
-    async execute(sock, m, args, { db, saveDB }) {
+    async execute(sock, m, args, { prefix, db, saveDB }) {
         const remoteJid = m.key.remoteJid;
         const isGroup = remoteJid.endsWith('@g.us');
 
@@ -37,21 +37,11 @@ export default {
             targetBot = replied;
         } else if (mentioned) {
             targetBot = mentioned;
-        } else if (args[0]) {
-            const firstArgClean = args[0].replace(/[^0-9]/g, '');
-            if (firstArgClean.length >= 7) {
-                targetBot = firstArgClean + '@s.whatsapp.net';
-            }
         }
 
         // Normalize targetBot if resolved
         if (targetBot) {
             targetBot = targetBot.split('@')[0].split(':')[0] + '@s.whatsapp.net';
-        }
-
-        // If no target resolved and not clearing, default to current bot
-        if (!isClearing && !targetBot) {
-            targetBot = botId;
         }
 
         if (isClearing) {
@@ -66,6 +56,28 @@ export default {
             text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
 
             return await sock.sendMessage(remoteJid, { text }, { quoted: m });
+        }
+
+        if (!targetBot) {
+            let text = `╭〔 ℹ️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
+            text += `┃ ⚙️ 𝐂𝐎𝐍𝐅𝐈𝐆𝐔𝐑𝐀𝐂𝐈𝐎́𝐍\n`;
+            text += `╰━━━━━━━━━━━━⬣\n\n`;
+            text += `┃ *Uso del comando:*\n`;
+            text += `┃ > Responde (cita) al bot o etiquétalo (@bot) con el comando:\n`;
+            text += `┃ ➪ *${prefix}setprimary*\n\n`;
+            text += `┃ *Para desactivar:* \n`;
+            text += `┃ ➪ *${prefix}setprimary off*\n\n`;
+            if (currentPrimary) {
+                text += `┃ ➪ *Bot primario actual:* @${currentPrimary.split('@')[0]}\n\n`;
+            } else {
+                text += `┃ ➪ *Bot primario actual:* Ninguno (responden todos)\n\n`;
+            }
+            text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
+
+            return await sock.sendMessage(remoteJid, { 
+                text,
+                mentions: currentPrimary ? [currentPrimary] : []
+            }, { quoted: m });
         }
 
         db.groups[remoteJid].primaryBot = targetBot;
