@@ -1,4 +1,4 @@
-import makeWASocket, { useMultiFileAuthState, DisconnectReason, makeCacheableSignalKeyStore } from '@whiskeysockets/baileys';
+import makeWASocket, { useMultiFileAuthState, DisconnectReason, makeCacheableSignalKeyStore, fetchLatestWaWebVersion } from '@whiskeysockets/baileys';
 import { Boom } from '@hapi/boom';
 import qrcodeTerminal from 'qrcode-terminal';
 import pino from 'pino';
@@ -72,7 +72,7 @@ async function connectToWhatsApp() {
     const { state, saveCreds } = await useMultiFileAuthState('sessions/principal');
     
     // Check if we are already registered/logged in
-    const isRegistered = state.creds && state.creds.registered;
+    const isRegistered = state.creds && (state.creds.registered || state.creds.me);
     
     if (!isRegistered && !isPairingChoiceMade) {
         let menu = `${
@@ -103,7 +103,11 @@ async function connectToWhatsApp() {
         }
     }
 
+    const { version } = await fetchLatestWaWebVersion().catch(() => ({ version: [2, 3000, 1017025734] }));
+    console.log(chalk.blue(`[Aura Reed] Usando la versión de WhatsApp Web v${version.join('.')}`));
+
     const sock = makeWASocket({
+        version,
         auth: {
             creds: state.creds,
             keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' }))
@@ -143,11 +147,27 @@ async function connectToWhatsApp() {
             qrcodeTerminal.generate(u.qr, { small: true });
         }
         if (u.connection === 'close') {
-            const statusCode = (u.lastDisconnect?.error)?.output?.statusCode;
-            const isLoggedOut = statusCode === DisconnectReason.loggedOut;
+            try {
+                sock.ev.removeAllListeners();
+            } catch (e) {
+                console.error('Error al remover oyentes del socket:', e);
+            }
 
-            if (isLoggedOut) {
-                console.log(chalk.red('\n❌ La sesión ha sido desvinculada por WhatsApp o el dispositivo cambió.'));
+            const error = u.lastDisconnect?.error;
+            const statusCode = error?.output?.statusCode || error?.statusCode;
+            const errorMessage = error?.message || 'Error desconocido';
+            
+            console.log(chalk.yellow(`\nℹ️ Conexión cerrada. Código de estado: ${statusCode || 'N/A'}. Razón: ${errorMessage}`));
+
+            const shouldResetSession = [
+                DisconnectReason.loggedOut,          // 401
+                DisconnectReason.badSession,          // 500
+                DisconnectReason.forbidden,           // 403
+                DisconnectReason.multideviceMismatch  // 411
+            ].includes(statusCode);
+
+            if (shouldResetSession) {
+                console.log(chalk.red('\n❌ La sesión no es válida, ha sido desvinculada por WhatsApp o el dispositivo cambió.'));
                 console.log(chalk.yellow('Limpiando credenciales obsoletas y volviendo al menú de vinculación...\n'));
                 
                 const authFolder = './sessions/principal';
@@ -164,10 +184,11 @@ async function connectToWhatsApp() {
                 chosenPairingCode = false;
                 chosenPhoneNumber = '';
                 
-                connectToWhatsApp();
+                console.log(chalk.cyan('Iniciando nuevo proceso de vinculación en 3 segundos...'));
+                setTimeout(connectToWhatsApp, 3000);
             } else {
-                console.log(chalk.yellow('⚠️ Conexión interrumpida. Reconectando...'));
-                connectToWhatsApp();
+                console.log(chalk.yellow('⚠️ Conexión interrumpida. Reconectando en 5 segundos...'));
+                setTimeout(connectToWhatsApp, 5000);
             }
         }
         if (u.connection === 'open') {

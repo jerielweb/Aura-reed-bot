@@ -1,4 +1,4 @@
-import makeWASocket, { useMultiFileAuthState, makeCacheableSignalKeyStore, DisconnectReason } from '@whiskeysockets/baileys';
+import makeWASocket, { useMultiFileAuthState, makeCacheableSignalKeyStore, DisconnectReason, fetchLatestWaWebVersion } from '@whiskeysockets/baileys';
 import pino from 'pino';
 import fs from 'fs';
 import path from 'path';
@@ -154,8 +154,10 @@ export async function createSubBot(sock, m, type, phoneNumber = null) {
     }, 60000);
 
     async function start() {
+        const { version } = await fetchLatestWaWebVersion().catch(() => ({ version: [2, 3000, 1017025734] }));
         const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
         const subSock = makeWASocket({
+            version,
             auth: {
                 creds: state.creds,
                 keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' }))
@@ -191,15 +193,39 @@ export async function createSubBot(sock, m, type, phoneNumber = null) {
             }
 
             if (connection === 'close') {
-                const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
-                console.log(`[SUB-BOT] Conexión cerrada. Razón/Código: ${reason}`);
+                // Remove all event listeners of the old socket to prevent memory leaks,
+                // duplicate reconnection triggers, and crashes if saveCreds is called after folder removal
+                try {
+                    subSock.ev.removeAllListeners();
+                } catch (e) {
+                    console.error('[SUB-BOT] Error al remover oyentes del socket:', e);
+                }
+
+                const error = lastDisconnect?.error;
+                const reason = error?.output?.statusCode || error?.statusCode || new Boom(error)?.output?.statusCode;
+                const errorMessage = error?.message || 'Error desconocido';
+                console.log(`[SUB-BOT] Conexión cerrada. Razón/Código: ${reason || 'N/A'}. Error: ${errorMessage}`);
                 
-                if (reason === 401) {
-                    if (fs.existsSync(sessionPath)) fs.rmSync(sessionPath, { recursive: true, force: true });
+                const shouldResetSession = [
+                    DisconnectReason.loggedOut,          // 401
+                    DisconnectReason.badSession,          // 500
+                    DisconnectReason.forbidden,           // 403
+                    DisconnectReason.multideviceMismatch  // 411
+                ].includes(reason);
+
+                if (shouldResetSession) {
+                    console.log(`[SUB-BOT] Sesión inválida/desvinculada para sub-bot ${senderId}. Limpiando credenciales.`);
+                    if (fs.existsSync(sessionPath)) {
+                        try {
+                            fs.rmSync(sessionPath, { recursive: true, force: true });
+                        } catch (e) {
+                            console.error(`[SUB-BOT] Error al limpiar credenciales:`, e);
+                        }
+                    }
                     clearTimeout(timeout);
                 } else if (!isConnected && !isClosedManually) {
-                    console.log(`[SUB-BOT] Reintentando conexión...`);
-                    start(); // Reintentar automáticamente
+                    console.log(`[SUB-BOT] Reintentando conexión en 5 segundos...`);
+                    setTimeout(start, 5000);
                 }
             } else if (connection === 'open') {
                 isConnected = true;
@@ -208,7 +234,7 @@ export async function createSubBot(sock, m, type, phoneNumber = null) {
             }
         });
 
-        if (type === 'code' && phoneNumber && !subSock.authState.creds.registered) {
+        if (type === 'code' && phoneNumber && !subSock.authState.creds.registered && !subSock.authState.creds.me) {
             setTimeout(async () => {
                 try {
                     const code = await subSock.requestPairingCode(phoneNumber);
