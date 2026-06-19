@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import QRCode from 'qrcode';
 import { Boom } from '@hapi/boom';
 import { handleMessage } from '../controllers/msgHandler.js';
+import { handleGroupUpdate } from '../controllers/groupEvents.js';
 import { stripEconomyFromUsers } from './groupDb.js';
 
 export const SUB_LIMIT_MESSAGE = '✐ No se han encontrado espacios disponibles para registrar un `Sub-Bot`.';
@@ -182,6 +183,10 @@ export async function createSubBot(sock, m, type, phoneNumber = null) {
             const msg = messages[0];
             const db = getDB();
             await handleMessage(subSock, msg, db, saveDB);
+        });
+
+        subSock.ev.on('group-participants.update', async (update) => {
+            await handleGroupUpdate(subSock, update, getDB);
         });
 
         subSock.ev.on('connection.update', async (update) => {

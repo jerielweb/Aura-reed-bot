@@ -71,14 +71,21 @@ export async function handleMessage(sock, m, db, saveDB) {
     const argsForCheck = esComando ? text.slice(prefix.length).trim().split(/ +/) : [];
     const commandNameForCheck = esComando ? argsForCheck[0]?.toLowerCase() : null;
 
+    const botId = sock.user?.id ? (sock.user.id.split('@')[0].split(':')[0] + '@s.whatsapp.net') : null;
+    const groupPrimaryBot = isGroup ? db.groups?.[remoteJid]?.primaryBot : null;
+    if (isGroup && groupPrimaryBot && botId && groupPrimaryBot !== botId) {
+        if (esComando && (commandNameForCheck === 'setprimary' || commandNameForCheck === 'primary')) {
+        } else {
+            return;
+        }
+    }
+
     if (isGroup && db.groups?.[remoteJid]?.botOn === false) {
         if (text === `${prefix}bot on` || commandNameForCheck === 'bot') {
-            // Permitir el comando bot para mostrar estado o activar.
         } else if (esComando) {
             return await sock.sendMessage(remoteJid, { text: `⚠️ El bot está desactivado. Usa *${prefix}bot on* para activarlo.` }, { quoted: m });
         } else return;
     }
-    // ------------------------------------
 
     const jidResuelto = await resolveLidToRealJid(senderRaw, sock, remoteJid);
     const numeroReal = jidResuelto.split('@')[0].split(':')[0];
@@ -87,7 +94,6 @@ export async function handleMessage(sock, m, db, saveDB) {
     if (isGroup && !m.key.fromMe && trackGroupActivity(db, remoteJid, jidRemitente)) saveDB(db);
 
     const owners = db.owners || [];
-    const botId = sock.user.id.split('@')[0].split(':')[0] + '@s.whatsapp.net';
     const sender = m.key.fromMe ? botId : jidRemitente;
     const isOwner = owners.includes(sender);
     const rangoLog = isOwner ? 'OWNER 👑' : 'USUARIO 👤';

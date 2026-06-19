@@ -6,6 +6,14 @@ export async function handleGroupUpdate(sock, { id, participants, action }, getD
     const db = await getDB();
     const groupData = db.groups[id];
 
+    // Verificar si el bot actual es el primario asignado a este grupo
+    const botId = sock.user?.id ? (sock.user.id.split('@')[0].split(':')[0] + '@s.whatsapp.net') : null;
+    const groupPrimaryBot = groupData?.primaryBot;
+    if (groupPrimaryBot && botId && groupPrimaryBot !== botId) {
+        console.log(`[GROUP-EVENT] Ignorado por no ser bot primario. Bot actual: ${botId} | Primario: ${groupPrimaryBot}`);
+        return;
+    }
+
     console.log(`[GROUP-EVENT] Acción: ${action} | Grupo: ${id} | Participants: ${participants.length}`);
 
     // 1. EVENTO: BIENVENIDA (add)
