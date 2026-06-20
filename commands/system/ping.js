@@ -87,7 +87,7 @@ export default {
 
         // Mensaje con edición
         await sock.sendMessage(m.key.remoteJid, {
-            text: `⚡ ${fytBold('RESULTADO DE LA PRUEBA')} ⚡\n\n╭━━〔 ${fytBold('AURA REED SYSTEM')} 〕━━⬣\n┃ ⚡ ${fytBold('Velocidad del Bot:')} *${latency}ms*\n┃ 📶 ${fytBold('Latencia:')} *${status}*\n┃ 🟢 ${fytBold('RAM Servidor:')} *${usedRAM.toFixed(0)} / ${totalRAM.toFixed(0)} MB* (${ramPercent.toFixed(1)}%)\n┃ 📊 ${fytBold('Estado RAM:')} ${ramStatus}\n┃ 🔥 ${fytBold('Sistema:')} *${system}*\n╰━━━━━━━━━━━━━━━━⬣`,
+            text: `⚡ ${fytBold('RESULTADO DE LA PRUEBA')} ⚡\n\n╭━━〔 ${fytBold('AURA REED SYSTEM')} 〕━━⬣\n┃ ⚡ ${fytBold('Velocidad del Bot:')} *${latency}ms*\n┃ 📶 ${fytBold('Latencia:')} *${status}*\n┃ 📊 ${fytBold('Estado RAM:')} ${ramStatus}\n┃ 🔥 ${fytBold('Sistema:')} *${system}*\n╰━━━━━━━━━━━━━━━━⬣`,
             edit: key
         }, { quoted: m });
     }
