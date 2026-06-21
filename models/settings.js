@@ -10,6 +10,7 @@ export default mongoose.model('Settings', settingsSchema);
 
 
 import fs from 'fs';
+import gemini from '../commands/AI/gemini';
 
 const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
 
@@ -35,6 +36,8 @@ global.Apis = {
         url: 'https://api.delirius.store/'
     },
 };
+//AI
+global.geminiApi = 'AQ.Ab8RN6I_GpnoPONT4EheYajqmBsXONQumiOu9J2JroC_-UBjDQ'
 
 // YouTube Search APIs
 global.youtubeApis = {
