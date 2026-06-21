@@ -10,7 +10,7 @@ export default mongoose.model('Settings', settingsSchema);
 
 
 import fs from 'fs';
-import gemini from '../commands/AI/gemini';
+import gemini from '../commands/AI/gemini.js';
 
 const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
 
