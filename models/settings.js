@@ -61,5 +61,5 @@ global.tiktokApis = {
 
 global.apiShazam = {
     url: 'https://api.audd.io/',
-    apikey: '257b4fe430651b5c9fbaa9d5203531f8'
+    apikey: '07887abb3c387183d5f3be932f3445d5'
 }
