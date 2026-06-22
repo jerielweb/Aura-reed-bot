@@ -1,7 +1,7 @@
 import {GoogleGenAI} from '@google/genai';
 import {fytBold} from './../../models/TextStyle.js';
 
-const AI = new GoogleGenAI({apiKey: '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'})
+const AI = new GoogleGenAI({apiKey: 'AQ.Ab8RN6L3YB7_1vtQH-G4BYMK4x-OFdMwrZkqgaKZj2_-n5IdZg'})
 
 
 export default {
