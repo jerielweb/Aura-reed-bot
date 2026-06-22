@@ -1,7 +1,7 @@
 import {GoogleGenAI} from '@google/genai';
 import {fytBold} from './../../models/TextStyle.js';
 
-const AI = new GoogleGenAI({apiKey: global.GEMINI})
+const AI = new GoogleGenAI({keyFilename: path.resolve('./google-credentials.json')})
 
 
 export default {
