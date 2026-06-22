@@ -37,7 +37,7 @@ global.Apis = {
     },
 };
 //AI
-global.geminiApi = 'AQ.Ab8RN6I_GpnoPONT4EheYajqmBsXONQumiOu9J2JroC_-UBjDQ'
+global.GEMINI = 'AQ.Ab8RN6K7ZVwYYlkObmME1Fv6qpF1yg88gV8fWm252jxt-ZDe-w'
 
 // YouTube Search APIs
 global.youtubeApis = {
