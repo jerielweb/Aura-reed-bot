@@ -1,4 +1,4 @@
-import makeWASocket, { useMultiFileAuthState, makeCacheableSignalKeyStore, DisconnectReason, fetchLatestWaWebVersion } from '@whiskeysockets/baileys';
+import makeWASocket, { useMultiFileAuthState, DisconnectReason, fetchLatestWaWebVersion } from '@whiskeysockets/baileys';
 import pino from 'pino';
 import fs from 'fs';
 import path from 'path';
@@ -8,13 +8,14 @@ import { Boom } from '@hapi/boom';
 import { handleMessage } from '../controllers/msgHandler.js';
 import { handleGroupUpdate } from '../controllers/groupEvents.js';
 import { stripEconomyFromUsers } from './groupDb.js';
+import { getDB, saveDB, getDBSync } from './db.js';
 
 export const SUB_LIMIT_MESSAGE = '✐ No se han encontrado espacios disponibles para registrar un `Sub-Bot`.';
 
-/** Lee el límite en cada llamada (sin caché de módulo; editable en database.json). */
+/** Lee el límite en cada llamada. */
 export function getMaxSubBots() {
     try {
-        const db = JSON.parse(fs.readFileSync(path.join(databaseDir, 'database.json'), 'utf-8'));
+        const db = getDBSync();
         const max = Number(db.maxSubBots);
         return Number.isFinite(max) && max >= 0 ? max : 15;
     } catch {
@@ -27,33 +28,6 @@ const sessionsDir = path.join(ROOT_DIR, 'sessions', 'subbots');
 const databaseDir = path.join(ROOT_DIR, 'database');
 
 if (!fs.existsSync(sessionsDir)) fs.mkdirSync(sessionsDir, { recursive: true });
-
-const getDB = () => {
-    const dbData = JSON.parse(fs.readFileSync(path.join(databaseDir, 'database.json'), 'utf-8'));
-    const usersData = JSON.parse(fs.readFileSync(path.join(databaseDir, 'users.json'), 'utf-8'));
-    const groupsData = JSON.parse(fs.readFileSync(path.join(databaseDir, 'groups.json'), 'utf-8'));
-    return {
-        prefix: dbData.prefix,
-        owners: dbData.owners,
-        ownerRoles: dbData.ownerRoles || {},
-        users: stripEconomyFromUsers(usersData.users || {}),
-        groups: groupsData.groups || {}
-    };
-};
-
-const saveDB = (data) => {
-    const roles = data.ownerRoles || {};
-    const existing = JSON.parse(fs.readFileSync(path.join(databaseDir, 'database.json'), 'utf-8'));
-    const dbToSave = {
-        prefix: data.prefix,
-        owners: data.owners,
-        maxSubBots: data.maxSubBots ?? existing.maxSubBots ?? 15
-    };
-    if (Object.keys(roles).length > 0) dbToSave.ownerRoles = roles;
-    fs.writeFileSync(path.join(databaseDir, 'database.json'), JSON.stringify(dbToSave, null, 2));
-    fs.writeFileSync(path.join(databaseDir, 'users.json'), JSON.stringify({ users: stripEconomyFromUsers(data.users) }, null, 2));
-    fs.writeFileSync(path.join(databaseDir, 'groups.json'), JSON.stringify({ groups: data.groups }, null, 2));
-};
 
 // Mapa para rastrear sockets activos de sub-bots
 const activeSubBots = new Map();
@@ -161,7 +135,7 @@ export async function createSubBot(sock, m, type, phoneNumber = null) {
             version,
             auth: {
                 creds: state.creds,
-                keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' }))
+                keys: state.keys
             },
             logger: pino({ level: 'silent' }),
             printQRInTerminal: false,
@@ -181,7 +155,7 @@ export async function createSubBot(sock, m, type, phoneNumber = null) {
         subSock.ev.on('messages.upsert', async ({ messages, type: msgType }) => {
             if (msgType !== 'notify') return;
             const msg = messages[0];
-            const db = getDB();
+            const db = await getDB();
             await handleMessage(subSock, msg, db, saveDB);
         });
 

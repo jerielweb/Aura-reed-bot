@@ -1,14 +1,11 @@
 import formatNumber from '../../controllers/functions/formatNumbers.js';
-import fs from 'fs';
-import path from 'path';
-
-const dbPath = path.join(process.cwd(), 'database', 'groups.json');
+// Database path no longer needed here since we use the unified db parameter
 
 export default {
     name: ['steal', 'robar'],
     category: 'economy',
     description: 'Intenta robarle AuraCoins a otro usuario de su cartera.',
-    execute: async (socket, message, args) => {
+    execute: async (socket, message, args, { db, saveDB }) => {
         const remoteJid = message.key.remoteJid;
         const sender = message.key.participant || message.key.remoteJid;
 
@@ -25,8 +22,7 @@ export default {
         const cooldownHora = 60 * 60 * 1000; // 1 hora de cooldown
 
         try {
-            const dbData = JSON.parse(await fs.promises.readFile(dbPath, 'utf-8'));
-            const grupo = dbData.groups?.[remoteJid];
+            const grupo = db.groups?.[remoteJid];
 
             if (!grupo) return;
 
@@ -97,8 +93,8 @@ export default {
 
             menuTexto += `\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
 
-            // Guardar cambios en el JSON
-            await fs.promises.writeFile(dbPath, JSON.stringify(dbData, null, 2));
+            // Guardar cambios en la base de datos
+            await saveDB(db);
 
             // Enviar mensaje mencionando a la víctima
             await socket.sendMessage(remoteJid, { 

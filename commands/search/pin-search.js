@@ -75,12 +75,12 @@ export default {
 
     await socket.sendMessage(remoteJid, { react: { text: '🔍', key: message.key } });
 
-    const stellarUrl = `https://api.stellarwa.xyz/search/pinterest?query=${encodeURIComponent(query)}&key=api-7dSKm`;
+    const alyaUrl = `https://api.alyacore.xyz/search/pinterest?query=${encodeURIComponent(query)}&key=oboe`;
     const causasUrl = `https://rest.apicausas.xyz/api/v1/buscadores/pinterest?apikey=oboe&q=${encodeURIComponent(query)}`;
     const deliriusUrl = `https://api.delirius.store/search/pinterestv2?text=${encodeURIComponent(query)}`;
 
     const apiCalls = [
-      fetchJson(stellarUrl).then(r => ({ source: 'StellarWA', data: r.data || r.data?.data })),
+      fetchJson(alyaUrl).then(r => ({ source: 'Alya Core', data: r.data || r.data?.data })),
       fetchJson(causasUrl).then(r => ({ source: 'Api Causas', data: r.data })),
       fetchJson(deliriusUrl).then(r => ({ source: 'Delirius', data: r.data }))
     ];

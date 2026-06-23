@@ -1,22 +1,27 @@
-import fs from 'fs/promises';
+import Database from 'better-sqlite3';
+import NodeCache from 'node-cache';
 import path from 'path';
+import fs from 'fs';
 import chalk from 'chalk';
 
 const DATABASE_DIR = path.resolve('./database');
+const DB_SQLITE_FILE = path.join(DATABASE_DIR, 'db.sqlite3');
+
 const DB_FILE = path.join(DATABASE_DIR, 'database.json');
 const USERS_FILE = path.join(DATABASE_DIR, 'users.json');
 const GROUPS_FILE = path.join(DATABASE_DIR, 'groups.json');
-const DB_BACKUP_FILE = path.join(DATABASE_DIR, 'database.backup.json');
-const GROUPS_BACKUP_FILE = path.join(DATABASE_DIR, 'groups.backup.json');
-const USERS_BACKUP_FILE = path.join(DATABASE_DIR, 'users.backup.json');
+
 const SAVE_DELAY_MS = 800;
 
+let dbConn = null;
 let dbCache = null;
-let groupsCache = null;
-let usersCache = null;
 let saveTimer = null;
 let saving = false;
 let initialized = false;
+
+// Create node-cache instances with standard TTL of 10 minutes (600 seconds) and useClones: false
+export const groupsCache = new NodeCache({ stdTTL: 600, useClones: false });
+export const usersCache = new NodeCache({ stdTTL: 600, useClones: false });
 
 const DEFAULT_DB_CONFIG = {
     prefix: ".",
@@ -34,119 +39,304 @@ const DEFAULT_DB_CONFIG = {
     }
 };
 
-async function ensureDir() {
-    await fs.mkdir(DATABASE_DIR, { recursive: true });
-}
-
-async function readJson(filePath) {
+// Expired cache hooks to write entries to SQLite before they are evicted from RAM
+groupsCache.on("expired", (key, value) => {
     try {
-        const raw = await fs.readFile(filePath, 'utf-8');
-        if (!raw || raw.trim().length === 0) return null;
-        return JSON.parse(raw);
+        dbConn.prepare("INSERT INTO groups(jid, data) VALUES(?, ?) ON CONFLICT(jid) DO UPDATE SET data=excluded.data")
+            .run(key, JSON.stringify(value));
+        console.log(chalk.gray(`[DB] Grupo ${key} guardado en SQLite por expiración de caché`));
     } catch (err) {
-        console.warn(chalk.yellow(`[DB] Error leyendo ${path.basename(filePath)}: ${err.message}`));
-        return null;
+        console.error(chalk.red(`[DB] Error al guardar grupo expirado ${key}:`), err.message);
     }
-}
+});
 
-async function atomicWrite(filePath, data) {
-    const tempFile = filePath + '.tmp';
-    const content = JSON.stringify(data, null, 2);
-    if (!content || content.trim().length === 0) {
-        throw new Error(`Intento de escribir archivo vacio: ${filePath}`);
-    }
-    await fs.writeFile(tempFile, content, 'utf-8');
-    await fs.rename(tempFile, filePath);
-}
-
-async function restoreFromBackup(backupPath, targetPath) {
+usersCache.on("expired", (key, value) => {
     try {
-        const backup = await readJson(backupPath);
-        if (backup && Object.keys(backup).length > 0) {
-            await atomicWrite(targetPath, backup);
-            console.log(chalk.gray(`[DB] ${path.basename(targetPath)} restaurado desde backup`));
-            return true;
+        dbConn.prepare("INSERT INTO users(jid, data) VALUES(?, ?) ON CONFLICT(jid) DO UPDATE SET data=excluded.data")
+            .run(key, JSON.stringify(value));
+        console.log(chalk.gray(`[DB] Usuario ${key} guardado en SQLite por expiración de caché`));
+    } catch (err) {
+        console.error(chalk.red(`[DB] Error al guardar usuario expirado ${key}:`), err.message);
+    }
+});
+
+// Proxies to intercept JS object reads and writes, loading/caching from SQLite synchronously
+const groupsProxy = new Proxy({}, {
+    get(target, key) {
+        if (typeof key !== 'string' || key === 'toJSON' || key === 'then') return target[key];
+        
+        let group = groupsCache.get(key);
+        if (!group) {
+            try {
+                const row = dbConn.prepare("SELECT data FROM groups WHERE jid = ?").get(key);
+                if (row) {
+                    group = JSON.parse(row.data);
+                    groupsCache.set(key, group);
+                }
+            } catch (err) {
+                console.error(chalk.red(`[DB] Error cargando grupo ${key} de SQLite:`), err.message);
+            }
         }
-    } catch (err) {
-        console.warn(chalk.yellow(`[DB] No se pudo restaurar ${path.basename(targetPath)}: ${err.message}`));
-    }
-    return false;
-}
-
-async function ensureFiles() {
-    await ensureDir();
-
-    const defaults = [
-        [DB_FILE, DEFAULT_DB_CONFIG],
-        [USERS_FILE, { users: {} }],
-        [GROUPS_FILE, { groups: {} }]
-    ];
-
-    for (const [file, defaultContent] of defaults) {
+        return group;
+    },
+    set(target, key, value) {
+        if (typeof key === 'string') {
+            groupsCache.set(key, value);
+        }
+        return true;
+    },
+    deleteProperty(target, key) {
+        if (typeof key === 'string') {
+            groupsCache.del(key);
+            try {
+                dbConn.prepare("DELETE FROM groups WHERE jid = ?").run(key);
+            } catch (err) {
+                console.error(chalk.red(`[DB] Error eliminando grupo ${key} de SQLite:`), err.message);
+            }
+        }
+        return true;
+    },
+    has(target, key) {
+        if (typeof key !== 'string') return false;
+        if (groupsCache.has(key)) return true;
         try {
-            await fs.access(file);
-            const data = await readJson(file);
-            if (!data) {
-                console.warn(chalk.yellow(`[DB] Archivo vacio/corrupto: ${path.basename(file)} - Restaurando...`));
-                const backupMap = {
-                    [DB_FILE]: DB_BACKUP_FILE,
-                    [USERS_FILE]: USERS_BACKUP_FILE,
-                    [GROUPS_FILE]: GROUPS_BACKUP_FILE
-                };
-                const restored = await restoreFromBackup(backupMap[file], file);
-                if (!restored) {
-                    await atomicWrite(file, defaultContent);
+            const row = dbConn.prepare("SELECT 1 FROM groups WHERE jid = ?").get(key);
+            return !!row;
+        } catch {
+            return false;
+        }
+    },
+    ownKeys(target) {
+        try {
+            const rows = dbConn.prepare("SELECT jid FROM groups").all();
+            const keys = new Set(rows.map(r => r.jid));
+            const cachedKeys = groupsCache.keys();
+            for (const k of cachedKeys) keys.add(k);
+            return Array.from(keys);
+        } catch {
+            return groupsCache.keys();
+        }
+    },
+    getOwnPropertyDescriptor(target, key) {
+        return {
+            enumerable: true,
+            configurable: true
+        };
+    }
+});
+
+const usersProxy = new Proxy({}, {
+    get(target, key) {
+        if (typeof key !== 'string' || key === 'toJSON' || key === 'then') return target[key];
+        
+        let user = usersCache.get(key);
+        if (!user) {
+            try {
+                const row = dbConn.prepare("SELECT data FROM users WHERE jid = ?").get(key);
+                if (row) {
+                    user = JSON.parse(row.data);
+                    usersCache.set(key, user);
+                }
+            } catch (err) {
+                console.error(chalk.red(`[DB] Error cargando usuario ${key} de SQLite:`), err.message);
+            }
+        }
+        return user;
+    },
+    set(target, key, value) {
+        if (typeof key === 'string') {
+            usersCache.set(key, value);
+        }
+        return true;
+    },
+    deleteProperty(target, key) {
+        if (typeof key === 'string') {
+            usersCache.del(key);
+            try {
+                dbConn.prepare("DELETE FROM users WHERE jid = ?").run(key);
+            } catch (err) {
+                console.error(chalk.red(`[DB] Error eliminando usuario ${key} de SQLite:`), err.message);
+            }
+        }
+        return true;
+    },
+    has(target, key) {
+        if (typeof key !== 'string') return false;
+        if (usersCache.has(key)) return true;
+        try {
+            const row = dbConn.prepare("SELECT 1 FROM users WHERE jid = ?").get(key);
+            return !!row;
+        } catch {
+            return false;
+        }
+    },
+    ownKeys(target) {
+        try {
+            const rows = dbConn.prepare("SELECT jid FROM users").all();
+            const keys = new Set(rows.map(r => r.jid));
+            const cachedKeys = usersCache.keys();
+            for (const k of cachedKeys) keys.add(k);
+            return Array.from(keys);
+        } catch {
+            return usersCache.keys();
+        }
+    },
+    getOwnPropertyDescriptor(target, key) {
+        return {
+            enumerable: true,
+            configurable: true
+        };
+    }
+});
+
+function migrateFromJsonIfNeeded() {
+    try {
+        const configCountRow = dbConn.prepare("SELECT COUNT(*) as count FROM config").get();
+        if (configCountRow && configCountRow.count > 0) {
+            return;
+        }
+    } catch (e) {}
+
+    let hasJson = false;
+    let oldConfig = null;
+    let oldUsers = null;
+    let oldGroups = null;
+
+    try {
+        if (fs.existsSync(DB_FILE)) {
+            const raw = fs.readFileSync(DB_FILE, 'utf-8');
+            oldConfig = JSON.parse(raw);
+            hasJson = true;
+        }
+    } catch {}
+
+    try {
+        if (fs.existsSync(USERS_FILE)) {
+            const raw = fs.readFileSync(USERS_FILE, 'utf-8');
+            oldUsers = JSON.parse(raw);
+            hasJson = true;
+        }
+    } catch {}
+
+    try {
+        if (fs.existsSync(GROUPS_FILE)) {
+            const raw = fs.readFileSync(GROUPS_FILE, 'utf-8');
+            oldGroups = JSON.parse(raw);
+            hasJson = true;
+        }
+    } catch {}
+
+    if (!hasJson) {
+        return;
+    }
+
+    console.log(chalk.cyan('[DB] Migrando datos desde JSON a SQLite3...'));
+
+    dbConn.transaction(() => {
+        if (oldConfig) {
+            const keysToMigrate = ['prefix', 'owners', 'maxSubBots', 'ownerRoles'];
+            const stmt = dbConn.prepare("INSERT INTO config(key, value) VALUES(?, ?)");
+            for (const key of keysToMigrate) {
+                if (oldConfig[key] !== undefined) {
+                    stmt.run(key, JSON.stringify(oldConfig[key]));
                 }
             }
-        } catch {
-            await atomicWrite(file, defaultContent);
         }
-    }
 
-    const backupDefaults = [
-        [DB_BACKUP_FILE, DEFAULT_DB_CONFIG],
-        [GROUPS_BACKUP_FILE, { groups: {} }],
-        [USERS_BACKUP_FILE, { users: {} }]
-    ];
-    for (const [file, content] of backupDefaults) {
+        if (oldUsers && oldUsers.users) {
+            const stmt = dbConn.prepare("INSERT INTO users(jid, data) VALUES(?, ?)");
+            for (const [jid, data] of Object.entries(oldUsers.users)) {
+                stmt.run(jid, JSON.stringify(data));
+            }
+        }
+
+        if (oldGroups && oldGroups.groups) {
+            const stmt = dbConn.prepare("INSERT INTO groups(jid, data) VALUES(?, ?)");
+            for (const [jid, data] of Object.entries(oldGroups.groups)) {
+                stmt.run(jid, JSON.stringify(data));
+            }
+        }
+    })();
+
+    console.log(chalk.green('[DB] Migración completada con éxito. Renombrando archivos antiguos...'));
+
+    const renameFile = (oldPath) => {
         try {
-            await fs.access(file);
-        } catch {
-            await atomicWrite(file, content);
+            if (fs.existsSync(oldPath)) {
+                fs.renameSync(oldPath, oldPath + '.migrated.bak');
+            }
+        } catch {}
+    };
+
+    renameFile(DB_FILE);
+    renameFile(USERS_FILE);
+    renameFile(GROUPS_FILE);
+
+    const DB_BACKUP_FILE = path.join(DATABASE_DIR, 'database.backup.json');
+    const GROUPS_BACKUP_FILE = path.join(DATABASE_DIR, 'groups.backup.json');
+    const USERS_BACKUP_FILE = path.join(DATABASE_DIR, 'users.backup.json');
+    renameFile(DB_BACKUP_FILE);
+    renameFile(GROUPS_BACKUP_FILE);
+    renameFile(USERS_BACKUP_FILE);
+}
+
+function ensureDefaults() {
+    const defaults = [
+        ['prefix', DEFAULT_DB_CONFIG.prefix],
+        ['owners', DEFAULT_DB_CONFIG.owners],
+        ['maxSubBots', DEFAULT_DB_CONFIG.maxSubBots],
+        ['ownerRoles', DEFAULT_DB_CONFIG.ownerRoles]
+    ];
+
+    const stmtSelect = dbConn.prepare("SELECT key FROM config WHERE key = ?");
+    const stmtInsert = dbConn.prepare("INSERT INTO config(key, value) VALUES(?, ?)");
+
+    for (const [key, defaultValue] of defaults) {
+        const row = stmtSelect.get(key);
+        if (!row) {
+            stmtInsert.run(key, JSON.stringify(defaultValue));
         }
     }
 }
 
 export async function initDB() {
-    if (initialized && dbCache && groupsCache && usersCache) {
-        return { ...dbCache, groups: groupsCache, users: usersCache };
+    if (initialized && dbCache) {
+        return { ...dbCache, groups: groupsProxy, users: usersProxy };
     }
 
-    await ensureFiles();
+    if (!fs.existsSync(DATABASE_DIR)) {
+        fs.mkdirSync(DATABASE_DIR, { recursive: true });
+    }
 
-    let dbData = await readJson(DB_FILE);
-    let usersData = await readJson(USERS_FILE);
-    let groupsData = await readJson(GROUPS_FILE);
+    dbConn = new Database(DB_SQLITE_FILE);
 
-    if (!dbData || !dbData.owners || dbData.owners.length === 0) {
-        console.warn(chalk.yellow('[DB] Configuracion invalida, restaurando desde backup...'));
-        const restored = await restoreFromBackup(DB_BACKUP_FILE, DB_FILE);
-        if (restored) dbData = await readJson(DB_FILE);
-        if (!dbData || !dbData.owners || dbData.owners.length === 0) {
-            dbData = { ...DEFAULT_DB_CONFIG };
+    dbConn.exec(`
+        CREATE TABLE IF NOT EXISTS config (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        );
+        CREATE TABLE IF NOT EXISTS users (
+            jid TEXT PRIMARY KEY,
+            data TEXT
+        );
+        CREATE TABLE IF NOT EXISTS groups (
+            jid TEXT PRIMARY KEY,
+            data TEXT
+        );
+    `);
+
+    migrateFromJsonIfNeeded();
+    ensureDefaults();
+
+    // Load config
+    const configRows = dbConn.prepare("SELECT key, value FROM config").all();
+    const dbData = {};
+    for (const row of configRows) {
+        try {
+            dbData[row.key] = JSON.parse(row.value);
+        } catch {
+            dbData[row.key] = row.value;
         }
-    }
-
-    if (!usersData || !usersData.users) {
-        const restored = await restoreFromBackup(USERS_BACKUP_FILE, USERS_FILE);
-        if (restored) usersData = await readJson(USERS_FILE);
-        if (!usersData || !usersData.users) usersData = { users: {} };
-    }
-
-    if (!groupsData || !groupsData.groups) {
-        const restored = await restoreFromBackup(GROUPS_BACKUP_FILE, GROUPS_FILE);
-        if (restored) groupsData = await readJson(GROUPS_FILE);
-        if (!groupsData || !groupsData.groups) groupsData = { groups: {} };
     }
 
     dbCache = {
@@ -156,94 +346,77 @@ export async function initDB() {
         maxSubBots: dbData.maxSubBots ?? DEFAULT_DB_CONFIG.maxSubBots
     };
 
-    groupsCache = groupsData.groups;
-    usersCache = usersData.users;
     initialized = true;
 
-    const groupCount = Object.keys(groupsCache).length;
-    const userCount = Object.keys(usersCache).length;
-    console.log(chalk.gray(`[DB] Inicializado: ${groupCount} grupos, ${userCount} usuarios globales`));
+    const groupCount = dbConn.prepare("SELECT COUNT(*) as count FROM groups").get().count;
+    const userCount = dbConn.prepare("SELECT COUNT(*) as count FROM users").get().count;
+    console.log(chalk.gray(`[DB] SQLite3 & Node-Cache Inicializado: ${groupCount} grupos, ${userCount} usuarios en DB`));
 
-    return { ...dbCache, groups: groupsCache, users: usersCache };
+    return { ...dbCache, groups: groupsProxy, users: usersProxy };
 }
 
 export async function getDB() {
     if (!initialized) {
         await initDB();
     }
-    return { ...dbCache, groups: groupsCache, users: usersCache };
+    return { ...dbCache, groups: groupsProxy, users: usersProxy };
 }
 
-async function writeDbFiles(data) {
+export function getDBSync() {
+    if (!initialized) {
+        throw new Error("DB has not been initialized yet!");
+    }
+    return { ...dbCache, groups: groupsProxy, users: usersProxy };
+}
+
+function writeDbFiles(data) {
     if (!data || typeof data !== 'object') {
         console.error(chalk.red('[DB] Datos invalidos recibidos en writeDbFiles'));
         return;
     }
 
     try {
-        const existingDb = await readJson(DB_FILE) || {};
-        const existingGroups = await readJson(GROUPS_FILE) || { groups: {} };
-        const existingUsers = await readJson(USERS_FILE) || { users: {} };
+        const prefix = data.prefix ?? DEFAULT_DB_CONFIG.prefix;
+        const owners = data.owners ?? DEFAULT_DB_CONFIG.owners;
+        const maxSubBots = data.maxSubBots ?? DEFAULT_DB_CONFIG.maxSubBots;
+        const ownerRoles = data.ownerRoles ?? {};
 
-        const dbToSave = {
-            prefix: data.prefix ?? existingDb.prefix ?? DEFAULT_DB_CONFIG.prefix,
-            owners: (Array.isArray(data.owners) && data.owners.length > 0) 
-                ? data.owners 
-                : (existingDb.owners ?? DEFAULT_DB_CONFIG.owners),
-            maxSubBots: Number.isFinite(Number(data.maxSubBots)) 
-                ? Number(data.maxSubBots) 
-                : (existingDb.maxSubBots ?? DEFAULT_DB_CONFIG.maxSubBots),
-            ownerRoles: data.ownerRoles ?? existingDb.ownerRoles ?? {}
-        };
+        const cachedGroups = groupsCache.keys();
+        const cachedUsers = usersCache.keys();
 
-        let groupsToSave;
-        if (data.groups && typeof data.groups === 'object' && Object.keys(data.groups).length > 0) {
-            groupsToSave = data.groups;
-        } else if (existingGroups.groups && Object.keys(existingGroups.groups).length > 0) {
-            groupsToSave = existingGroups.groups;
-        } else {
-            groupsToSave = {};
-        }
+        dbConn.transaction(() => {
+            // Save config
+            const configUpdates = [
+                ['prefix', prefix],
+                ['owners', owners],
+                ['maxSubBots', maxSubBots],
+                ['ownerRoles', ownerRoles]
+            ];
+            const stmtConfig = dbConn.prepare("INSERT INTO config(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value");
+            for (const [key, value] of configUpdates) {
+                stmtConfig.run(key, JSON.stringify(value));
+            }
 
-        let usersToSave;
-        if (data.users && typeof data.users === 'object' && Object.keys(data.users).length > 0) {
-            usersToSave = data.users;
-        } else if (existingUsers.users && Object.keys(existingUsers.users).length > 0) {
-            usersToSave = existingUsers.users;
-        } else {
-            usersToSave = {};
-        }
+            // Save currently cached groups
+            const stmtGroup = dbConn.prepare("INSERT INTO groups(jid, data) VALUES(?, ?) ON CONFLICT(jid) DO UPDATE SET data=excluded.data");
+            for (const jid of cachedGroups) {
+                const groupData = groupsCache.get(jid);
+                if (groupData) {
+                    stmtGroup.run(jid, JSON.stringify(groupData));
+                }
+            }
 
-        const existingGroupsCount = Object.keys(existingGroups.groups || {}).length;
-        const existingUsersCount = Object.keys(existingUsers.users || {}).length;
-        const newGroupsCount = Object.keys(groupsToSave).length;
-        const newUsersCount = Object.keys(usersToSave).length;
+            // Save currently cached users
+            const stmtUser = dbConn.prepare("INSERT INTO users(jid, data) VALUES(?, ?) ON CONFLICT(jid) DO UPDATE SET data=excluded.data");
+            for (const jid of cachedUsers) {
+                const userData = usersCache.get(jid);
+                if (userData) {
+                    stmtUser.run(jid, JSON.stringify(userData));
+                }
+            }
+        })();
 
-        if (existingGroupsCount > 0 && newGroupsCount === 0) {
-            console.error(chalk.red('[DB] BLOQUEADO: Intento de borrar todos los grupos. Abortando escritura de groups.'));
-            groupsToSave = existingGroups.groups;
-        }
-
-        if (existingUsersCount > 0 && newUsersCount === 0) {
-            console.error(chalk.red('[DB] BLOQUEADO: Intento de borrar todos los usuarios. Abortando escritura de users.'));
-            usersToSave = existingUsers.users;
-        }
-
-        if (Object.keys(groupsToSave).length > 0) {
-            await atomicWrite(GROUPS_BACKUP_FILE, { groups: groupsToSave });
-        }
-        if (Object.keys(usersToSave).length > 0) {
-            await atomicWrite(USERS_BACKUP_FILE, { users: usersToSave });
-        }
-        if (existingDb && Object.keys(existingDb).length > 0) {
-            await atomicWrite(DB_BACKUP_FILE, existingDb);
-        }
-
-        await atomicWrite(DB_FILE, dbToSave);
-        await atomicWrite(USERS_FILE, { users: usersToSave });
-        await atomicWrite(GROUPS_FILE, { groups: groupsToSave });
-
-        console.log(chalk.gray(`[DB] Guardado: DB config, ${Object.keys(groupsToSave).length} grupos, ${Object.keys(usersToSave).length} usuarios`));
+        console.log(chalk.gray(`[DB] SQLite3 Guardado: DB config, ${cachedGroups.length} grupos en caché, ${cachedUsers.length} usuarios en caché`));
 
     } catch (err) {
         console.error(chalk.red('[DB] Error CRITICO en writeDbFiles:'), err.message);
@@ -259,12 +432,16 @@ export async function saveDB(data, options = {}) {
             dbCache = { ...dbCache, ...dbData };
         }
 
-        if (groups && typeof groups === 'object' && Object.keys(groups).length > 0) {
-            groupsCache = groups;
+        if (groups && typeof groups === 'object' && groups !== groupsProxy) {
+            for (const [key, value] of Object.entries(groups)) {
+                groupsCache.set(key, value);
+            }
         }
 
-        if (users && typeof users === 'object' && Object.keys(users).length > 0) {
-            usersCache = users;
+        if (users && typeof users === 'object' && users !== usersProxy) {
+            for (const [key, value] of Object.entries(users)) {
+                usersCache.set(key, value);
+            }
         }
     }
 
@@ -274,21 +451,21 @@ export async function saveDB(data, options = {}) {
         if (saving) return;
         saving = true;
         try {
-            const toSave = { ...dbCache, groups: groupsCache, users: usersCache };
-            await writeDbFiles(toSave);
+            const toSave = { ...dbCache, groups: groupsProxy, users: usersProxy };
+            writeDbFiles(toSave);
         } finally {
             saving = false;
         }
         return;
     }
 
-    saveTimer = setTimeout(async () => {
+    saveTimer = setTimeout(() => {
         saveTimer = null;
         if (saving) return;
         saving = true;
         try {
-            const toSave = { ...dbCache, groups: groupsCache, users: usersCache };
-            await writeDbFiles(toSave);
+            const toSave = { ...dbCache, groups: groupsProxy, users: usersProxy };
+            writeDbFiles(toSave);
         } catch (err) {
             console.error(chalk.red('[DB] Error guardando base de datos:'), err.message);
         } finally {
@@ -313,10 +490,10 @@ export async function flushDB() {
     try {
         const toSave = { 
             ...dbCache, 
-            groups: groupsCache || {}, 
-            users: usersCache || {} 
+            groups: groupsProxy, 
+            users: usersProxy 
         };
-        await writeDbFiles(toSave);
+        writeDbFiles(toSave);
         console.log(chalk.gray('[DB] Flush completado exitosamente'));
     } catch (err) {
         console.error(chalk.red('[DB] ERROR CRITICO en flushDB:'), err.message);
