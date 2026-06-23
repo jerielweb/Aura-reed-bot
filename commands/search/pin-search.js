@@ -4,7 +4,12 @@ import crypto from 'crypto';
 import { fytBold } from '../../models/TextStyle.js';
 
 async function fetchJson(url) {
-  const res = await fetch(url);
+  const res = await fetch(url, {
+    headers: {
+      'Accept-Encoding': 'identity',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+    }
+  });
   if (!res.ok) throw new Error(`HTTP ${res.status} - ${res.statusText}`);
   return await res.json();
 }
