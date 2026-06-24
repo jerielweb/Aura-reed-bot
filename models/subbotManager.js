@@ -94,7 +94,7 @@ export async function stopSubBot(senderId) {
         }
         activeSubBots.delete(senderId);
     }
-    
+
     if (fs.existsSync(sessionPath)) {
         fs.rmSync(sessionPath, { recursive: true, force: true });
         handled = true;
@@ -184,7 +184,7 @@ export async function createSubBot(sock, m, type, phoneNumber = null) {
                 const reason = error?.output?.statusCode || error?.statusCode || new Boom(error)?.output?.statusCode;
                 const errorMessage = error?.message || 'Error desconocido';
                 console.log(`[SUB-BOT] Conexión cerrada. Razón/Código: ${reason || 'N/A'}. Error: ${errorMessage}`);
-                
+
                 const shouldResetSession = [
                     DisconnectReason.loggedOut,          // 401
                     DisconnectReason.badSession,          // 500

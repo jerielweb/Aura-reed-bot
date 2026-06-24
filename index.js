@@ -70,10 +70,10 @@ let chosenPhoneNumber = '';
 
 async function connectToWhatsApp() {
     const { state, saveCreds } = await useMultiFileAuthState('sessions/principal');
-    
+
     // Check if we are already registered/logged in
     const isRegistered = state.creds && (state.creds.registered || state.creds.me);
-    
+
     if (!isRegistered && !isPairingChoiceMade) {
         let menu = `${
             chalk.blue.bold(`╭──────────── Vinculación de Aura Reed ───────────⬣\n`)+
@@ -89,7 +89,7 @@ async function connectToWhatsApp() {
         console.log(menu);
         console.log(chalk.cyan.bold('Seleccione una opción (1 o 2) '));
         const option = await question(chalk.cyan.bold('> '));
-        
+
         isPairingChoiceMade = true;
         if (option === '2') {
             chosenPairingCode = true;
@@ -156,7 +156,7 @@ async function connectToWhatsApp() {
             const error = u.lastDisconnect?.error;
             const statusCode = error?.output?.statusCode || error?.statusCode;
             const errorMessage = error?.message || 'Error desconocido';
-            
+
             console.log(chalk.yellow(`\nℹ️ Conexión cerrada. Código de estado: ${statusCode || 'N/A'}. Razón: ${errorMessage}`));
 
             const shouldResetSession = [
@@ -169,7 +169,7 @@ async function connectToWhatsApp() {
             if (shouldResetSession) {
                 console.log(chalk.red('\n❌ La sesión no es válida, ha sido desvinculada por WhatsApp o el dispositivo cambió.'));
                 console.log(chalk.yellow('Limpiando credenciales obsoletas y volviendo al menú de vinculación...\n'));
-                
+
                 const authFolder = './sessions/principal';
                 if (fs.existsSync(authFolder)) {
                     try {
@@ -178,12 +178,12 @@ async function connectToWhatsApp() {
                         console.error(chalk.red('Error al limpiar credenciales inactivas:'), e);
                     }
                 }
-                
+
                 // Reset state to prompt for new linking
                 isPairingChoiceMade = false;
                 chosenPairingCode = false;
                 chosenPhoneNumber = '';
-                
+
                 console.log(chalk.cyan('Iniciando nuevo proceso de vinculación en 3 segundos...'));
                 setTimeout(connectToWhatsApp, 3000);
             } else {

@@ -14,7 +14,7 @@ export async function handleGroupUpdate(sock, { id, participants, action }, getD
         return;
     }
 
-    console.log(`[GROUP-EVENT] Acción: ${action} | Grupo: ${id} | Participants: ${participants.length}`);
+    console.log(chalk.gray(`[GROUP-EVENT] Acción: ${action} | Grupo: ${id} | Participants: ${participants.length}`));
 
     // 1. EVENTO: BIENVENIDA (add)
     if (action === 'add') {

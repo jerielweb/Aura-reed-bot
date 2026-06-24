@@ -14,10 +14,10 @@ export default {
             }, { quoted: m });
         }
 
-        // Reaccionar indicando procesamiento
+
         await sock.sendMessage(remoteJid, { react: { text: '📨', key: m.key } });
 
-        // Identificar origen
+
         const isGroup = remoteJid.endsWith('@g.us');
         const origen = isGroup ? `Grupo: ${groupMetadata?.subject || 'Desconocido'}` : 'Chat Privado';
         const senderNumber = jidRemitente.split('@')[0];
@@ -39,7 +39,7 @@ export default {
 
         for (const ownerJid of targetOwners) {
             try {
-                await sock.sendMessage(ownerJid, { 
+                await sock.sendMessage(ownerJid, {
                     text: textForOwners,
                     mentions: [jidRemitente]
                 });

@@ -3,53 +3,30 @@ import fs from 'fs';
 import path from 'path';
 
 async function fetchJson(url) {
-    const res = await fetch(url);
+    const res = await fetch(url, {
+        headers: {
+            'Accept-Encoding': 'identity',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+        }
+    });
     if (!res.ok) throw new Error(`HTTP ${res.status} - ${res.statusText}`);
     return await res.json();
 }
 
-async function firstSuccessfulPromise(promises) {
-    return new Promise((resolve, reject) => {
-        let errors = [];
-        let completed = 0;
-        if (promises.length === 0) {
-            reject(new Error('No hay tareas disponibles para procesar.'));
-            return;
-        }
-        promises.forEach(p => {
-            Promise.resolve(p)
-                .then(res => {
-                    if (res) {
-                        resolve(res);
-                    } else {
-                        throw new Error('Respuesta vacía o inválida');
-                    }
-                })
-                .catch(err => {
-                    errors.push(err);
-                })
-                .finally(() => {
-                    completed++;
-                    if (completed === promises.length) {
-                        reject(new Error('Todos los servidores fallaron: ' + errors.map(e => e.message).join(' | ')));
-                    }
-                });
-        });
-    });
-}
-
 function normalize(apiResult, motorName) {
-    if (!apiResult || !apiResult.status || !apiResult.data) {
-        throw new Error(`[${motorName}] Respuesta inválida o sin datos`);
+    // Verificamos la estructura real: apiResult.resultados debe ser un array con datos
+    if (!apiResult || !apiResult.status || !Array.isArray(apiResult.resultados) || apiResult.resultados.length === 0) {
+        throw new Error(`[${motorName}] No se encontraron resultados para esta aplicación`);
     }
-    const data = apiResult.data;
+    
+    const data = apiResult.resultados[0]; // Tomamos el primer juego o app encontrado
 
-    const name = data.name || 'Aplicación Desconocida';
-    const packageId = data.package || data.id || 'com.unknown';
-    const size = data.size || 'N/A';
-    const lastUpdated = data.lastUpdated || data.publish || 'N/A';
-    const banner = data.banner || data.image || null;
-    const dl = data.dl || data.download;
+    const name = data.titulo || 'Aplicación Desconocida';
+    const packageId = data.appId || 'com.unknown';
+    const size = data.tamaño || 'N/A';
+    const lastUpdated = data.version || 'N/A'; // Usamos la versión ya que no trae fecha directa
+    const banner = data.miniatura || null;
+    const dl = data.dl;
 
     if (!dl) {
         throw new Error(`[${motorName}] No se pudo obtener el enlace de descarga`);
@@ -69,7 +46,7 @@ function normalize(apiResult, motorName) {
 export default {
     name: ['apk', 'apkdl', 'apkd', 'apks', 'apkdownload', 'androidapp', 'app'],
     category: 'downloads',
-    description: 'Descarga archivos APK de Android.',
+    description: 'Descarga archivos APK de Android desde Uptodown.',
     execute: async (socket, message, args) => {
         const remoteJid = message.key.remoteJid;
         const query = args.join(' ').trim();
@@ -87,26 +64,12 @@ export default {
         let isCacheHit = false;
 
         try {
-            // Carrera en paralelo de las 3 APIs para obtener metadatos
-            const searchTasks = [
-                (async () => {
-                    const res = await fetchJson(`https://api.stellarwa.xyz/search/apk?query=${encodeURIComponent(query)}&key=api-7dSKm`);
-                    return normalize(res, 'StellarWA');
-                })(),
-                (async () => {
-                    const res = await fetchJson(`https://api.alyacore.xyz/search/apk?query=${encodeURIComponent(query)}&key=oboe`);
-                    return normalize(res, 'Alyacore');
-                })(),
-                (async () => {
-                    const res = await fetchJson(`https://api.delirius.store/download/apk?query=${encodeURIComponent(query)}`);
-                    return normalize(res, 'Delirius');
-                })()
-            ];
+            // Petición al endpoint real que enviaste
+            const resData = await fetchJson(`https://fare.ink/search/uptodown?q=${encodeURIComponent(query)}&limit=1`);
+            const metadata = normalize(resData, 'Uptodown');
 
-            const metadata = await firstSuccessfulPromise(searchTasks);
             const { name, packageId, size, lastUpdated, banner, dl, motor } = metadata;
 
-            // Configurar directorio de caché si no existe
             if (!fs.existsSync(cacheDir)) {
                 fs.mkdirSync(cacheDir, { recursive: true });
             }
@@ -117,9 +80,14 @@ export default {
                 console.log(`[APK CACHE] [HIT] Encontrado APK en caché local: ${cachePath}`);
                 isCacheHit = true;
             } else {
-                console.log(`[APK CACHE] [MISS] No se encontró el APK local para: ${packageId}. Descargando...`);
+                console.log(`[APK CACHE] [MISS] Descargando binario desde la API...`);
 
-                const res = await fetch(dl);
+                const res = await fetch(dl, {
+                    headers: {
+                        'Accept-Encoding': 'identity',
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+                    }
+                });
                 if (!res.ok) throw new Error(`Fallo al descargar APK: ${res.statusText}`);
 
                 const fileStream = fs.createWriteStream(cachePath);
@@ -139,10 +107,10 @@ export default {
             caption += `┃ 📦 𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀𝐍𝐃𝐎 𝐀𝐑𝐂𝐇𝐈𝐕𝐎\n`;
             caption += `┃ ⏳ 𝐄𝐬𝐩𝐞𝐫𝐞 𝐮𝐧 𝐦𝐨𝐦𝐞𝐧𝐭𝐨...\n\n`;
             caption += `┣━━━━━━━━━━━━⬣\n\n`;
-            caption += `┃ ➥ 𝐀𝐩𝐥𝐢𝐜𝐚𝐜𝐢𝐨́𝐧 › ${name || 'Desconocida'}\n\n`;
-            caption += `┃ > 𝐏𝐚𝐪𝐮𝐞𝐭𝐞 › ${packageId || 'Desconocido'}\n`;
-            caption += `┃ > 𝐓𝐚𝐦𝐚𝐧̃𝐨 › ${size || 'N/A'}\n`;
-            caption += `┃ > 𝐀𝐜𝐭𝐮𝐚𝐥𝐢𝐳𝐚𝐝𝐨 › ${lastUpdated || 'N/A'}\n`;
+            caption += `┃ ➥ 𝐀𝐩𝐥𝐢𝐜𝐚𝐜𝐢𝐨́𝐧 › ${name}\n\n`;
+            caption += `┃ > 𝐈𝐃 App › ${packageId}\n`;
+            caption += `┃ > 𝐓𝐚𝐦𝐚𝐧̃𝐨 › ${size}\n`;
+            caption += `┃ > 𝐕𝐞𝐫𝐬𝐢𝐨́𝐧 › ${lastUpdated}\n`;
             caption += `┃ > 𝐌𝐨𝐝𝐨 › Aplicación (APK)\n`;
             caption += `┃ > 𝐌𝐨𝐭𝐨𝐫 › ${motorLabel}\n\n`;
             caption += `┣━━━━━━━━━━━━⬣\n\n`;
@@ -156,11 +124,10 @@ export default {
                 await socket.sendMessage(remoteJid, { text: caption }, { quoted: message });
             }
 
-            // Enviar archivo APK como documento desde la caché local
             await socket.sendMessage(remoteJid, {
                 document: { url: cachePath },
                 mimetype: 'application/vnd.android.package-archive',
-                fileName: `${(name || 'App').replace(/[<>:"/\\|?*]/g, '')}.apk`
+                fileName: `${name.replace(/[<>:"/\\|?*]/g, '')}.apk`
             }, { quoted: message });
 
             await socket.sendMessage(remoteJid, { react: { text: '✅', key: message.key } });
@@ -168,11 +135,9 @@ export default {
         } catch (error) {
             console.error('Error en APK Downloader:', error);
 
-            // Eliminar archivo corrupto si falló la descarga
             if (cachePath && fs.existsSync(cachePath) && !isCacheHit) {
                 try {
                     fs.unlinkSync(cachePath);
-                    console.log(`[APK CACHE] [CLEANUP] Eliminado archivo corrupto o incompleto: ${cachePath}`);
                 } catch (err) {
                     console.error('[APK CACHE] Error al limpiar archivo corrupto:', err);
                 }

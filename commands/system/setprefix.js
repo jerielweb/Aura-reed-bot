@@ -35,7 +35,7 @@ export default {
         db.groups[remoteJid] = db.groups[remoteJid] || {};
         db.groups[remoteJid].prefix = newPrefix;
         saveDB(db);
-        
+
         let text = `╭〔 ✅ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
         text += `┃ ⚙️ 𝐂𝐎𝐍𝐅𝐈𝐆𝐔𝐑𝐀𝐂𝐈𝐎́𝐍\n`;
         text += `╰━━━━━━━━━━━━⬣\n\n`;
