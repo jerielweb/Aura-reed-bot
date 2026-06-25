@@ -97,18 +97,19 @@ export default {
             caption += `┃ > transcodificando, espera un momento...\n\n`;
             caption += `╰━━〔 ⚡ ${fytBold('SYSTEM ACTIVE')} 〕━━⬣`;
 
-            await socket.sendMessage(remoteJid, { image: { url: thumbnail }, caption }, { quoted: message });
-
             const videoPath = await downloader.getVideo(finalUrl);
 
             await socket.sendMessage(remoteJid, {
-                video: { url: videoPath },
-                mimetype: 'video/mp4',
+                video: {url: videoPath},
+                minetype: 'video/mp4',
                 fileName: `${title.replace(/[<>:"/\\|?*]/g, '')}.mp4`,
-                caption: `🎬 *𝐓𝐢𝐭𝐮𝐥𝐨:* ${title}\n⚡ *𝐀𝐮𝐫𝐚 𝐑𝐞𝐞𝐝 𝐃𝐨𝐰𝐧𝐥𝐨𝐚𝐝𝐞𝐫*`
-            }, { quoted: message });
+                caption
+            },
+            { quoted: message }
+        );
+            await socket.sendMessage(remoteJid, {react: { text: '✅', key: message.key } });
 
-            await socket.sendMessage(remoteJid, { react: { text: '✅', key: message.key } });
+
 
         } catch (error) {
             console.error('Error en ytmp4:', error);

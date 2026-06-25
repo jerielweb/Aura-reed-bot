@@ -88,7 +88,7 @@ async function connectToWhatsApp() {
 
         console.log(menu);
         console.log(chalk.cyan.bold('Seleccione una opción (1 o 2) '));
-        const option = await question(chalk.cyan.bold('> '));
+        const option = await question(chalk.cyan.bold('>_ '));
 
         isPairingChoiceMade = true;
         if (option === '2') {
