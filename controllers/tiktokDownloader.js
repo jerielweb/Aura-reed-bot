@@ -149,6 +149,7 @@ class TikTokDownloader {
     async getDownloadInfo(url) {
         const faaUrl = global.Apis?.appiFaa?.url || 'https://api-faa.my.id/';
         const deliriusUrl = global.Apis?.deliriusApi?.url || 'https://api.delirius.store/';
+        const alyacoreUrl = global.Apis?.apiAiya?.url || 'https://api.alyacore.xyz/'
 
         // Intentar tobyg74/tiktok-api-dl primero (Scraper Local)
         try {
@@ -197,6 +198,43 @@ class TikTokDownloader {
 
         // Carrera de APIs de respaldo si falla el scraper local
         const apis = [
+{
+                name: 'Alya Core',
+                fn: async () => {
+                    const res = await axios.get(`${alyacoreUrl}dl/tiktokv2?url=${encodeURIComponent(url)}`, {
+                        timeout: 20000
+                    });
+                    
+                    const result = res.data;
+                    if (!result || !result.status) throw new Error('No data in Alya Core');
+
+                    // 1. Extracción e inspección segura de la URL del video HD (3° elemento)
+                    let videoUrl = null;
+                    if (Array.isArray(result.data) && result.data[2]?.url) {
+                        videoUrl = result.data[2].url;
+                    }
+                    
+                    // Respaldo por si el array viene más corto (usa el video normal)
+                    if (!videoUrl && Array.isArray(result.data)) {
+                        videoUrl = result.data[1]?.url || result.data[0]?.url;
+                    }
+
+                    if (!videoUrl) throw new Error('[Alya Core] No video URL found');
+
+                    // 2. Retornamos TODOS los metadatos mapeados correctamente desde el JSON
+                    return {
+                        id: result.id || `tiktok_${Date.now()}`,
+                        title: result.title || '',
+                        author: result.author?.fullname || result.author?.nickname || 'TikTok User',
+                        cover: result.cover || '',
+                        views: formatNumbers(parseDelimitedNumber(result.stats?.views || 0)),
+                        likes: formatNumbers(parseDelimitedNumber(result.stats?.likes || 0)),
+                        videoUrl,
+                        audioUrl: result.music_info?.url || null,
+                        duration: normalizeDuration(result.durations || result.duration || 0)
+                    };
+                }
+            },
             {
                 name: 'Delirius',
                 fn: async () => {
@@ -369,12 +407,15 @@ class TikTokDownloader {
         await ffmpegSemaphore.run(() => new Promise((resolve, reject) => {
             ffmpeg(tempIn)
                 .outputOptions([
+                    '-threads 2',
                     '-c:v libx264',
+                    '-preset ultrafast',
                     '-profile:v baseline',
                     '-level 3.0',
                     '-pix_fmt yuv420p',
                     '-c:a aac',
-                    '-movflags +faststart'
+                    '-movflags +faststart',
+                    '-deadline realtime',
                 ])
                 .on('error', reject)
                 .on('end', resolve)

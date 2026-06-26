@@ -24,7 +24,6 @@ export default {
             let videoData = null;
 
             if (!TIKTOK_REGEX.test(text)) {
-                // Buscar en TikTok
                 const searchResult = await downloader.search(text);
                 finalUrl = searchResult.url;
                 videoData = {
@@ -37,7 +36,6 @@ export default {
                     url: finalUrl
                 };
             } else {
-                // Enlace directo, resolvemos metadatos
                 const info = await downloader.getDownloadInfo(finalUrl);
                 videoData = {
                     title: info.title || 'Video de TikTok',
@@ -73,18 +71,21 @@ export default {
             caption += `┃ > 𝐞𝐧𝐯𝐢𝐚𝐧𝐝𝐨, 𝐞𝐬𝐩𝐞𝐫𝐚 𝐮𝐧 𝐦𝐨𝐦𝐞𝐧𝐭𝐨...\n\n`;
             caption += `╰━━〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐀𝐂𝐓𝐈𝐕𝐄 〕━━⬣`;
 
+            if (thumbnail) {
+                await socket.sendMessage(remoteJid, { image: { url: thumbnail }, caption }, { quoted: message });
+            } else {
+                await socket.sendMessage(remoteJid, { text: caption }, { quoted: message });
+            }
+
             const { path: videoPath } = await downloader.getVideo(finalUrl);
             await socket.sendMessage(remoteJid, {
                 video: { url: videoPath },
                 mimetype: 'video/mp4',
                 fileName: `${title.replace(/[<>:"/\\|?*]/g, '')}.mp4`,
-                caption
-            }, { quoted: message }
-            );
+                caption: `🎬 *𝐓𝐢́𝐭𝐮𝐥𝐨:* ${title}\n⚡ *𝐀𝐮𝐫𝐚 𝐑𝐞𝐞𝐝 𝐃𝐨𝐰𝐧𝐥𝐨𝐚𝐝𝐞𝐫*`
+            }, { quoted: message });
+
             await socket.sendMessage(remoteJid, { react: { text: '✅', key: message.key } });
-
-            // Descargar y enviar video
-
 
         } catch (error) {
             console.error('Error en tiktok downloader command:', error);

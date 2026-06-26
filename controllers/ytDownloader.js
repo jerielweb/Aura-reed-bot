@@ -97,13 +97,15 @@ class YTDownloader {
         await ffmpegSemaphore.run(() => new Promise((resolve, reject) => {
             ffmpeg(tempIn)
                 .outputOptions([
+                    '-threads 2',
                     '-c:v libx264',
                     '-preset ultrafast',
                     '-profile:v baseline',
                     '-level 3.0',
                     '-pix_fmt yuv420p',
                     '-c:a aac',
-                    '-movflags +faststart'
+                    '-movflags +faststart',
+                    '-deadline realtime'
                 ])
                 .on('error', (err) => {
                     console.error('[FFmpeg Error]:', err.message);
