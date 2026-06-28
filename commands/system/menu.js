@@ -186,6 +186,111 @@ export default {
         }
         textoMenu += `╰〔 ⚡ ${fytBold('AURA REED BOT')} 〕⬣\n\n`;
 
+        // 🛠️ TRUCO 1: El enlace final debe ir limpio y separado en una línea dedicada
+        textoMenu += `${chanellink}`;
+
+        let imgBanner = mediaCache;
+        if (!imgBanner && fs.existsSync(BannerBot)) {
+            const mediaBanner = await prepareWAMessageMedia(
+                { image: fs.readFileSync(BannerBot) },
+                { upload: sock.waUploadToServer, mediaTypeOverride: "thumbnail-link" }
+            );
+            imgBanner = mediaBanner.imageMessage;
+            mediaCache = imgBanner;
+        }
+
+        const getTs = (ts) => typeof ts === "object" ? Number(ts.low || ts) : Number(ts);
+
+        const content = {
+            extendedTextMessage: {
+                text: textoMenu,
+                matchedText: chanellink,
+                canonicalUrl: chanellink,
+                description: "Menú Oficial de Comandos e Información ✨",
+                title: "AURA REED BOT",
+                // 🛠️ TRUCO 2: Modificar los bits de renderizado nativos para forzar el banner grande
+                previewType: "NONE",
+                doNotPlayInline: true,
+                jpegThumbnail: imgBanner?.jpegThumbnail,
+                thumbnailDirectPath: imgBanner?.directPath,
+                thumbnailSha256: imgBanner?.fileSha256,
+                thumbnailEncSha256: imgBanner?.fileEncSha256,
+                mediaKey: imgBanner?.mediaKey,
+                mediaKeyTimestamp: imgBanner ? getTs(imgBanner.mediaKeyTimestamp) : 0,
+                thumbnailHeight: imgBanner?.height || 1080,
+                thumbnailWidth: imgBanner?.width || 1920,
+                inviteLinkGroupTypeV2: 0,
+                contextInfo: {
+                    mentionedJid: [m.key.participant || remoteJid],
+                    isForwarded: true,
+                    forwardingScore: 1,
+                    forwardedNewsletterMessageInfo: {
+                        newsletterJid: "120363424808187278@newsletter",
+                        newsletterName: "𝔸𝕦𝕣𝕒 ℂ𝕙𝕒𝕟𝕖𝕝 𝕆𝕗𝕚𝕔𝕚𝕒𝕝",
+                        serverMessageId: -1
+                    }
+                }
+            }
+        };
+
+        const waMsg = generateWAMessageFromContent(remoteJid, content, { userJid: sock.user?.id, quoted: m });
+        await sock.relayMessage(remoteJid, waMsg.message, { messageId: waMsg.key.id });
+
+        if (!requestedCategory && fs.existsSync(BannerBotMp3)) {
+            await sock.sendMessage(remoteJid, {
+                audio: fs.readFileSync(BannerBotMp3),
+                ptt: true,
+                mimetype: 'audio/ogg; codecs=opus'
+            }, { quoted: m });
+        }
+    }
+};
+        if (requestedCategory && !categories.includes(requestedCategory)) {
+            let textErr = `╭〔 ⚠️ ${fytBold('AURA REED')} 〕⬣\n`;
+            textErr += `┃ ❌ ${fytBold('CATEGORÍA NO ENCONTRADA')}\n`;
+            textErr += `╰━━━━━━━━━━━━⬣\n\n`;
+            textErr += `┃ > Categorías disponibles:\n`;
+            textErr += `┃ > ${categories.join(', ')}\n\n`;
+            textErr += `╰〔 ⚡ ${fytBold('SYSTEM')} 〕⬣`;
+            return await sock.sendMessage(remoteJid, { text: textErr }, { quoted: m });
+        }
+
+        for (const cat of catsToShow) {
+            const folderPath = `./commands/${cat}`;
+
+            if (fs.existsSync(folderPath)) {
+                const files = fs.readdirSync(folderPath).filter(file => file.endsWith('.js'));
+
+                if (files.length > 0) {
+                    textoMenu += `┏━━〔 ${fytBold(cat.charAt(0).toUpperCase() + cat.slice(1))} 〕━━⬣\n`;
+
+                    for (const file of files) {
+                        try {
+                            const { default: cmd } = await import(`../${cat}/${file}?update=${Date.now()}`);
+
+                            if (cmd && cmd.name) {
+                                const formattedNames = Array.isArray(cmd.name)
+                                    ? cmd.name.map(n => prefix + n).slice(0, 3).join(' • ')
+                                    : prefix + cmd.name;
+                                textoMenu += `┃ ➪ ${fytBold(formattedNames)}\n`;
+                                if (cmd.description) {
+                                    textoMenu += `┃ ✦ ${cmd.description}\n\n`;
+                                }
+                            }
+                        } catch (err) {
+                            console.error(`Error al cargar ${file} en el menú:`, err);
+                        }
+                    }
+                }
+            }
+        }
+        if (!requestedCategory) {
+            textoMenu += `┏━━〔 ${fytBold('OTROS COMANDOS')} 〕━━⬣\n`;
+            textoMenu += `┃ ➪ ${fytBold(prefix + 'menu <categoría>')}\n`;
+            textoMenu += `┃ ✦ Muestra el menú de una categoría específica.\n\n`;
+        }
+        textoMenu += `╰〔 ⚡ ${fytBold('AURA REED BOT')} 〕⬣\n\n`;
+
         textoMenu += `${chanellink}`;
 
         let imgBanner = mediaCache;
