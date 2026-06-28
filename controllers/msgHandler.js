@@ -56,10 +56,54 @@ async function loadCommands() {
     return allCommands;
 }
 
+async function resolveMessageLids(m, sock, remoteJid) {
+    if (!m || !m.message) return;
+
+    const findAndResolveContextInfo = async (obj) => {
+        if (!obj || typeof obj !== 'object') return;
+
+        if (obj.contextInfo) {
+            const ci = obj.contextInfo;
+            if (ci.participant) {
+                try {
+                    ci.participant = await resolveLidToRealJid(ci.participant, sock, remoteJid);
+                } catch (e) {
+                    console.error('[resolveMessageLids] Error resolving participant LID:', e.message);
+                }
+            }
+            if (Array.isArray(ci.mentionedJid)) {
+                for (let i = 0; i < ci.mentionedJid.length; i++) {
+                    try {
+                        ci.mentionedJid[i] = await resolveLidToRealJid(ci.mentionedJid[i], sock, remoteJid);
+                    } catch (e) {
+                        console.error('[resolveMessageLids] Error resolving mention LID:', e.message);
+                    }
+                }
+            }
+        }
+
+        for (const key of Object.keys(obj)) {
+            if (obj[key] && typeof obj[key] === 'object') {
+                await findAndResolveContextInfo(obj[key]);
+            }
+        }
+    };
+
+    await findAndResolveContextInfo(m.message);
+}
+
 export async function handleMessage(sock, m, db, saveDB) {
     if (!m || !m.message) return;
 
     const remoteJid = m.key.remoteJid;
+
+    // Resolve all LIDs in tags (mentionedJid) and replies (participant) to real phone numbers
+    try {
+        await resolveMessageLids(m, sock, remoteJid);
+    } catch (e) {
+        console.error('[handleMessage] Error resolving message LIDs:', e);
+    }
+
     const isGroup = remoteJid.endsWith('@g.us');
     const senderRaw = m.key.participant || remoteJid;
 
@@ -105,11 +149,32 @@ export async function handleMessage(sock, m, db, saveDB) {
     if (isGroup) {
         try {
             groupMetadata = await sock.groupMetadata(remoteJid);
-            const userParticipant = groupMetadata.participants.find(p => p.id === senderRaw || p.id === jidRemitente || p.id.split(':')[0] === numeroReal);
-            const botParticipant = groupMetadata.participants.find(p => p.id.includes(sock.user.id.split(':')[0]));
+            const clean = (id) => id ? id.split('@')[0].split(':')[0] : null;
+            const senderBase = clean(senderRaw);
+            const jidRemitenteBase = clean(jidRemitente);
+            const botBase = clean(sock.user?.id);
+
+            const userParticipant = groupMetadata.participants.find(p => {
+                const pIdClean = clean(p.id);
+                const pLidClean = clean(p.lid);
+                const pPhoneClean = clean(p.phoneNumber);
+                return (senderBase && (pIdClean === senderBase || pLidClean === senderBase || pPhoneClean === senderBase)) ||
+                       (jidRemitenteBase && (pIdClean === jidRemitenteBase || pLidClean === jidRemitenteBase || pPhoneClean === jidRemitenteBase));
+            });
+
+            const botParticipant = groupMetadata.participants.find(p => {
+                const pIdClean = clean(p.id);
+                const pLidClean = clean(p.lid);
+                const pPhoneClean = clean(p.phoneNumber);
+                return botBase && (pIdClean === botBase || pLidClean === botBase || pPhoneClean === botBase);
+            });
+
             isAdmin = userParticipant?.admin === 'admin' || userParticipant?.admin === 'superadmin';
             isBotAdmin = botParticipant?.admin === 'admin' || botParticipant?.admin === 'superadmin';
-        } catch (e) { isAdmin = false; }
+        } catch (e) {
+            console.error('[msgHandler] Error al validar administradores:', e);
+            isAdmin = false;
+        }
     }
 
     try {
@@ -118,12 +183,12 @@ export async function handleMessage(sock, m, db, saveDB) {
     } catch (e) { console.error(e); }
 
     if (!esComando) {
-        cmdLog({ numeroReal, rango: rangoLog, isGroup, text, pushName: m.pushName, groupMetadata, m });
+        cmdLog({ numeroReal, rango: rangoLog, isGroup, text, pushName: m.pushName, groupMetadata, m, sock });
     } else {
         const args = text.slice(prefix.length).trim().split(/ +/);
         const commandName = args.shift().toLowerCase();
 
-        cmdLog({ numeroReal, rango: isOwner ? 'OWNER 👑' : (isAdmin ? 'ADMIN 🛡️' : 'USUARIO 👤'), commandName, isGroup, text, pushName: m.pushName, groupMetadata, m, prefix });
+        cmdLog({ numeroReal, rango: isOwner ? 'OWNER 👑' : (isAdmin ? 'ADMIN 🛡️' : 'USUARIO 👤'), commandName, isGroup, text, pushName: m.pushName, groupMetadata, m, prefix, sock });
 
         const allCommands = await loadCommands();
         let commandFound = false;

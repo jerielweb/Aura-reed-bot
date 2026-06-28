@@ -3,12 +3,14 @@ import pino from 'pino';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import chalk from 'chalk';
 import QRCode from 'qrcode';
 import { Boom } from '@hapi/boom';
 import { handleMessage } from '../controllers/msgHandler.js';
 import { handleGroupUpdate } from '../controllers/groupEvents.js';
 import { stripEconomyFromUsers } from './groupDb.js';
-import { getDB, saveDB, getDBSync } from './db.js';
+import { getDBSync } from './db.js';
+import { getSubBotDB, saveSubBotDB, wrapGroupMetadataCache, clearGroupMetadataCache } from './subbotWorker.js';
 
 export const SUB_LIMIT_MESSAGE = '✐ No se han encontrado espacios disponibles para registrar un `Sub-Bot`.';
 
@@ -119,6 +121,7 @@ export async function createSubBot(sock, m, type, phoneNumber = null) {
 
     let isConnected = false;
     let isClosedManually = false;
+    let codeRequested = false;
 
     const timeout = setTimeout(async () => {
         if (!isConnected) {
@@ -129,10 +132,20 @@ export async function createSubBot(sock, m, type, phoneNumber = null) {
     }, 60000);
 
     async function start() {
-        const { version } = await fetchLatestWaWebVersion().catch(() => ({ version: [2, 3000, 1042234044] }));
+        let version;
+        try {
+            const fetched = await Promise.race([
+                fetchLatestWaWebVersion(),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+            ]);
+            version = fetched.version;
+        } catch (err) {
+            console.log(chalk.yellow(`[SUB-BOT] No se pudo obtener la última versión de WhatsApp Web para sub-bot ${senderId}. Se usará la versión interna de Baileys.`));
+        }
+
         const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
         const subSock = makeWASocket({
-            version,
+            ...(version ? { version } : {}),
             auth: {
                 creds: state.creds,
                 keys: state.keys
@@ -147,7 +160,10 @@ export async function createSubBot(sock, m, type, phoneNumber = null) {
             markOnlineOnConnect: true
         });
 
-        // Registrar en el mapa
+        // Registrar en el mapa y configurar banderas/caché
+        subSock.isSubBot = true;
+        subSock.subBotId = senderId;
+        wrapGroupMetadataCache(subSock);
         activeSubBots.set(senderId, subSock);
 
         subSock.ev.on('creds.update', saveCreds);
@@ -155,12 +171,13 @@ export async function createSubBot(sock, m, type, phoneNumber = null) {
         subSock.ev.on('messages.upsert', async ({ messages, type: msgType }) => {
             if (msgType !== 'notify') return;
             const msg = messages[0];
-            const db = await getDB();
-            await handleMessage(subSock, msg, db, saveDB);
+            const db = await getSubBotDB(senderId);
+            await handleMessage(subSock, msg, db, (data, options) => saveSubBotDB(senderId, data, options));
         });
 
         subSock.ev.on('group-participants.update', async (update) => {
-            await handleGroupUpdate(subSock, update, getDB);
+            clearGroupMetadataCache(subSock, update.id);
+            await handleGroupUpdate(subSock, update, () => getSubBotDB(senderId));
         });
 
         subSock.ev.on('connection.update', async (update) => {
@@ -202,23 +219,32 @@ export async function createSubBot(sock, m, type, phoneNumber = null) {
                         }
                     }
                     clearTimeout(timeout);
-                } else if (!isConnected && !isClosedManually) {
-                    console.log(`[SUB-BOT] Reintentando conexión en 5 segundos...`);
+                } else if (!isClosedManually) {
+                    console.log(`[SUB-BOT] Reintentando conexión para sub-bot ${senderId} en 5 segundos...`);
                     setTimeout(start, 5000);
                 }
             } else if (connection === 'open') {
+                const wasConnected = isConnected;
                 isConnected = true;
                 clearTimeout(timeout);
-                await sock.sendMessage(remoteJid, { text: '╭〔 ✅ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n\n┃ 🤖 ¡𝐒𝐮𝐛-𝐛𝐨𝐭 𝐯𝐢𝐧𝐜𝐮𝐥𝐚𝐝𝐨 𝐜𝐨𝐧 𝐞́𝐱𝐢𝐭𝐨!\n┃ ⚡ Ahora el bot está activo en tu cuenta\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣' }, { quoted: m });
+                console.log(chalk.gray(`✅ Sub-Bot (${senderId}) en línea y validado`));
+                if (!wasConnected) {
+                    await sock.sendMessage(remoteJid, { text: '╭〔 ✅ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n\n┃ 🤖 ¡𝐒𝐮𝐛-𝐛𝐨𝐭 𝐯𝐢𝐧𝐜𝐮𝐥𝐚𝐝𝐨 𝐜𝐨𝐧 𝐞́𝐱𝐢𝐭𝐨!\n┃ ⚡ Ahora el bot está activo en tu cuenta\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣' }, { quoted: m });
+                }
             }
         });
 
-        if (type === 'code' && phoneNumber && !subSock.authState.creds.registered && !subSock.authState.creds.me) {
+        const isRegistered = state.creds && (state.creds.registered || state.creds.me);
+        if (type === 'code' && phoneNumber && !isRegistered && !codeRequested) {
+            codeRequested = true;
             (async () => {
                 try {
                     await subSock.waitForSocketOpen();
-                    const code = await subSock.requestPairingCode(phoneNumber);
-                    await sock.sendMessage(remoteJid, { text: `${code}` }, { quoted: m });
+                    // Esperar 3 segundos para asegurar que el apretón de manos (handshake) se complete
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    let code = await subSock.requestPairingCode(phoneNumber);
+                    code = code?.match(/.{1,4}/g)?.join('-') || code;
+                    await sock.sendMessage(remoteJid, { text: `${code.toUpperCase()}` }, { quoted: m });
                 } catch (err) {
                     console.error('Error solicitando código:', err);
                 }

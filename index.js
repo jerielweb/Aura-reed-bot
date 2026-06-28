@@ -10,6 +10,7 @@ import { handleMessage } from './controllers/msgHandler.js';
 import { handleGroupUpdate } from './controllers/groupEvents.js';
 import { getDB, saveDB, initDB, flushDB } from './models/db.js';
 import { runCleanCacheIfNeeded, startCleanCacheTimer } from './controllers/cleanCache.js';
+import { wrapGroupMetadataCache, clearGroupMetadataCache, flushAllSubBotDBs } from './models/subbotWorker.js';
 
 await initDB();
 const db = await getDB();
@@ -21,6 +22,7 @@ function setupExitHandlers() {
         console.log(chalk.gray(`\n[EXIT] Señal recibida: ${signal}. Guardando base de datos...`));
         try {
             await flushDB();
+            await flushAllSubBotDBs();
         } catch (err) {
             console.error(chalk.red('[EXIT] Error guardando DB:'), err);
         }
@@ -32,6 +34,7 @@ function setupExitHandlers() {
     process.on('beforeExit', async () => {
         try {
             await flushDB();
+            await flushAllSubBotDBs();
         } catch (err) {
             console.error(chalk.red('[EXIT] Error guardando DB en beforeExit:'), err);
         }
@@ -122,6 +125,8 @@ async function connectToWhatsApp() {
         logger: pino({ level: 'silent' })
     });
 
+    wrapGroupMetadataCache(sock);
+
     sock.ev.on('creds.update', saveCreds);
 
     if (chosenPairingCode && !isRegistered) {
@@ -147,6 +152,7 @@ async function connectToWhatsApp() {
     });
 
     sock.ev.on('group-participants.update', async (update) => {
+        clearGroupMetadataCache(sock, update.id);
         await handleGroupUpdate(sock, update, getDB);
     });
 
@@ -208,7 +214,7 @@ async function connectToWhatsApp() {
             }
         }
         if (u.connection === 'open') {
-            console.log(chalk.green('✅ Bot en línea y validado'));
+            console.log(chalk.green('✅ Bot Principal en línea y validado'));
         }
     });
 }

@@ -3,17 +3,19 @@ import { fytBold } from "../../models/TextStyle.js";
 import { prepareWAMessageMedia, generateWAMessageFromContent } from '@whiskeysockets/baileys';
 import { categories, Aliases } from "./../../controllers/consts/cat.js";
 
-let mediaCache = null;
+const mediaCacheMap = new Map();
 
 export default {
     name: ['menu', 'help', 'h'],
     description: 'Muestra el menú completo.',
-    async execute(sock, m, args, { prefix }) {
+    async execute(sock, m, args, { prefix, db }) {
         const BannerBot = './assets/img/BotBanner.png';
         const BannerBotMp3 = './assets/audio/menu_music.opus';
         const remoteJid = m.key.remoteJid;
         const pushName = m.pushName || 'Usuario';
-        const tituloEstilizado = fytBold('AURA REED BOT');
+        const botName = db.botName || 'Aura Reed';
+        const botType = sock.isSubBot ? 'Sub-Bot' : 'Principal';
+        const tituloEstilizado = fytBold(`${botName.toUpperCase()} BOT`);
         const chanellink = global.chanellink || 'https://api.alyacore.xyz/a/10bfc2';
 
         const categoryAliases = Aliases;
@@ -23,10 +25,10 @@ export default {
         if (requested) {
             requestedCategory = categoryAliases[requested] || requested;
         }
-
-        let textoMenu = `╭━━〔 ${tituloEstilizado} 〕━━⬣\n`
+        let textoMenu = `${chanellink}\n`;
+        textoMenu += `╭━━〔 ${tituloEstilizado} 〕━━⬣\n`
         textoMenu += `┃ 👤 ${fytBold('Usuario:')} @${pushName}\n`
-        textoMenu += `┃ 🤖 ${fytBold('Bot:')} Aura Reed\n`
+        textoMenu += `┃ 🤖 ${fytBold('Bot:')} ${botName} (${botType})\n`
         textoMenu += `┃ ⚡ ${fytBold('Version:')} ${global.version}\n`
         textoMenu += `┃ 👑 ${fytBold('Owner:')} Jeriel B.\n`
         textoMenu += `┃ ⚡ ${fytBold('Prefix:')} [ ${prefix} ]\n`
@@ -39,8 +41,8 @@ export default {
             let textErr = `╭〔 ⚠️ ${fytBold('AURA REED')} 〕⬣\n`;
             textErr += `┃ ❌ ${fytBold('CATEGORÍA NO ENCONTRADA')}\n`;
             textErr += `╰━━━━━━━━━━━━⬣\n\n`;
-            textErr += `┃ > Categorías disponibles:\n`;
-            textErr += `┃ > ${categories.join(', ')}\n\n`;
+            textErr += `> Categorías disponibles:\n`;
+            textErr += `${categories.join('\n')}\n\n`;
             textErr += `╰〔 ⚡ ${fytBold('SYSTEM')} 〕⬣`;
             return await sock.sendMessage(remoteJid, { text: textErr }, { quoted: m });
         }
@@ -79,30 +81,44 @@ export default {
             textoMenu += `┃ ➪ ${fytBold(prefix + 'menu <categoría>')}\n`;
             textoMenu += `┃ ✦ Muestra el menú de una categoría específica.\n\n`;
         }
-        textoMenu += `╰〔 ⚡ ${fytBold('AURA REED BOT')} 〕⬣\n\n`;
+        textoMenu += `╰〔 ⚡ ${fytBold(botName.toUpperCase() + ' BOT')} 〕⬣\n\n`;
 
-        textoMenu += `${chanellink}`;
 
-        let imgBanner = mediaCache;
-        if (!imgBanner && fs.existsSync(BannerBot)) {
-            const mediaBanner = await prepareWAMessageMedia(
-                { image: fs.readFileSync(BannerBot) },
-                { upload: sock.waUploadToServer, mediaTypeOverride: "thumbnail-link" }
-            );
-            imgBanner = mediaBanner.imageMessage;
-            mediaCache = imgBanner;
+        let bannerPath = BannerBot;
+        let isGif = false;
+        if (db.customBanner && db.customBanner.path && fs.existsSync(db.customBanner.path)) {
+            bannerPath = db.customBanner.path;
+            isGif = db.customBanner.mimetype?.includes('gif') || bannerPath.endsWith('.gif');
+        }
+
+        let imgBanner = mediaCacheMap.get(bannerPath);
+        if (!imgBanner && fs.existsSync(bannerPath)) {
+            try {
+                const mediaType = isGif ? { video: fs.readFileSync(bannerPath) } : { image: fs.readFileSync(bannerPath) };
+                const mediaBanner = await prepareWAMessageMedia(
+                    mediaType,
+                    { upload: sock.waUploadToServer, mediaTypeOverride: "thumbnail-link" }
+                );
+                imgBanner = isGif ? mediaBanner.videoMessage : mediaBanner.imageMessage;
+                if (imgBanner) {
+                    mediaCacheMap.set(bannerPath, imgBanner);
+                }
+            } catch (err) {
+                console.error('[menu.js] Error al preparar media del banner:', err);
+            }
         }
 
         const getTs = (ts) => typeof ts === "object" ? Number(ts.low || ts) : Number(ts);
 
-        const content = {
+const content = {
             extendedTextMessage: {
                 text: textoMenu,
+                // Usamos un dominio espejo de alta confianza para obligar al cliente a renderizar el banner grande
                 matchedText: chanellink,
                 canonicalUrl: chanellink,
                 description: "Menú Oficial de Comandos e Información ✨",
-                title: "AURA REED BOT",
-                previewType: 0,
+                title: `${botName.toUpperCase()} BOT`,
+                previewType: 1, // Mantiene la orden de renderizado expandido
                 jpegThumbnail: imgBanner?.jpegThumbnail,
                 thumbnailDirectPath: imgBanner?.directPath,
                 thumbnailSha256: imgBanner?.fileSha256,
@@ -118,7 +134,7 @@ export default {
                     forwardingScore: 1,
                     forwardedNewsletterMessageInfo: {
                         newsletterJid: "120363424808187278@newsletter",
-                        newsletterName: "𝔸𝕦𝕣𝕒 ℂ𝕙𝕒𝕟𝕖𝕝 𝕆𝕗𝕚𝕔𝕚𝕒𝕝",
+                        newsletterName: "𝔸𝕦𝕣𝕒 ℂ𝕙𝕒𝕟𝕖ˡ 𝕆𝕗𝕚𝕔𝕚𝕒ˡ",
                         serverMessageId: -1
                     }
                 }

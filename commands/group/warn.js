@@ -31,7 +31,15 @@ export default {
             return socket.sendMessage(remoteJid, { text }, { quoted: message });
         }
 
-        const isUserAdmin = groupMetadata?.participants.some(p => p.id === userToWarn && (p.admin === 'admin' || p.admin === 'superadmin'));
+        const clean = (id) => id ? id.split('@')[0].split(':')[0] : null;
+        const targetBase = clean(userToWarn);
+        const isUserAdmin = groupMetadata?.participants.some(p => {
+            const pIdClean = clean(p.id);
+            const pLidClean = clean(p.lid);
+            const pPhoneClean = clean(p.phoneNumber);
+            const matches = targetBase && (pIdClean === targetBase || pLidClean === targetBase || pPhoneClean === targetBase);
+            return matches && (p.admin === 'admin' || p.admin === 'superadmin');
+        });
         if (isUserAdmin) {
 
             // Plantilla del mensaje para que sea más atractivo visualmente

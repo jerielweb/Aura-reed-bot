@@ -1,6 +1,6 @@
 import chalk from "chalk";
 
-export function cmdLog({ numeroReal, rango, commandName, isGroup, text, jidRemitente, pushName, groupMetadata, m, message, prefix }) {
+export function cmdLog({ numeroReal, rango, commandName, isGroup, text, jidRemitente, pushName, groupMetadata, m, message, prefix, sock }) {
     const fecha = new Date().toLocaleString('es-CR', { timeZone: 'America/Costa_Rica' });
     const senderNumber = jidRemitente ? jidRemitente.split('@')[0] : numeroReal;
 
@@ -68,7 +68,9 @@ export function cmdLog({ numeroReal, rango, commandName, isGroup, text, jidRemit
     const nombreUsuario = pushName || 'Usuario Desconocido';
 
     // Líneas base del diseño original
-    let lineasDinamicas = `${chalk.blue.bold('│')} ${chalk.white('👤 ')} ${chalk.bold('Usuario:')}   ${chalk.white(nombreUsuario)}\n`;
+    const botType = sock?.isSubBot ? `Sub-Bot (+${sock.subBotId})` : 'Principal';
+    let lineasDinamicas = `${chalk.blue.bold('│')} ${chalk.white('🤖 ')} ${chalk.bold('Bot:')}       ${chalk.cyan(botType)}\n`;
+    lineasDinamicas += `${chalk.blue.bold('│')} ${chalk.white('👤 ')} ${chalk.bold('Usuario:')}   ${chalk.white(nombreUsuario)}\n`;
     lineasDinamicas += `${chalk.blue.bold('│')} ${chalk.white('🎖️ ')} ${chalk.bold('Rango:')}     ${chalk.magenta(rolRango)}\n`;
 
     if (isGroup) {
