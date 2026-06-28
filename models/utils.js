@@ -13,6 +13,28 @@ export async function resolveLidToRealJid(lid, client, remoteJid) {
     if (!input) return input;
 
     const isGroup = remoteJid?.endsWith('@g.us');
+    const isLid = input.endsWith('@lid') || input.includes('@hosted.lid');
+
+    // 1. Verificar cache local para LIDs
+    if (isLid && lidCache.has(input)) {
+        return lidCache.get(input);
+    }
+
+    // 2. Intentar resolución con el almacén de claves de señal (signalRepository) de Baileys
+    if (isLid && client?.signalRepository?.lidMapping?.getPNForLID) {
+        try {
+            const cleanLid = `${input.split('@')[0].split(':')[0]}@lid`;
+            const pn = await client.signalRepository.lidMapping.getPNForLID(cleanLid);
+            if (pn) {
+                const resolvedJid = pn.split(':')[0]; // Limpiar sufijos de dispositivo como :1
+                const resolvedNormalized = resolvedJid.endsWith('@s.whatsapp.net') ? resolvedJid : `${resolvedJid}@s.whatsapp.net`;
+                lidCache.set(input, resolvedNormalized);
+                return resolvedNormalized;
+            }
+        } catch (e) {
+            console.error('[resolveLidToRealJid] Error resolviendo LID usando signalRepository:', e);
+        }
+    }
 
     // CASO 1: Chat Privado (Limpieza de :1 o similares)
     if (!isGroup) {

@@ -14,7 +14,7 @@ import gemini from '../commands/AI/gemini.js';
 
 const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
 
-global.chanellink = 'https://whatsapp.com/channel/0029VbCfr0zBvvsofUsffZ2q'
+global.chanellink = 'https://api.alyacore.xyz/a/10bfc2'
 global.version = packageJson.version
 
 //Apis

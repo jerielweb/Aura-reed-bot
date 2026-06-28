@@ -129,7 +129,7 @@ export async function createSubBot(sock, m, type, phoneNumber = null) {
     }, 60000);
 
     async function start() {
-        const { version } = await fetchLatestWaWebVersion().catch(() => ({ version: [2, 3000, 1017025734] }));
+        const { version } = await fetchLatestWaWebVersion().catch(() => ({ version: [2, 3000, 1042234044] }));
         const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
         const subSock = makeWASocket({
             version,
@@ -214,14 +214,15 @@ export async function createSubBot(sock, m, type, phoneNumber = null) {
         });
 
         if (type === 'code' && phoneNumber && !subSock.authState.creds.registered && !subSock.authState.creds.me) {
-            setTimeout(async () => {
+            (async () => {
                 try {
+                    await subSock.waitForSocketOpen();
                     const code = await subSock.requestPairingCode(phoneNumber);
                     await sock.sendMessage(remoteJid, { text: `${code}` }, { quoted: m });
                 } catch (err) {
                     console.error('Error solicitando código:', err);
                 }
-            }, 5000);
+            })();
         }
     }
 

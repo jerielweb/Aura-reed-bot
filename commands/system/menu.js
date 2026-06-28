@@ -1,51 +1,22 @@
 import fs from 'fs';
 import { fytBold } from "../../models/TextStyle.js";
+import { prepareWAMessageMedia, generateWAMessageFromContent } from '@whiskeysockets/baileys';
+import { categories, Aliases } from "./../../controllers/consts/cat.js";
 
+let mediaCache = null;
 
 export default {
     name: ['menu', 'help', 'h'],
     description: 'Muestra el menú completo.',
     async execute(sock, m, args, { prefix }) {
-        const BannerBot = './assets/img/BotBanner.png'
-        const BannerBotMp3 = './assets/audio/menu_music.opus'
+        const BannerBot = './assets/img/BotBanner.png';
+        const BannerBotMp3 = './assets/audio/menu_music.opus';
         const remoteJid = m.key.remoteJid;
         const pushName = m.pushName || 'Usuario';
-        const categories = ['system', 'owner', 'group', 'fun', 'utils', 'downloads', 'search', 'economy', 'sticker', 'profile', 'interaction', 'AI', 'stalk'];
         const tituloEstilizado = fytBold('AURA REED BOT');
-        const chanellink = global.chanellink;
+        const chanellink = global.chanellink || 'https://api.alyacore.xyz/a/10bfc2';
 
-        // Mapear alias en español a carpetas en el proyecto
-        const categoryAliases = {
-            'descargas': 'downloads',
-            'descarga': 'downloads',
-            'sistema': 'system',
-            'propietario': 'owner',
-            'dueño': 'owner',
-            'owner': 'owner',
-            'grupo': 'group',
-            'grupos': 'group',
-            'diversion': 'fun',
-            'diversiones': 'fun',
-            'diversión': 'fun',
-            'utilidades': 'utils',
-            'utiles': 'utils',
-            'busqueda': 'search',
-            'buscador': 'search',
-            'economia': 'economy',
-            'economía': 'economy',
-            'pegatinas': 'sticker',
-            'stickers': 'sticker',
-            'perfil': 'profile',
-            'interacion': 'interaction',
-            'interacciones': 'interaction',
-            'interacción': 'interaction',
-            'IA': 'AI',
-            'ai': 'AI',
-            'inteligencia artificial': 'AI',
-            'inteligenciaartificial': 'AI',
-            'stalk': 'stalk',
-            'inspección': 'stalk'
-        };
+        const categoryAliases = Aliases;
 
         const requested = args && args[0] ? args[0].toLowerCase() : null;
         let requestedCategory = null;
@@ -53,22 +24,17 @@ export default {
             requestedCategory = categoryAliases[requested] || requested;
         }
 
-        let textoMenu = `
-╭━━〔 ${tituloEstilizado} 〕━━⬣
+        let textoMenu = `╭━━〔 ${tituloEstilizado} 〕━━⬣\n`
+        textoMenu += `┃ 👤 ${fytBold('Usuario:')} @${pushName}\n`
+        textoMenu += `┃ 🤖 ${fytBold('Bot:')} Aura Reed\n`
+        textoMenu += `┃ ⚡ ${fytBold('Version:')} ${global.version}\n`
+        textoMenu += `┃ 👑 ${fytBold('Owner:')} Jeriel B.\n`
+        textoMenu += `┃ ⚡ ${fytBold('Prefix:')} [ ${prefix} ]\n`
+        textoMenu += `┃ 📆 ${fytBold('Fecha:')} ${new Date().toLocaleDateString('es-CR')}\n`
+        textoMenu += `╰━━━━━━━━━━━━━━━━━━⬣\n\n`;
 
-┃ 👤 ${fytBold('Usuario:')} @${pushName}
-┃ 🤖 ${fytBold('Bot:')} Aura Reed
-┃ ⚡ ${fytBold('Version:')} ${global.version}
-┃ 👑 ${fytBold('Owner:')} Jeriel B.
-┃ ⚡ ${fytBold('Prefix:')} [ ${prefix} ]
-┃ 📆 ${fytBold('Fecha:')} ${new Date().toLocaleDateString('es-CR')}
-┃ 💬 ${fytBold('Channel:')} ${chanellink}
-\n`;
-
-        // Si se solicitó una categoría específica
         const catsToShow = requestedCategory ? [requestedCategory] : categories;
 
-        // Validar categoría solicitada
         if (requestedCategory && !categories.includes(requestedCategory)) {
             let textErr = `╭〔 ⚠️ ${fytBold('AURA REED')} 〕⬣\n`;
             textErr += `┃ ❌ ${fytBold('CATEGORÍA NO ENCONTRADA')}\n`;
@@ -113,16 +79,59 @@ export default {
             textoMenu += `┃ ➪ ${fytBold(prefix + 'menu <categoría>')}\n`;
             textoMenu += `┃ ✦ Muestra el menú de una categoría específica.\n\n`;
         }
-        textoMenu += `╰〔 ⚡ ${fytBold('AURA REED BOT')} 〕⬣\n`;
+        textoMenu += `╰〔 ⚡ ${fytBold('AURA REED BOT')} 〕⬣\n\n`;
 
-        await sock.sendMessage(remoteJid, {
-            image: { url: BannerBot },
-            caption: textoMenu,
-            mentions: [m.key.participant || remoteJid]
-        }, { quoted: m });
+        // 🛠️ TRUCO 1: El enlace final debe ir limpio y separado en una línea dedicada
+        textoMenu += `${chanellink}`;
 
-        // Si el usuario pidió una categoría específica, evitamos el audio para no saturar
-        if (!requestedCategory) {
+        let imgBanner = mediaCache;
+        if (!imgBanner && fs.existsSync(BannerBot)) {
+            const mediaBanner = await prepareWAMessageMedia(
+                { image: fs.readFileSync(BannerBot) },
+                { upload: sock.waUploadToServer, mediaTypeOverride: "thumbnail-link" }
+            );
+            imgBanner = mediaBanner.imageMessage;
+            mediaCache = imgBanner;
+        }
+
+        const getTs = (ts) => typeof ts === "object" ? Number(ts.low || ts) : Number(ts);
+
+        const content = {
+            extendedTextMessage: {
+                text: textoMenu,
+                matchedText: chanellink,
+                canonicalUrl: chanellink,
+                description: "Menú Oficial de Comandos e Información ✨",
+                title: "AURA REED BOT",
+                // 🛠️ TRUCO 2: Modificar los bits de renderizado nativos para forzar el banner grande
+                previewType: "NONE",
+                doNotPlayInline: true,
+                jpegThumbnail: imgBanner?.jpegThumbnail,
+                thumbnailDirectPath: imgBanner?.directPath,
+                thumbnailSha256: imgBanner?.fileSha256,
+                thumbnailEncSha256: imgBanner?.fileEncSha256,
+                mediaKey: imgBanner?.mediaKey,
+                mediaKeyTimestamp: imgBanner ? getTs(imgBanner.mediaKeyTimestamp) : 0,
+                thumbnailHeight: imgBanner?.height || 1080,
+                thumbnailWidth: imgBanner?.width || 1920,
+                inviteLinkGroupTypeV2: 0,
+                contextInfo: {
+                    mentionedJid: [m.key.participant || remoteJid],
+                    isForwarded: true,
+                    forwardingScore: 1,
+                    forwardedNewsletterMessageInfo: {
+                        newsletterJid: "120363424808187278@newsletter",
+                        newsletterName: "𝔸𝕦𝕣𝕒 ℂ𝕙𝕒𝕟𝕖𝕝 𝕆𝕗𝕚𝕔𝕚𝕒𝕝",
+                        serverMessageId: -1
+                    }
+                }
+            }
+        };
+
+        const waMsg = generateWAMessageFromContent(remoteJid, content, { userJid: sock.user?.id, quoted: m });
+        await sock.relayMessage(remoteJid, waMsg.message, { messageId: waMsg.key.id });
+
+        if (!requestedCategory && fs.existsSync(BannerBotMp3)) {
             await sock.sendMessage(remoteJid, {
                 audio: fs.readFileSync(BannerBotMp3),
                 ptt: true,
@@ -130,4 +139,4 @@ export default {
             }, { quoted: m });
         }
     }
-}; 
+};

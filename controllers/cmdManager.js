@@ -1,3 +1,5 @@
+import { categories } from "./consts/cat.js";
+
 export function isCategoryEnabled(remoteJid, category, db) {
     const protectedCategories = ['owner', 'group', 'system'];
     if (!remoteJid.endsWith('@g.us') || protectedCategories.includes(category)) return true;
@@ -31,7 +33,7 @@ export default {
         const category = args[1]?.toLowerCase();
 
         const protectedCategories = ['owner', 'group', 'system'];
-        const validCategories = ['fun', 'utils', 'downloads', 'search', 'economy', 'sticker', 'profile', 'interaction', 'AI', 'stalk'];
+        const validCategories = categories;
 
         if (!action || !category) {
             let text = `╭〔 ⚙️ 𝐂𝐌𝐃 𝐌𝐀𝐍𝐀𝐆𝐄𝐑 〕⬣\n`;

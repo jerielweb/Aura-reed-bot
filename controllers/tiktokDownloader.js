@@ -198,7 +198,7 @@ class TikTokDownloader {
 
         // Carrera de APIs de respaldo si falla el scraper local
         const apis = [
-{
+            {
                 name: 'Alya Core',
                 fn: async () => {
                     const res = await axios.get(`${alyacoreUrl}dl/tiktokv2?url=${encodeURIComponent(url)}`, {

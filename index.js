@@ -75,16 +75,15 @@ async function connectToWhatsApp() {
     const isRegistered = state.creds && (state.creds.registered || state.creds.me);
 
     if (!isRegistered && !isPairingChoiceMade) {
-        let menu = `${
-            chalk.blue.bold(`╭──────────── Vinculación de Aura Reed ───────────⬣\n`)+
-            chalk.blue.bold(`│ \n`)+
-            chalk.blue.bold(`│ Seleccione un método de vinculación:\n`)+
-            chalk.blue.bold(`│ \n`)+
-            chalk.blue.bold(`│ 1. Código QR (Terminal)\n`)+
-            chalk.blue.bold(`│ 2. Código de emparejamiento\n`)+
-            chalk.blue.bold(`│ \n`)+
+        let menu = `${chalk.blue.bold(`╭──────────── Vinculación de Aura Reed ───────────⬣\n`) +
+            chalk.blue.bold(`│ \n`) +
+            chalk.blue.bold(`│ Seleccione un método de vinculación:\n`) +
+            chalk.blue.bold(`│ \n`) +
+            chalk.blue.bold(`│ 1. Código QR (Terminal)\n`) +
+            chalk.blue.bold(`│ 2. Código de emparejamiento\n`) +
+            chalk.blue.bold(`│ \n`) +
             chalk.blue.bold(`╰─────────────────────────────────────────────────⬣\n`)
-        }`
+            }`
 
         console.log(menu);
         console.log(chalk.cyan.bold('Seleccione una opción (1 o 2) '));
@@ -103,7 +102,7 @@ async function connectToWhatsApp() {
         }
     }
 
-    const { version } = await fetchLatestWaWebVersion().catch(() => ({ version: [2, 3000, 1017025734] }));
+    const { version } = await fetchLatestWaWebVersion().catch(() => ({ version: [2, 3000, 1042234044] }));
     console.log(chalk.blue(`[Aura Reed] Usando la versión de WhatsApp Web v${version.join('.')}`));
 
     const sock = makeWASocket({
@@ -113,21 +112,23 @@ async function connectToWhatsApp() {
             keys: state.keys
         },
         printQRInTerminal: false,
+        browser: ["Ubuntu", "Chrome", "20.0.04"],
         logger: pino({ level: 'silent' })
     });
 
     sock.ev.on('creds.update', saveCreds);
 
     if (chosenPairingCode && !isRegistered) {
-        setTimeout(async () => {
+        (async () => {
             try {
+                await sock.waitForSocketOpen();
                 let code = await sock.requestPairingCode(chosenPhoneNumber);
                 code = code?.match(/.{1,4}/g)?.join('-') || code;
                 console.log(chalk.green(`\n🔑 Código de vinculación: `) + chalk.bgGreen.black(` ${code.toUpperCase()} `) + '\n');
             } catch (err) {
                 console.error(chalk.red('Error al solicitar el código de emparejamiento:'), err);
             }
-        }, 3000);
+        })();
     }
 
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
