@@ -25,14 +25,15 @@ export default {
         if (requested) {
             requestedCategory = categoryAliases[requested] || requested;
         }
-        let textoMenu = `${chanellink}\n`;
-        textoMenu += `╭━━〔 ${tituloEstilizado} 〕━━⬣\n`
-        textoMenu += `┃ 👤 ${fytBold('Usuario:')} @${pushName}\n`
-        textoMenu += `┃ 🤖 ${fytBold('Bot:')} ${botName} (${botType})\n`
-        textoMenu += `┃ ⚡ ${fytBold('Version:')} ${global.version}\n`
-        textoMenu += `┃ 👑 ${fytBold('Owner:')} Jeriel B.\n`
-        textoMenu += `┃ ⚡ ${fytBold('Prefix:')} [ ${prefix} ]\n`
-        textoMenu += `┃ 📆 ${fytBold('Fecha:')} ${new Date().toLocaleDateString('es-CR')}\n`
+
+        let textoMenu = `╭━━〔 ${tituloEstilizado} 〕━━⬣\n`
+        textoMenu += `┃ > ${fytBold('Usuario:')} @${pushName}\n`
+        textoMenu += `┃ > ${fytBold('Bot:')} ${botName} (${botType})\n`
+        textoMenu += `┃ > ${fytBold('Version:')} ${global.version}\n`
+        textoMenu += `┃ > ${fytBold('Owner:')} Jeriel B.\n`
+        textoMenu += `┃ > ${fytBold('Prefix:')} [ ${prefix} ]\n`
+        textoMenu += `┃ > ${fytBold('Fecha:')} ${new Date().toLocaleDateString('es-CR')}\n`
+        textoMenu += `┃ > ${fytBold('Url:')} ${chanellink}\n`
         textoMenu += `╰━━━━━━━━━━━━━━━━━━⬣\n\n`;
 
         const catsToShow = requestedCategory ? [requestedCategory] : categories;
@@ -116,7 +117,7 @@ const content = {
                 // Usamos un dominio espejo de alta confianza para obligar al cliente a renderizar el banner grande
                 matchedText: chanellink,
                 canonicalUrl: chanellink,
-                description: "Menú Oficial de Comandos e Información ✨",
+                description: "✦ 𝓐𝓾𝓻𝓪 𝓡𝓮𝓮𝓭 𝓟𝓸𝔀𝓮𝓻𝓮𝓭 𝓑𝔂 𝓙𝓮𝓻𝓲𝓮𝓵 𝓑. ✦",
                 title: `${botName.toUpperCase()} BOT`,
                 previewType: 1, // Mantiene la orden de renderizado expandido
                 jpegThumbnail: imgBanner?.jpegThumbnail,
@@ -134,7 +135,7 @@ const content = {
                     forwardingScore: 1,
                     forwardedNewsletterMessageInfo: {
                         newsletterJid: "120363424808187278@newsletter",
-                        newsletterName: "𝔸𝕦𝕣𝕒 ℂ𝕙𝕒𝕟𝕖ˡ 𝕆𝕗𝕚𝕔𝕚𝕒ˡ",
+                        newsletterName: "⋆ 𝔸𝕦𝕣𝕒 ℝ𝕖𝕖𝕕 ℂ𝕙𝕒𝕟𝕖𝕝𝕝 𝕆𝕗𝕚𝕔𝕚𝕒𝕝 ⋆",
                         serverMessageId: -1
                     }
                 }
