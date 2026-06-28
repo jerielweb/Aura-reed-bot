@@ -128,6 +128,8 @@ async function connectToWhatsApp() {
         (async () => {
             try {
                 await sock.waitForSocketOpen();
+                // Esperar 3 segundos para asegurar que el apretón de manos (handshake) se complete
+                await new Promise(resolve => setTimeout(resolve, 3000));
                 let code = await sock.requestPairingCode(chosenPhoneNumber);
                 code = code?.match(/.{1,4}/g)?.join('-') || code;
                 console.log(chalk.green(`\n🔑 Código de vinculación: `) + chalk.bgGreen.black(` ${code.toUpperCase()} `) + '\n');
@@ -166,23 +168,30 @@ async function connectToWhatsApp() {
 
             console.log(chalk.yellow(`\nℹ️ Conexión cerrada. Código de estado: ${statusCode || 'N/A'}. Razón: ${errorMessage}`));
 
+            // Si aún no estábamos registrados (en proceso de vinculación) y se cierra la conexión
+            const isNotRegistered = !state.creds || !(state.creds.registered || state.creds.me);
+
             const shouldResetSession = [
                 DisconnectReason.loggedOut,          // 401
                 DisconnectReason.badSession,          // 500
                 DisconnectReason.forbidden,           // 403
                 DisconnectReason.multideviceMismatch  // 411
-            ].includes(statusCode);
+            ].includes(statusCode) || isNotRegistered;
 
             if (shouldResetSession) {
-                console.log(chalk.red('\n❌ La sesión no es válida, ha sido desvinculada por WhatsApp o el dispositivo cambió.'));
-                console.log(chalk.yellow('Limpiando credenciales obsoletas y volviendo al menú de vinculación...\n'));
+                if (isNotRegistered) {
+                    console.log(chalk.red('\n⚠️ La vinculación fue interrumpida, el código expiró o la IP del host está bloqueada.'));
+                } else {
+                    console.log(chalk.red('\n❌ La sesión no es válida, ha sido desvinculada por WhatsApp o el dispositivo cambió.'));
+                }
+                console.log(chalk.yellow('Limpiando credenciales y volviendo al menú de vinculación...\n'));
 
                 const authFolder = './sessions/principal';
                 if (fs.existsSync(authFolder)) {
                     try {
                         fs.rmSync(authFolder, { recursive: true, force: true });
                     } catch (e) {
-                        console.error(chalk.red('Error al limpiar credenciales inactivas:'), e);
+                        console.error(chalk.red('Error al limpiar credenciales:'), e);
                     }
                 }
 
