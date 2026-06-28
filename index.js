@@ -102,11 +102,17 @@ async function connectToWhatsApp() {
         }
     }
 
-    const { version } = await fetchLatestWaWebVersion().catch(() => ({ version: [2, 3000, 1042234044] }));
-    console.log(chalk.blue(`[Aura Reed] Usando la versión de WhatsApp Web v${version.join('.')}`));
+    let version;
+    try {
+        const fetched = await fetchLatestWaWebVersion();
+        version = fetched.version;
+        console.log(chalk.blue(`[Aura Reed] Usando la versión de WhatsApp Web v${version.join('.')}`));
+    } catch (err) {
+        console.log(chalk.yellow(`[Aura Reed] No se pudo obtener la última versión de WhatsApp Web (posible bloqueo de IP en el host). Se usará la versión interna de Baileys.`));
+    }
 
     const sock = makeWASocket({
-        version,
+        ...(version ? { version } : {}),
         auth: {
             creds: state.creds,
             keys: state.keys
