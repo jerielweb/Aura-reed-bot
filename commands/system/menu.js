@@ -111,7 +111,7 @@ export default {
 
         const getTs = (ts) => typeof ts === "object" ? Number(ts.low || ts) : Number(ts);
 
-const content = {
+        const content = {
             extendedTextMessage: {
                 text: textoMenu,
                 // Usamos un dominio espejo de alta confianza para obligar al cliente a renderizar el banner grande
@@ -119,7 +119,7 @@ const content = {
                 canonicalUrl: chanellink,
                 description: "✦ 𝓐𝓾𝓻𝓪 𝓡𝓮𝓮𝓭 𝓟𝓸𝔀𝓮𝓻𝓮𝓭 𝓑𝔂 𝓙𝓮𝓻𝓲𝓮𝓵 𝓑. ✦",
                 title: `${botName.toUpperCase()} BOT`,
-                previewType: 1, // Mantiene la orden de renderizado expandido
+                previewType: 1,
                 jpegThumbnail: imgBanner?.jpegThumbnail,
                 thumbnailDirectPath: imgBanner?.directPath,
                 thumbnailSha256: imgBanner?.fileSha256,

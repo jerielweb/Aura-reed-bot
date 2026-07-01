@@ -28,7 +28,7 @@ export default {
             }
 
             const slicedTracks = tracks.slice(0, 10);
-            
+
             let text = `╭━━〔 𝐒𝐏𝐎𝐓𝐈𝐅𝐘 𝐒𝐄𝐀𝐑𝐂𝐇 〕━━⬣\n`;
             text += `┃ 🔍 𝐁úsqueda: ${query}\n`;
             text += `┃ ⚙️ 𝐌otor › ${slicedTracks[0].source || 'Desconocido'}\n`;
