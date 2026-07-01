@@ -24,7 +24,7 @@ export default {
 
         const copilotUrls = [
             `https://api.delirius.store/ia/chatgpt?q=${encodeURIComponent(prompt)}`,
-            `https://api.alyacore.xyz/ai/chatgpt?text=${encodeURIComponent(prompt)}&key=oboe`
+            // `https://api.alyacore.xyz/ai/chatgpt?text=${encodeURIComponent(prompt)}&key=oboe`
         ];
 
         const extractText = (data) => {
