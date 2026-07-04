@@ -32,18 +32,18 @@ function unwrapMessage(msg) {
 // Convertidor unificado basado en FFMPEG (seguro y compatible al 100% en Windows)
 async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
     return new Promise((resolve, reject) => {
-        let fps = 12;
+        let fps = 30;
         let quality = 50;
-        let duration = 15; // Límite de 15 segundos
+        let duration = 20; // Límite de 20 segundos
 
         if (attempt === 2) {
-            fps = 10;
+            fps = 25;
             quality = 35;
-            duration = 13;
+            duration = 15;
         } else if (attempt >= 3) {
-            fps = 8;
+            fps = 20;
             quality = 20;
-            duration = 11;
+            duration = 10;
         }
 
         // 1. Opciones generales de salida (Separadas correctamente sin mezclar banderas)
