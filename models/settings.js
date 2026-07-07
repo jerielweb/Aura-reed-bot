@@ -1,66 +1,63 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const settingsSchema = new mongoose.Schema({
-    id: { type: String, default: 'main_config' },
-    prefix: { type: String, default: '!' }
+  id: { type: String, default: "main_config" },
+  prefix: { type: String, default: "!" },
 });
 
-export default mongoose.model('Settings', settingsSchema);
+export default mongoose.model("Settings", settingsSchema);
 
+import fs from "fs";
+import gemini from "../commands/AI/gemini.js";
 
+const packageJson = JSON.parse(fs.readFileSync("./package.json", "utf-8"));
 
-import fs from 'fs';
-import gemini from '../commands/AI/gemini.js';
-
-const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
-
-global.chanellink = 'https://api.alyacore.xyz/a/10bfc2'
-global.version = packageJson.version
+global.chanellink = "https://api.alyacore.xyz/a/10bfc2";
+global.version = packageJson.version;
 
 //Apis
 global.Apis = {
-    apiCausa: {
-        apikey: 'oboe',
-        url: 'https://rest.apicausas.xyz/'
-    },
-    apiAiya: {
-        apikey: 'oboe',
-        url: 'https://api.alyacore.xyz/'
-    },
-    appiFaa: {
-        apikey: null,
-        url: 'https://api-faa.my.id/'
-    },
-    deliriusApi: {
-        apikey: null,
-        url: 'https://api.delirius.store/'
-    },
+  apiCausa: {
+    apikey: "oboe",
+    url: "https://rest.apicausas.xyz/",
+  },
+  apiAiya: {
+    apikey: "oboe",
+    url: "https://api.alyacore.xyz/",
+  },
+  appiFaa: {
+    apikey: null,
+    url: "https://api-faa.my.id/",
+  },
+  deliriusApi: {
+    apikey: null,
+    url: "https://api.delirius.store/",
+  },
 };
 
 // YouTube Search APIs
 global.youtubeApis = {
-    alyacore: {
-        url: 'https://api.alyacore.xyz/search/yt',
-        apikey: 'oboe'
-    },
-    delirius: {
-        url: 'https://api.delirius.store/search/ytsearch'
-    }
+  alyacore: {
+    url: "https://api.alyacore.xyz/search/yt",
+    apikey: "oboe",
+  },
+  delirius: {
+    url: "https://api.delirius.store/search/ytsearch",
+  },
 };
 
 // TikTok Search APIs
 global.tiktokApis = {
-    alyacore: {
-        url: 'https://api.alyacore.xyz/search/tiktok',
-        apikey: 'oboe'
-    },
-    delirius: {
-        url: 'https://api.delirius.store/search/tiktoksearch'
-    }
+  alyacore: {
+    url: "https://api.alyacore.xyz/search/tiktok",
+    apikey: "oboe",
+  },
+  delirius: {
+    url: "https://api.delirius.store/search/tiktoksearch",
+  },
 };
 
-
 global.apiShazam = {
-    url: 'https://api.audd.io/',
-    apikey: '07887abb3c387183d5f3be932f3445d5'
-}
+  url: "https://api.audd.io/",
+  apikey: "07887abb3c387183d5f3be932f3445d5",
+};
