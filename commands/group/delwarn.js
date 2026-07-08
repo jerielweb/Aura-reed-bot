@@ -1,4 +1,6 @@
 import { warningMessage, errorMessage } from "../../models/messageTemplates.js";
+import { fytBold } from "../../models/TextStyle.js";
+
 
 export default {
   name: ["delwarn", "unwarn"],
