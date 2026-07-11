@@ -3,7 +3,7 @@ import { resolveLidToRealJid } from "../../models/utils.js";
 import { fytBold } from "../../models/TextStyle.js";
 
 export default {
-  name: ["impregnate", "embarazar", "preñar", "fecundar", "embarazo"],
+  name: ["impregnate", "embarazar", "preñar", "fecundar", "embarazo", "preg"],
   category: "interaction",
   description: "Embarazar",
   async execute(sock, m, args, { prefix, jidRemitente }) {
