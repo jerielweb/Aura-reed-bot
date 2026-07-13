@@ -2,12 +2,12 @@ import axios from "axios";
 import yts from "yt-search";
 import { downloadMediaMessage } from "@whiskeysockets/baileys";
 import fs from "fs";
-import ffmpeg from "ffmpeg-static";
-import ffmpegInstaller from "fluent-ffmpeg";
+import ffmpegStatic from "ffmpeg-static";
+import ffmpeg from "fluent-ffmpeg";
 import { fytBold } from "../../models/TextStyle.js";
 
 // Configuración de ffmpeg
-ffmpegInstaller.setFfmpegPath(ffmpeg);
+ffmpeg.setFfmpegPath(ffmpegStatic);
 
 const token = global.apiShazam?.apikey || "07887abb3c387183d5f3be932f3445d5";
 
@@ -58,11 +58,17 @@ export default {
       await fs.promises.mkdir("./tmp", { recursive: true });
       await fs.promises.writeFile(tempIn, buffer);
 
-      // Conversión a WAV (PCM, mono, 44.1kHz)
+      // Conversión a WAV con filtro para eliminar silencio inicial (Offset)
       await new Promise((resolve, reject) => {
-        ffmpegInstaller(tempIn)
+        ffmpeg(tempIn)
           .inputOptions(["-vn"])
-          .outputOptions(["-t 15", "-acodec pcm_s16le", "-ar 44100", "-ac 1"])
+          .outputOptions([
+            "-t 15",
+            "-acodec pcm_s16le",
+            "-ar 44100",
+            "-ac 1",
+            "-af silenceremove=start_periods=1:start_duration=0.1:start_threshold=-50dB"
+          ])
           .toFormat("wav")
           .on("error", (err) => reject(err))
           .on("end", () => resolve())
@@ -122,4 +128,4 @@ export default {
     }
   },
 };
-              
+        
