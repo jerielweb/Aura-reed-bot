@@ -1,7 +1,7 @@
 import { fytBold } from "../../models/TextStyle.js";
 
 export default {
-  name: ["topinactivos", "fantasmas"],
+  name: ["topinactivos", "fantasmas", "inactivos"],
   category: "group",
   description: "Ver inactivos.",
   adminOnly: true,
