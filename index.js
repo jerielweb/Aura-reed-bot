@@ -52,7 +52,7 @@ function setupExitHandlers() {
       await flushDB();
       await flushAllSubBotDBs();
     } catch (err) {
-      console.error(chalk.red("[EXIT] Error guardando DB en beforeExit:"), err);
+      console.error(chalk.red("[EXIT] Error guardando DB in beforeExit:"), err);
     }
   });
 }
@@ -206,7 +206,8 @@ async function connectToWhatsApp() {
     await handleGroupUpdate(sock, update, getDB);
   });
 
-  sock.ev.on("connection.update", (u) => {
+  // 🛠️ AQUÍ ESTÁ EL CAMBIO: Se añadió la palabra 'async' antes de '(u)'
+  sock.ev.on("connection.update", async (u) => {
     if (u.qr && !chosenPairingCode) {
       console.log(
         chalk.yellow(
