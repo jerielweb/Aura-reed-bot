@@ -3,6 +3,7 @@ import makeWASocket, {
   DisconnectReason,
   fetchLatestWaWebVersion,
 } from "@whiskeysockets/baileys";
+import {loadAllSubBots} from "./models/subbotManager.js"
 import { Boom } from "@hapi/boom";
 import qrcodeTerminal from "qrcode-terminal";
 import pino from "pino";
@@ -292,6 +293,8 @@ async function connectToWhatsApp() {
     }
     if (u.connection === "open") {
       console.log(chalk.green("✅ Bot Principal en línea y validado"));
+      
+      await loadAllSubBots(sock)
     }
   });
 }

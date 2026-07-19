@@ -76,11 +76,6 @@ export function resolveSubBotSenderId(phoneNumber, jidRemitente) {
   return null;
 }
 
-/**
- * true = puede vincular.
- * - Hay cupo libre (count < max): usuario nuevo.
- * - Cupo lleno: solo quien ya tiene sub-bot (re-vinculación).
- */
 export function canRegisterSubBot(senderId) {
   const { id, count, max, available, hasOwn } = getSubBotSlotStatus(senderId);
   if (!id) return false;
@@ -96,7 +91,7 @@ export async function stopSubBot(senderId) {
   if (activeSubBots.has(senderId)) {
     try {
       const subSock = activeSubBots.get(senderId);
-      // Intentar cerrar de forma segura
+      subSock.isClosedManually = true; // Forzar bandera manual para evitar bucles de reconexión
       if (subSock.ws?.isOpen) {
         await subSock.logout().catch(() => {});
       }
@@ -116,62 +111,80 @@ export async function stopSubBot(senderId) {
   return handled;
 }
 
-export async function createSubBot(sock, m, type, phoneNumber = null) {
-  const remoteJid = m.key.remoteJid;
-  const sender = m.key.participant || m.key.remoteJid;
-  const senderId =
-    resolveSubBotSenderId(phoneNumber, null) ||
-    sender.split("@")[0].split(":")[0];
+/**
+ * 🚀 NUEVA FUNCIÓN: Levanta todos los sub-bots de forma automática tras reiniciar el servidor.
+ * Debes llamarla desde tu archivo de inicio principal (ej: index.js o main.js), pasándole el `sock` principal.
+ */
+export async function loadAllSubBots(mainSock) {
+  const sessions = listActiveSubBotSessions();
+  if (sessions.length === 0) return;
+  
+  console.log(chalk.cyan(`[SUB-BOT] Encontradas ${sessions.length} sesiones activas. Restaurando...`));
+  
+  for (const senderId of sessions) {
+    try {
+      // Simula una inicialización sin interrupción de mensajes
+      await createSubBot(mainSock, null, "autoload", null, senderId);
+      // Pequeño delay de 3 segundos entre ejecuciones para evitar saturar el hardware
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+    } catch (e) {
+      console.error(`[SUB-BOT] Error levantando la sesión automática ${senderId}:`, e.message);
+    }
+  }
+}
+
+export async function createSubBot(sock, m, type, phoneNumber = null, autoSenderId = null) {
+  // Manejo de variables flexible si viene del inicio automático
+  const isAutoload = type === "autoload";
+  const remoteJid = isAutoload ? null : m.key.remoteJid;
+  const sender = isAutoload ? null : (m.key.participant || m.key.remoteJid);
+  
+  const senderId = autoSenderId || 
+                   resolveSubBotSenderId(phoneNumber, null) || 
+                   sender.split("@")[0].split(":")[0];
+                   
   const sessionPath = path.join(sessionsDir, senderId);
 
-  if (!canRegisterSubBot(senderId)) {
-    await sock.sendMessage(
-      remoteJid,
-      { text: SUB_LIMIT_MESSAGE },
-      { quoted: m },
-    );
+  if (!isAutoload && !canRegisterSubBot(senderId)) {
+    await sock.sendMessage(remoteJid, { text: SUB_LIMIT_MESSAGE }, { quoted: m });
     return;
   }
 
-  if (fs.existsSync(sessionPath)) {
+  // Si no es un inicio automático y la carpeta ya existía, se limpia para un nuevo flujo QR/Código
+  if (!isAutoload && fs.existsSync(sessionPath)) {
     fs.rmSync(sessionPath, { recursive: true, force: true });
   }
 
   let isConnected = false;
-  let isClosedManually = false;
   let codeRequested = false;
+  let timeout;
 
-  const timeout = setTimeout(async () => {
-    if (!isConnected) {
-      isClosedManually = true;
-      await sock.sendMessage(
-        remoteJid,
-        {
-          text: "⏳ El tiempo de vinculación ha expirado (60 segundos). Inténtalo de nuevo.",
-        },
-        { quoted: m },
-      );
-      if (fs.existsSync(sessionPath))
-        fs.rmSync(sessionPath, { recursive: true, force: true });
-    }
-  }, 60000);
+  // El temporizador de vencimiento solo corre si el usuario está en proceso manual de login
+  if (!isAutoload) {
+    timeout = setTimeout(async () => {
+      if (!isConnected) {
+        if (activeSubBots.has(senderId)) {
+          const s = activeSubBots.get(senderId);
+          s.isClosedManually = true;
+          try { s.ws?.close(); } catch {}
+          activeSubBots.delete(senderId);
+        }
+        await sock.sendMessage(remoteJid, { text: "⏳ El tiempo de vinculación ha expirado (60 segundos). Inténtalo de nuevo." }, { quoted: m });
+        if (fs.existsSync(sessionPath)) fs.rmSync(sessionPath, { recursive: true, force: true });
+      }
+    }, 60000);
+  }
 
   async function start() {
     let version;
     try {
       const fetched = await Promise.race([
         fetchLatestWaWebVersion(),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Timeout")), 5000),
-        ),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 5000)),
       ]);
       version = fetched.version;
     } catch (err) {
-      console.log(
-        chalk.yellow(
-          `[SUB-BOT] No se pudo obtener la última versión de WhatsApp Web para sub-bot ${senderId}. Se usará la versión interna de Baileys.`,
-        ),
-      );
+      console.log(chalk.yellow(`[SUB-BOT] No se pudo obtener la última versión de WhatsApp Web para sub-bot ${senderId}. Se usará la interna.`));
     }
 
     const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
@@ -183,26 +196,22 @@ export async function createSubBot(sock, m, type, phoneNumber = null) {
       },
       cachedGroupMetadata: async (jid) => {
         const meta = groupMetadataCache.get(jid);
-        console.log(
-          chalk.gray(
-            `[Aura Reed] Metadata cache check for ${jid}: ${meta ? "HIT" : "MISS"}`,
-          ),
-        );
-        return fetch;
+        return meta;
       },
       logger: pino({ level: "silent" }),
       printQRInTerminal: false,
-      browser: ["Ubuntu", "Chrome", "20.0.04"],
+      browser: ["Aura Reed Sub", "Chrome", "1.0.0"],
       connectTimeoutMs: 60000,
       defaultQueryTimeoutMs: 0,
-      keepAliveIntervalMs: 10000,
+      keepAliveIntervalMs: 15000,
       syncFullHistory: false,
       markOnlineOnConnect: true,
     });
 
-    // Registrar en el mapa y configurar banderas/caché
     subSock.isSubBot = true;
     subSock.subBotId = senderId;
+    subSock.isClosedManually = false; // Bandera interna para controlar desvinculaciones voluntarias
+    
     wrapGroupMetadataCache(subSock);
     activeSubBots.set(senderId, subSock);
 
@@ -224,92 +233,64 @@ export async function createSubBot(sock, m, type, phoneNumber = null) {
     subSock.ev.on("connection.update", async (update) => {
       const { connection, lastDisconnect, qr } = update;
 
-      if (qr && type === "qr" && !isConnected) {
+      if (qr && type === "qr" && !isConnected && !isAutoload) {
         const qrBuffer = await QRCode.toBuffer(qr);
-        await sock.sendMessage(
-          remoteJid,
-          { image: qrBuffer, caption: "〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐀𝐂𝐓𝐈𝐕𝐄 〕⬣" },
-          { quoted: m },
-        );
+        await sock.sendMessage(remoteJid, { image: qrBuffer, caption: "〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐀𝐂𝐓𝐈𝐕𝐄 〕⬣" }, { quoted: m });
       }
 
       if (connection === "close") {
-        // Remove all event listeners of the old socket to prevent memory leaks,
-        // duplicate reconnection triggers, and crashes if saveCreds is called after folder removal
-        try {
-          subSock.ev.removeAllListeners();
-        } catch (e) {
-          console.error("[SUB-BOT] Error al remover oyentes del socket:", e);
-        }
-
         const error = lastDisconnect?.error;
-        const reason =
-          error?.output?.statusCode ||
-          error?.statusCode ||
-          new Boom(error)?.output?.statusCode;
-        const errorMessage = error?.message || "Error desconocido";
-        console.log(
-          `[SUB-BOT] Conexión cerrada. Razón/Código: ${reason || "N/A"}. Error: ${errorMessage}`,
-        );
+        const reason = error?.output?.statusCode || error?.statusCode || new Boom(error)?.output?.statusCode;
+        
+        console.log(`[SUB-BOT] Conexión cerrada para ${senderId}. Código: ${reason || "N/A"}.`);
 
         const shouldResetSession = [
-          DisconnectReason.loggedOut, // 401
-          DisconnectReason.badSession, // 500
-          DisconnectReason.forbidden, // 403
-          DisconnectReason.multideviceMismatch, // 411
+          DisconnectReason.loggedOut,
+          DisconnectReason.badSession,
+          DisconnectReason.forbidden,
+          DisconnectReason.multideviceMismatch,
         ].includes(reason);
 
+        // 🛠️ FIX: Quitamos removeAllListeners antes de tiempo para permitir reintentos automáticos continuos
         if (shouldResetSession) {
-          console.log(
-            `[SUB-BOT] Sesión inválida/desvinculada para sub-bot ${senderId}. Limpiando credenciales.`,
-          );
+          console.log(`[SUB-BOT] Desvinculación detectada. Limpiando datos de sesión.`);
+          try { subSock.ev.removeAllListeners(); } catch {}
           if (fs.existsSync(sessionPath)) {
-            try {
-              fs.rmSync(sessionPath, { recursive: true, force: true });
-            } catch (e) {
-              console.error(`[SUB-BOT] Error al limpiar credenciales:`, e);
-            }
+            try { fs.rmSync(sessionPath, { recursive: true, force: true }); } catch (e) {}
           }
-          clearTimeout(timeout);
-        } else if (!isClosedManually) {
-          console.log(
-            `[SUB-BOT] Reintentando conexión para sub-bot ${senderId} en 5 segundos...`,
-          );
-          setTimeout(start, 5000);
+          activeSubBots.delete(senderId);
+          if (timeout) clearTimeout(timeout);
+        } else if (!subSock.isClosedManually) {
+          // Si el cierre fue por caída de red o reinicio externo, reintenta conectarse indefinidamente cada 7 segundos
+          console.log(`[SUB-BOT] Reconectando sesión caída de ${senderId} en 7 segundos...`);
+          try { subSock.ev.removeAllListeners(); } catch {}
+          setTimeout(start, 7000);
         }
       } else if (connection === "open") {
         const wasConnected = isConnected;
         isConnected = true;
-        clearTimeout(timeout);
-        console.log(chalk.gray(`✅ Sub-Bot (${senderId}) en línea y validado`));
-        if (!wasConnected) {
-          await sock.sendMessage(
-            remoteJid,
-            {
-              text: "╭〔 ✅ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n\n┃ 🤖 ¡𝐒𝐮𝐛-𝐛𝐨𝐭 𝐯𝐢𝐧𝐜𝐮𝐥𝐚𝐝𝐨 𝐜𝐨𝐧 𝐞́𝐱𝐢𝐭𝐨!\n┃ ⚡ Ahora el bot está activo en tu cuenta\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣",
-            },
-            { quoted: m },
-          );
+        if (timeout) clearTimeout(timeout);
+        
+        console.log(chalk.green(`✅ Sub-Bot (${senderId}) restablecido y corriendo perfectamente.`));
+        
+        if (!wasConnected && !isAutoload) {
+          await sock.sendMessage(remoteJid, {
+            text: "╭〔 ✅ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n\n┃ 🤖 ¡𝐒𝐮𝐛-𝐛𝐨𝐭 𝐯𝐢𝐧𝐜𝐮𝐥𝐚𝐝𝐨 𝐜𝐨𝐧 𝐞́𝐱𝐢𝐭𝐨!\n┃ ⚡ Ahora el bot está activo en tu cuenta\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣",
+          }, { quoted: m });
         }
       }
     });
 
-    const isRegistered =
-      state.creds && (state.creds.registered || state.creds.me);
-    if (type === "code" && phoneNumber && !isRegistered && !codeRequested) {
+    const isRegistered = state.creds && (state.creds.registered || state.creds.me);
+    if (type === "code" && phoneNumber && !isRegistered && !codeRequested && !isAutoload) {
       codeRequested = true;
       (async () => {
         try {
           await subSock.waitForSocketOpen();
-          // Esperar 3 segundos para asegurar que el apretón de manos (handshake) se complete
-          await new Promise((resolve) => setTimeout(resolve, 3000));
+          await new Promise((resolve) => setTimeout(resolve, 4000));
           let code = await subSock.requestPairingCode(phoneNumber);
           code = code?.match(/.{1,4}/g)?.join("-") || code;
-          await sock.sendMessage(
-            remoteJid,
-            { text: `${code.toUpperCase()}` },
-            { quoted: m },
-          );
+          await sock.sendMessage(remoteJid, { text: `${code.toUpperCase()}` }, { quoted: m });
         } catch (err) {
           console.error("Error solicitando código:", err);
         }
