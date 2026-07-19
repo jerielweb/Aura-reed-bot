@@ -52,7 +52,7 @@ function setupExitHandlers() {
       await flushDB();
       await flushAllSubBotDBs();
     } catch (err) {
-      console.error(chalk.red("[EXIT] Error guardando DB en beforeExit:"), err);
+      console.error(chalk.red("[EXIT] Error guardando DB in beforeExit:"), err);
     }
   });
 }
@@ -70,7 +70,6 @@ const banner = `
 `;
 console.log(banner);
 
-// Helper to ask terminal questions
 const question = (text) =>
   new Promise((resolve) => {
     const rl = readline.createInterface({
@@ -91,7 +90,6 @@ async function connectToWhatsApp() {
   const { state, saveCreds } =
     await useMultiFileAuthState("sessions/principal");
 
-  // Check if we are already registered/logged in
   const isRegistered =
     state.creds && (state.creds.registered || state.creds.me);
 
@@ -173,27 +171,29 @@ async function connectToWhatsApp() {
 
   sock.ev.on("creds.update", saveCreds);
 
-  // 🛠️ FLUJO SECUENCIAL Y TIEMPO DE ESPERA AJUSTADO PARA EL PRINCIPAL
+  // 🛠️ SOLUCIÓN: Ejecución paralela sin bloquear el hilo de ejecución principal del socket
   if (chosenPairingCode && !isRegistered) {
-    try {
-      console.log(chalk.yellow("⏳ Esperando estabilización del socket para vincular..."));
-      await sock.waitForSocketOpen();
-      await new Promise((resolve) => setTimeout(resolve, 5000));
-      
-      console.log(chalk.yellow(`🔑 Solicitando código para: ${chosenPhoneNumber}`));
-      let code = await sock.requestPairingCode(chosenPhoneNumber);
-      code = code?.match(/.{1,4}/g)?.join("-") || code;
-      console.log(
-        chalk.green(`\n🔑 Código de vinculación: `) +
-          chalk.bgGreen.black(` ${code.toUpperCase()} `) +
-          "\n",
-      );
-    } catch (err) {
-      console.error(
-        chalk.red("Error al solicitar el código de emparejamiento:"),
-        err,
-      );
-    }
+    (async () => {
+      try {
+        console.log(chalk.yellow("⏳ Esperando que el socket esté listo..."));
+        await sock.waitForSocketOpen();
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        
+        console.log(chalk.yellow(`🔑 Solicitando código para: ${chosenPhoneNumber}`));
+        let code = await sock.requestPairingCode(chosenPhoneNumber);
+        code = code?.match(/.{1,4}/g)?.join("-") || code;
+        console.log(
+          chalk.green(`\n🔑 Código de vinculación: `) +
+            chalk.bgGreen.black(` ${code.toUpperCase()} `) +
+            "\n",
+        );
+      } catch (err) {
+        console.error(
+          chalk.red("Error al solicitar el código de emparejamiento:"),
+          err,
+        );
+      }
+    })();
   }
 
   sock.ev.on("messages.upsert", async ({ messages, type }) => {
@@ -233,16 +233,15 @@ async function connectToWhatsApp() {
         ),
       );
 
-      // Si aún no estábamos registrados (en proceso de vinculación) y se cierra la conexión
       const isNotRegistered =
         !state.creds || !(state.creds.registered || state.creds.me);
 
       const shouldResetSession =
         [
-          DisconnectReason.loggedOut, // 401
-          DisconnectReason.badSession, // 500
-          DisconnectReason.forbidden, // 403
-          DisconnectReason.multideviceMismatch, // 411
+          DisconnectReason.loggedOut,
+          DisconnectReason.badSession,
+          DisconnectReason.forbidden,
+          DisconnectReason.multideviceMismatch,
         ].includes(statusCode) || isNotRegistered;
 
       if (shouldResetSession) {
@@ -274,7 +273,6 @@ async function connectToWhatsApp() {
           }
         }
 
-        // Reset state to prompt for new linking
         isPairingChoiceMade = false;
         chosenPairingCode = false;
         chosenPhoneNumber = "";
@@ -294,7 +292,6 @@ async function connectToWhatsApp() {
     }
     if (u.connection === "open") {
       console.log(chalk.green("✅ Bot Principal en línea y validado"));
-      
       await loadAllSubBots(sock)
     }
   });

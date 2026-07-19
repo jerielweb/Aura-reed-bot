@@ -24,7 +24,6 @@ import {
 export const SUB_LIMIT_MESSAGE =
   "✐ No se han encontrado espacios disponibles para registrar un `Sub-Bot`.";
 
-/** Lee el límite en cada llamada. */
 export function getMaxSubBots() {
   try {
     const db = getDBSync();
@@ -41,10 +40,8 @@ const databaseDir = path.join(ROOT_DIR, "database");
 
 if (!fs.existsSync(sessionsDir)) fs.mkdirSync(sessionsDir, { recursive: true });
 
-// Mapa para rastrear sockets activos de sub-bots
 const activeSubBots = new Map();
 
-/** Lista carpetas de sesión con creds.json válido. */
 export function listActiveSubBotSessions() {
   if (!fs.existsSync(sessionsDir)) return [];
   return fs
@@ -62,7 +59,7 @@ export function countActiveSubBots() {
 
 export function getSubBotSlotStatus(senderId) {
   const max = getMaxSubBots();
-  const id = resolveSubBotSenderId(senderId, null);
+  const id = resolveSubBotSenderId(phoneNumber, null);
   const active = listActiveSubBotSessions();
   const count = active.length;
   const hasOwn = id ? active.includes(id) : false;
@@ -91,7 +88,7 @@ export async function stopSubBot(senderId) {
   if (activeSubBots.has(senderId)) {
     try {
       const subSock = activeSubBots.get(senderId);
-      subSock.isClosedManually = true; // Forzar bandera manual para evitar bucles de reconexión
+      subSock.isClosedManually = true;
       if (subSock.ws?.isOpen) {
         await subSock.logout().catch(() => {});
       }
@@ -111,9 +108,6 @@ export async function stopSubBot(senderId) {
   return handled;
 }
 
-/**
- * 🚀 NUEVA FUNCIÓN: Levanta todos los sub-bots de forma automática tras reiniciar el servidor.
- */
 export async function loadAllSubBots(mainSock) {
   const sessions = listActiveSubBotSessions();
   if (sessions.length === 0) return;
@@ -194,7 +188,7 @@ export async function createSubBot(sock, m, type, phoneNumber = null, autoSender
       },
       logger: pino({ level: "silent" }),
       printQRInTerminal: false,
-      browser: ["Aura Reed Sub", "Chrome", "1.0.0"],
+      browser: ["Ubuntu", "Chrome", "20.0.04"],
       connectTimeoutMs: 60000,
       defaultQueryTimeoutMs: 0,
       keepAliveIntervalMs: 15000,
@@ -273,23 +267,25 @@ export async function createSubBot(sock, m, type, phoneNumber = null, autoSender
       }
     });
 
-    // 🛠️ FLUJO SECUENCIAL Y TIEMPO DE ESPERA AJUSTADO PARA SUB-BOTS
+    // 🛠️ SOLUCIÓN PARA SUB-BOTS: Ejecución paralela sin interrumpir flujos internos
     const isRegistered = state.creds && (state.creds.registered || state.creds.me);
     if (type === "code" && phoneNumber && !isRegistered && !codeRequested && !isAutoload) {
       codeRequested = true;
-      try {
-        console.log(`[SUB-BOT] Esperando canal seguro para generar código de ${senderId}...`);
-        await subSock.waitForSocketOpen();
-        await new Promise((resolve) => setTimeout(resolve, 6000));
-        
-        let code = await subSock.requestPairingCode(phoneNumber);
-        code = code?.match(/.{1,4}/g)?.join("-") || code;
-        
-        await sock.sendMessage(remoteJid, { text: `🔑 Código de vinculación Sub-Bot:\n\n*${code.toUpperCase()}*` }, { quoted: m });
-        console.log(`[SUB-BOT] Código entregado con éxito para ${senderId}`);
-      } catch (err) {
-        console.error("Error solicitando código en sub-bot:", err);
-      }
+      (async () => {
+        try {
+          console.log(`[SUB-BOT] Esperando canal seguro para generar código de ${senderId}...`);
+          await subSock.waitForSocketOpen();
+          await new Promise((resolve) => setTimeout(resolve, 4000));
+          
+          let code = await subSock.requestPairingCode(phoneNumber);
+          code = code?.match(/.{1,4}/g)?.join("-") || code;
+          
+          await sock.sendMessage(remoteJid, { text: `🔑 Código de vinculación Sub-Bot:\n\n*${code.toUpperCase()}*` }, { quoted: m });
+          console.log(`[SUB-BOT] Código entregado con éxito para ${senderId}`);
+        } catch (err) {
+          console.error("Error solicitando código en sub-bot:", err);
+        }
+      })();
     }
   }
 
