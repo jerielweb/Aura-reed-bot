@@ -195,7 +195,13 @@ export async function handleMessage(sock, m, db, saveDB) {
   if (isGroup) {
     try {
       groupMetadata = await sock.getMetadata(remoteJid);
-      const clean = (id) => (id ? id.split("@")[0].split(":")[0] : null);
+      
+      // 🛠️ SOLUCIÓN: Conversión segura a String controlando valores nulos o indefinidos
+      const clean = (id) => {
+        if (!id) return null;
+        return String(id).split("@")[0].split(":")[0];
+      };
+      
       const senderBase = clean(senderRaw);
       const jidRemitenteBase = clean(jidRemitente);
       const botBase = clean(sock.user?.id);
