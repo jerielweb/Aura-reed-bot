@@ -59,7 +59,8 @@ export function countActiveSubBots() {
 
 export function getSubBotSlotStatus(senderId) {
   const max = getMaxSubBots();
-  const id = resolveSubBotSenderId(phoneNumber, null);
+  // Corregido: Usamos 'senderId' que es el parámetro que recibe la función
+  const id = resolveSubBotSenderId(null, senderId); 
   const active = listActiveSubBotSessions();
   const count = active.length;
   const hasOwn = id ? active.includes(id) : false;
