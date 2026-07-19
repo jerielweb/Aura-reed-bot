@@ -31,7 +31,7 @@ export default {
 
     let textoMenu = `╭━━〔 ${tituloEstilizado} 〕━━⬣\n`;
     textoMenu += `┃ > ${fytBold("Usuario:")} @${pushName}\n`;
-    textoMenu += `┃ > ${fytBold("Bot:")} ${botName} (${botType})\n`;
+    textoMenu += `┃ > ${fytBold("Bot:")} ${botType}\n`;
     textoMenu += `┃ > ${fytBold("Version:")} ${global.version}\n`;
     textoMenu += `┃ > ${fytBold("Owner:")} Jeriel B.\n`;
     textoMenu += `┃ > ${fytBold("Prefix:")} [ ${prefix} ]\n`;
