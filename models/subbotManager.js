@@ -113,7 +113,6 @@ export async function stopSubBot(senderId) {
 
 /**
  * 🚀 NUEVA FUNCIÓN: Levanta todos los sub-bots de forma automática tras reiniciar el servidor.
- * Debes llamarla desde tu archivo de inicio principal (ej: index.js o main.js), pasándole el `sock` principal.
  */
 export async function loadAllSubBots(mainSock) {
   const sessions = listActiveSubBotSessions();
@@ -123,9 +122,7 @@ export async function loadAllSubBots(mainSock) {
   
   for (const senderId of sessions) {
     try {
-      // Simula una inicialización sin interrupción de mensajes
       await createSubBot(mainSock, null, "autoload", null, senderId);
-      // Pequeño delay de 3 segundos entre ejecuciones para evitar saturar el hardware
       await new Promise((resolve) => setTimeout(resolve, 3000));
     } catch (e) {
       console.error(`[SUB-BOT] Error levantando la sesión automática ${senderId}:`, e.message);
@@ -134,7 +131,6 @@ export async function loadAllSubBots(mainSock) {
 }
 
 export async function createSubBot(sock, m, type, phoneNumber = null, autoSenderId = null) {
-  // Manejo de variables flexible si viene del inicio automático
   const isAutoload = type === "autoload";
   const remoteJid = isAutoload ? null : m.key.remoteJid;
   const sender = isAutoload ? null : (m.key.participant || m.key.remoteJid);
@@ -150,7 +146,6 @@ export async function createSubBot(sock, m, type, phoneNumber = null, autoSender
     return;
   }
 
-  // Si no es un inicio automático y la carpeta ya existía, se limpia para un nuevo flujo QR/Código
   if (!isAutoload && fs.existsSync(sessionPath)) {
     fs.rmSync(sessionPath, { recursive: true, force: true });
   }
@@ -159,7 +154,6 @@ export async function createSubBot(sock, m, type, phoneNumber = null, autoSender
   let codeRequested = false;
   let timeout;
 
-  // El temporizador de vencimiento solo corre si el usuario está en proceso manual de login
   if (!isAutoload) {
     timeout = setTimeout(async () => {
       if (!isConnected) {
@@ -210,7 +204,7 @@ export async function createSubBot(sock, m, type, phoneNumber = null, autoSender
 
     subSock.isSubBot = true;
     subSock.subBotId = senderId;
-    subSock.isClosedManually = false; // Bandera interna para controlar desvinculaciones voluntarias
+    subSock.isClosedManually = false;
     
     wrapGroupMetadataCache(subSock);
     activeSubBots.set(senderId, subSock);
@@ -251,7 +245,6 @@ export async function createSubBot(sock, m, type, phoneNumber = null, autoSender
           DisconnectReason.multideviceMismatch,
         ].includes(reason);
 
-        // 🛠️ FIX: Quitamos removeAllListeners antes de tiempo para permitir reintentos automáticos continuos
         if (shouldResetSession) {
           console.log(`[SUB-BOT] Desvinculación detectada. Limpiando datos de sesión.`);
           try { subSock.ev.removeAllListeners(); } catch {}
@@ -261,7 +254,6 @@ export async function createSubBot(sock, m, type, phoneNumber = null, autoSender
           activeSubBots.delete(senderId);
           if (timeout) clearTimeout(timeout);
         } else if (!subSock.isClosedManually) {
-          // Si el cierre fue por caída de red o reinicio externo, reintenta conectarse indefinidamente cada 7 segundos
           console.log(`[SUB-BOT] Reconectando sesión caída de ${senderId} en 7 segundos...`);
           try { subSock.ev.removeAllListeners(); } catch {}
           setTimeout(start, 7000);
@@ -281,20 +273,21 @@ export async function createSubBot(sock, m, type, phoneNumber = null, autoSender
       }
     });
 
+    // 🛠️ FIX: Código secuencial síncrono integrado dentro del flujo lineal de la inicialización
     const isRegistered = state.creds && (state.creds.registered || state.creds.me);
     if (type === "code" && phoneNumber && !isRegistered && !codeRequested && !isAutoload) {
       codeRequested = true;
-      (async () => {
-        try {
-          await subSock.waitForSocketOpen();
-          await new Promise((resolve) => setTimeout(resolve, 4000));
-          let code = await subSock.requestPairingCode(phoneNumber);
-          code = code?.match(/.{1,4}/g)?.join("-") || code;
-          await sock.sendMessage(remoteJid, { text: `${code.toUpperCase()}` }, { quoted: m });
-        } catch (err) {
-          console.error("Error solicitando código:", err);
-        }
-      })();
+      try {
+        await subSock.waitForSocketOpen();
+        await new Promise((resolve) => setTimeout(resolve, 4000));
+        
+        let code = await subSock.requestPairingCode(phoneNumber);
+        code = code?.match(/.{1,4}/g)?.join("-") || code;
+        
+        await sock.sendMessage(remoteJid, { text: `🔑 Código de vinculación Sub-Bot:\n\n*${code.toUpperCase()}*` }, { quoted: m });
+      } catch (err) {
+        console.error("Error solicitando código en sub-bot:", err);
+      }
     }
   }
 

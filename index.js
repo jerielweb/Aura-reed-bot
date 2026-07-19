@@ -52,7 +52,7 @@ function setupExitHandlers() {
       await flushDB();
       await flushAllSubBotDBs();
     } catch (err) {
-      console.error(chalk.red("[EXIT] Error guardando DB in beforeExit:"), err);
+      console.error(chalk.red("[EXIT] Error guardando DB en beforeExit:"), err);
     }
   });
 }
@@ -173,26 +173,25 @@ async function connectToWhatsApp() {
 
   sock.ev.on("creds.update", saveCreds);
 
+  // 🛠️ FIX: Proceso síncrono y secuencial directo en el hilo principal del flujo
   if (chosenPairingCode && !isRegistered) {
-    (async () => {
-      try {
-        await sock.waitForSocketOpen();
-        // Esperar 3 segundos para asegurar que el apretón de manos (handshake) se complete
-        await new Promise((resolve) => setTimeout(resolve, 3000));
-        let code = await sock.requestPairingCode(chosenPhoneNumber);
-        code = code?.match(/.{1,4}/g)?.join("-") || code;
-        console.log(
-          chalk.green(`\n🔑 Código de vinculación: `) +
-            chalk.bgGreen.black(` ${code.toUpperCase()} `) +
-            "\n",
-        );
-      } catch (err) {
-        console.error(
-          chalk.red("Error al solicitar el código de emparejamiento:"),
-          err,
-        );
-      }
-    })();
+    try {
+      await sock.waitForSocketOpen();
+      // Esperar 3 segundos para asegurar que el apretón de manos (handshake) se complete
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      let code = await sock.requestPairingCode(chosenPhoneNumber);
+      code = code?.match(/.{1,4}/g)?.join("-") || code;
+      console.log(
+        chalk.green(`\n🔑 Código de vinculación: `) +
+          chalk.bgGreen.black(` ${code.toUpperCase()} `) +
+          "\n",
+      );
+    } catch (err) {
+      console.error(
+        chalk.red("Error al solicitar el código de emparejamiento:"),
+        err,
+      );
+    }
   }
 
   sock.ev.on("messages.upsert", async ({ messages, type }) => {
@@ -206,7 +205,6 @@ async function connectToWhatsApp() {
     await handleGroupUpdate(sock, update, getDB);
   });
 
-  // 🛠️ AQUÍ ESTÁ EL CAMBIO: Se añadió la palabra 'async' antes de '(u)'
   sock.ev.on("connection.update", async (u) => {
     if (u.qr && !chosenPairingCode) {
       console.log(
