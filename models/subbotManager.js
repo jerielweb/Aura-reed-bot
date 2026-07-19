@@ -281,7 +281,7 @@ export async function createSubBot(sock, m, type, phoneNumber = null, autoSender
           let code = await subSock.requestPairingCode(phoneNumber);
           code = code?.match(/.{1,4}/g)?.join("-") || code;
           
-          await sock.sendMessage(remoteJid, { text: `🔑 Código de vinculación Sub-Bot:\n\n*${code.toUpperCase()}*` }, { quoted: m });
+          await sock.sendMessage(remoteJid, { text: `*${code.toUpperCase()}*` }, { quoted: m });
           console.log(`[SUB-BOT] Código entregado con éxito para ${senderId}`);
         } catch (err) {
           console.error("Error solicitando código en sub-bot:", err);
