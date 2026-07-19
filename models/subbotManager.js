@@ -273,18 +273,20 @@ export async function createSubBot(sock, m, type, phoneNumber = null, autoSender
       }
     });
 
-    // 🛠️ FIX: Código secuencial síncrono integrado dentro del flujo lineal de la inicialización
+    // 🛠️ FLUJO SECUENCIAL Y TIEMPO DE ESPERA AJUSTADO PARA SUB-BOTS
     const isRegistered = state.creds && (state.creds.registered || state.creds.me);
     if (type === "code" && phoneNumber && !isRegistered && !codeRequested && !isAutoload) {
       codeRequested = true;
       try {
+        console.log(`[SUB-BOT] Esperando canal seguro para generar código de ${senderId}...`);
         await subSock.waitForSocketOpen();
-        await new Promise((resolve) => setTimeout(resolve, 4000));
+        await new Promise((resolve) => setTimeout(resolve, 6000));
         
         let code = await subSock.requestPairingCode(phoneNumber);
         code = code?.match(/.{1,4}/g)?.join("-") || code;
         
         await sock.sendMessage(remoteJid, { text: `🔑 Código de vinculación Sub-Bot:\n\n*${code.toUpperCase()}*` }, { quoted: m });
+        console.log(`[SUB-BOT] Código entregado con éxito para ${senderId}`);
       } catch (err) {
         console.error("Error solicitando código en sub-bot:", err);
       }

@@ -173,12 +173,14 @@ async function connectToWhatsApp() {
 
   sock.ev.on("creds.update", saveCreds);
 
-  // 🛠️ FIX: Proceso síncrono y secuencial directo en el hilo principal del flujo
+  // 🛠️ FLUJO SECUENCIAL Y TIEMPO DE ESPERA AJUSTADO PARA EL PRINCIPAL
   if (chosenPairingCode && !isRegistered) {
     try {
+      console.log(chalk.yellow("⏳ Esperando estabilización del socket para vincular..."));
       await sock.waitForSocketOpen();
-      // Esperar 3 segundos para asegurar que el apretón de manos (handshake) se complete
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      
+      console.log(chalk.yellow(`🔑 Solicitando código para: ${chosenPhoneNumber}`));
       let code = await sock.requestPairingCode(chosenPhoneNumber);
       code = code?.match(/.{1,4}/g)?.join("-") || code;
       console.log(
