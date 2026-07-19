@@ -19,8 +19,7 @@ import {
 } from "./controllers/cleanCache.js";
 import {
   wrapGroupMetadataCache,
-  flushAllSubBotDBs,
-  groupMetadataCache,
+  flushAllSubBotDBs
 } from "./models/subbotWorker.js";
 
 await initDB();
