@@ -47,11 +47,14 @@ export default {
         });
 
         const bestVideo = sortedVideos[0];
+        let captionVid = `╭〔 ${fytBold('TWITTER DOWNLOAD')}\n`
+        captionVid += `┃ 🎥 *Twitter Video\n`
+        captionVid += `╰━━━━━━━━━━━━━━━━━━⬣`,
 
         await socket.sendMessage(remoteJid,
           {
             video: { url: bestVideo.url },
-            caption: `╭〔 ${fytBold('TWITTER DOWNLOAD')} 〕⬣\n┃ 🎥 *Twitter Video*\n╰━━━━━━━━━━━━━━━━━━⬣`,
+            caption: captionVid,
           },
           { quoted: message }
         );
