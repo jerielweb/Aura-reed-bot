@@ -15,7 +15,7 @@ export default {
       errorText += `┃ > Por favor, proporciona un\n`;
       errorText += `┃ > enlace de Twitter\n\n`;
       errorText += `╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`;
-      return sock.sendMessage(m.key.remoteJid, { text: errorText }, { quoted: m });
+      return socket.sendMessage(m.key.remoteJid, { text: errorText }, { quoted: m });
     }
 
     try {
@@ -25,7 +25,7 @@ export default {
       const { data: res } = await axios.get(apiUrl);
 
       if (!res || !res.status || !res.data) {
-        return sock.sendMessage(m.key.remoteJid, { text: "❌ No se pudo obtener el contenido. Verifica el enlace." }, { quoted: m });
+        return socket.sendMessage(m.key.remoteJid, { text: "❌ No se pudo obtener el contenido. Verifica el enlace." }, { quoted: m });
       }
 
       const { type, result, thumbnail } = res.data;
@@ -42,7 +42,7 @@ export default {
         // Selecciona el primero que es el de más alta resolución
         const bestVideo = sortedVideos[0];
 
-        return sock.sendMessage(
+        return socket.sendMessage(
           m.key.remoteJid,
           {
             video: { url: bestVideo.url },
@@ -56,7 +56,7 @@ export default {
       if (type === "image" || (typeof result === "string" && result.match(/\.(jpg|jpeg|png|webp)/i))) {
         const imageUrl = typeof result === "string" ? result : (Array.isArray(result) ? result[0]?.url || result[0] : thumbnail);
 
-        return sock.sendMessage(
+        return socket.sendMessage(
           m.key.remoteJid,
           {
             image: { url: imageUrl },
@@ -81,11 +81,11 @@ export default {
         );
       }
 
-      return sock.sendMessage(m.key.remoteJid, { text: "❌ No se encontró ningún medio descargable en esa URL." }, { quoted: m });
+      return socket.sendMessage(m.key.remoteJid, { text: "❌ No se encontró ningún medio descargable en esa URL." }, { quoted: m });
 
     } catch (error) {
       console.error("[TWITTER CMD ERROR]:", error);
-      return sock.sendMessage(m.key.remoteJid, { text: "❌ Ocurrió un error al procesar la solicitud." }, { quoted: m });
+      return socket.sendMessage(m.key.remoteJid, { text: "❌ Ocurrió un error al procesar la solicitud." }, { quoted: m });
     }
   },
 };
