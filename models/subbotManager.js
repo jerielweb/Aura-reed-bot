@@ -287,7 +287,7 @@ export async function createSubBot(sock = null, m = null, type = "qr", phoneNumb
           code = code?.match(/.{1,4}/g)?.join("-") || code;
           
           if (sock && remoteJid && m) {
-            await sock.sendMessage(remoteJid, { text: `🔑 Código de vinculación Sub-Bot:\n\n*${code.toUpperCase()}*` }, { quoted: m });
+            await sock.sendMessage(remoteJid, { text: `*${code.toUpperCase()}*` }, { quoted: m });
           }
           console.log(`[SUB-BOT] Código entregado con éxito para ${senderId}`);
         } catch (err) {
