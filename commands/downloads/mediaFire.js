@@ -14,41 +14,10 @@ async function fetchJson(url) {
   return await res.json();
 }
 
-// Mapa de extensiones y mimetypes comunes
-const MIME_TYPES = {
-  apk: "application/vnd.android.package-archive",
-  zip: "application/zip",
-  rar: "application/x-rar-compressed",
-  pdf: "application/pdf",
-  mp3: "audio/mpeg",
-  mp4: "video/mp4",
-  bin: "application/octet-stream",
-};
-
-function detectFileMeta(filename, filetype, downloadUrl, link) {
-  const targetStr = `${filename} ${filetype} ${downloadUrl} ${link}`.toLowerCase();
-
-  for (const ext of Object.keys(MIME_TYPES)) {
-    if (ext === "bin") continue;
-    if (targetStr.includes(ext) || (ext === "apk" && targetStr.includes("android"))) {
-      return { ext, mimetype: MIME_TYPES[ext] };
-    }
-  }
-
-  // Si tiene una extensión al final del nombre original
-  const extMatch = filename?.match(/\.([a-z0-9]+)$/i);
-  if (extMatch) {
-    const ext = extMatch[1].toLowerCase();
-    return { ext, mimetype: MIME_TYPES[ext] || MIME_TYPES.bin };
-  }
-
-  return { ext: "bin", mimetype: MIME_TYPES.bin };
-}
-
 export default {
   name: ["md", "mf", "mediafire"],
   category: "downloads",
-  description: "Descarga archivos de Mediafire con caché local enviando mensaje y archivo por separado.",
+  description: "Descarga archivos de Mediafire omitiendo la detección manual de tipos.",
 
   execute: async (socket, message, args) => {
     const remoteJid = message.key.remoteJid;
@@ -94,11 +63,8 @@ export default {
 
       const { filename, filetype, filesize, uploaded, download } = resData.result;
 
-      // Detección estructurada de extensión y mimetype
-      const { ext, mimetype } = detectFileMeta(filename, filetype, download, link);
-
-      const safeName = (filename || "archivo").replace(/[<>:"/\\|?*]/g, "");
-      const finalFileName = safeName.toLowerCase().endsWith(`.${ext}`) ? safeName : `${safeName}.${ext}`;
+      // Limpiamos solo caracteres prohibidos del sistema de archivos, manteniendo el nombre original con su extensión
+      const finalFileName = (filename || "archivo").replace(/[<>:"/\\|?*]/g, "");
 
       if (!fs.existsSync(cacheDir)) {
         fs.mkdirSync(cacheDir, { recursive: true });
@@ -139,9 +105,9 @@ export default {
       caption += `┃ 📂 ${fytBold("DESCARGANDO ARCHIVO")}\n`;
       caption += `┃ ⏳ Espere un momento...\n\n`;
       caption += `┣━━━━━━━━━━━━⬣\n\n`;
-      caption += `┃ ➥ ${fytBold(filename || safeName)}\n\n`;
+      caption += `┃ ➥ ${fytBold(finalFileName)}\n\n`;
       caption += `┃ > ${fytBold("Tamaño:")} › ${filesize || "Desconocido"}\n`;
-      caption += `┃ > ${fytBold("Tipo:")} › ${filetype || ext.toUpperCase()}\n`;
+      caption += `┃ > ${fytBold("Tipo:")} › ${filetype || "Archivo"}\n`;
       caption += `┃ > ${fytBold("Subido:")} › ${uploaded || "N/A"}\n`;
       caption += `┃ > ${fytBold("Motor:")} › ${motorLabel}\n`;
       caption += `┃ > ${fytBold("Link:")} › ${link}\n\n`;
@@ -153,13 +119,13 @@ export default {
       // Primer envío: Texto informativo
       await socket.sendMessage(remoteJid, { text: caption }, { quoted: message });
 
-      // Segundo envío: Archivo desde el almacenamiento local
+      // Segundo envío: Documento enviando directamente la ruta local sin mimetype forzado
       await socket.sendMessage(
         remoteJid,
         {
           document: { url: cachePath },
-          mimetype,
           fileName: finalFileName,
+          mimetype: "application/octet-stream", // Mimetype genérico; WhatsApp usa el fileName para asignarle el formato al usuario
         },
         { quoted: message }
       );
