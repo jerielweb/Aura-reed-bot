@@ -173,7 +173,7 @@ export default {
       const motorLabel = isCacheHit ? "Scraper Local (Caché)" : "Scraper Local";
 
       // 1️⃣ Plantilla informativa
-      let caption = `╭〔 📦 ${fytBold("MEDIAFIRE DOWNLOADER")} 〕━⬣\n\n`;
+      let caption = `╭〔 📦 ${fytBold("MEDIAFIRE DL")} 〕━⬣\n\n`;
       caption += `┃ 📂 ${fytBold("DESCARGANDO ARCHIVO")}\n`;
       caption += `┃ ⏳ Espere un momento...\n\n`;
       caption += `┣━━━━━━━━━━━━⬣\n\n`;
