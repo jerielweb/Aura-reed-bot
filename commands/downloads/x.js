@@ -8,6 +8,7 @@ export default {
 
   execute: async (socket, message, args) => {
     const text = args.join(" ");
+    const remoteJid = message.key.remoteJid;
     if (!text) {
       let errorText = `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n`;
       errorText += `┃ ❌ ${fytBold("FALTA ENLACE")}\n`;
@@ -15,7 +16,7 @@ export default {
       errorText += `┃ > Por favor, proporciona un\n`;
       errorText += `┃ > enlace de Twitter\n\n`;
       errorText += `╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`;
-      return socket.sendMessage(m.key.remoteJid, { text: errorText }, { quoted: message });
+      return socket.sendMessage(remoteJid, { text: errorText }, { quoted: message });
     }
 
     try {
@@ -25,7 +26,7 @@ export default {
       const { data: res } = await axios.get(apiUrl);
 
       if (!res || !res.status || !res.data) {
-        return socket.sendMessage(m.key.remoteJid, { text: "❌ No se pudo obtener el contenido. Verifica el enlace." }, { quoted: message });
+        return socket.sendMessage(remoteJid, { text: "❌ No se pudo obtener el contenido. Verifica el enlace." }, { quoted: message });
       }
 
       const { type, result, thumbnail } = res.data;
@@ -42,8 +43,7 @@ export default {
         // Selecciona el primero que es el de más alta resolución
         const bestVideo = sortedVideos[0];
 
-        return socket.sendMessage(
-          m.key.remoteJid,
+        return socket.sendMessage(remoteJid,
           {
             video: { url: bestVideo.url },
             caption: `╭〔 ♞ 𝐀𝐔𝐑𝐀 𝐃𝐎𝐌𝐀𝐈𝐍𝐒 〕⬣\n┃\n┃ 🎥 *Twitter Video*\n┃ ⚙️ *Calidad:* ${bestVideo.quality || "Máxima"}\n┃\n╰━━━━━━━━━━━━━━━━━━⬣`,
@@ -56,8 +56,7 @@ export default {
       if (type === "image" || (typeof result === "string" && result.match(/\.(jpg|jpeg|png|webp)/i))) {
         const imageUrl = typeof result === "string" ? result : (Array.isArray(result) ? result[0]?.url || result[0] : thumbnail);
 
-        return socket.sendMessage(
-          m.key.remoteJid,
+        return socket.sendMessage(remoteJid,
           {
             image: { url: imageUrl },
             caption: `╭〔 ♞ 𝐀𝐔𝐑𝐀 𝐃𝐎𝐌𝐀𝐈𝐍𝐒 〕⬣\n┃\n┃ 🖼️ *Twitter Image*\n┃\n╰━━━━━━━━━━━━━━━━━━⬣`,
@@ -81,11 +80,11 @@ export default {
         );
       }
 
-      return socket.sendMessage(m.key.remoteJid, { text: "❌ No se encontró ningún medio descargable en esa URL." }, { quoted: message });
+      return socket.sendMessage(remoteJid, { text: "❌ No se encontró ningún medio descargable en esa URL." }, { quoted: message });
 
     } catch (error) {
       console.error("[TWITTER CMD ERROR]:", error);
-      return socket.sendMessage(m.key.remoteJid, { text: "❌ Ocurrió un error al procesar la solicitud." }, { quoted: message });
+      return socket.sendMessage(remoteJid, { text: "❌ Ocurrió un error al procesar la solicitud." }, { quoted: message });
     }
   },
 };
