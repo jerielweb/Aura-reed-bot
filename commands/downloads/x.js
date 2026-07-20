@@ -15,7 +15,7 @@ export default {
       errorText += `┃ > Por favor, proporciona un\n`;
       errorText += `┃ > enlace de Twitter\n\n`;
       errorText += `╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`;
-      return socket.sendMessage(m.key.remoteJid, { text: errorText }, { quoted: m });
+      return socket.sendMessage(m.key.remoteJid, { text: errorText }, { quoted: message });
     }
 
     try {
@@ -25,7 +25,7 @@ export default {
       const { data: res } = await axios.get(apiUrl);
 
       if (!res || !res.status || !res.data) {
-        return socket.sendMessage(m.key.remoteJid, { text: "❌ No se pudo obtener el contenido. Verifica el enlace." }, { quoted: m });
+        return socket.sendMessage(m.key.remoteJid, { text: "❌ No se pudo obtener el contenido. Verifica el enlace." }, { quoted: message });
       }
 
       const { type, result, thumbnail } = res.data;
@@ -48,7 +48,7 @@ export default {
             video: { url: bestVideo.url },
             caption: `╭〔 ♞ 𝐀𝐔𝐑𝐀 𝐃𝐎𝐌𝐀𝐈𝐍𝐒 〕⬣\n┃\n┃ 🎥 *Twitter Video*\n┃ ⚙️ *Calidad:* ${bestVideo.quality || "Máxima"}\n┃\n╰━━━━━━━━━━━━━━━━━━⬣`,
           },
-          { quoted: m }
+          { quoted: message }
         );
       }
 
@@ -62,7 +62,7 @@ export default {
             image: { url: imageUrl },
             caption: `╭〔 ♞ 𝐀𝐔𝐑𝐀 𝐃𝐎𝐌𝐀𝐈𝐍𝐒 〕⬣\n┃\n┃ 🖼️ *Twitter Image*\n┃\n╰━━━━━━━━━━━━━━━━━━⬣`,
           },
-          { quoted: m }
+          { quoted: message }
         );
       }
 
@@ -77,15 +77,15 @@ export default {
             [isVid ? "video" : "image"]: { url: mediaUrl },
             caption: `╭〔 ♞ 𝐀𝐔𝐑𝐀 𝐃𝐎𝐌𝐀𝐈𝐍𝐒 〕⬣\n┃\n┃ 📥 *Twitter Media*\n┃\n╰━━━━━━━━━━━━━━━━━━⬣`,
           },
-          { quoted: m }
+          { quoted: message }
         );
       }
 
-      return socket.sendMessage(m.key.remoteJid, { text: "❌ No se encontró ningún medio descargable en esa URL." }, { quoted: m });
+      return socket.sendMessage(m.key.remoteJid, { text: "❌ No se encontró ningún medio descargable en esa URL." }, { quoted: message });
 
     } catch (error) {
       console.error("[TWITTER CMD ERROR]:", error);
-      return socket.sendMessage(m.key.remoteJid, { text: "❌ Ocurrió un error al procesar la solicitud." }, { quoted: m });
+      return socket.sendMessage(m.key.remoteJid, { text: "❌ Ocurrió un error al procesar la solicitud." }, { quoted: message });
     }
   },
 };
