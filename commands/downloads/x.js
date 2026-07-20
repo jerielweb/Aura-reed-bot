@@ -60,7 +60,7 @@ export default {
         await socket.sendMessage(remoteJid,
           {
             video: { url: bestVideo.url },
-            caption: `〔 ${fytBold('TWITTER DOWNLOAD')} 〕⬣`,
+            caption: `⬣〔 ${fytBold('TWITTER DOWNLOAD')} 〕⬣`,
           },
           { quoted: message }
         );
@@ -78,7 +78,7 @@ export default {
         await socket.sendMessage(remoteJid,
           {
             image: { url: imageUrl },
-            caption: `〔 ${fytBold('TWITTER DOWNLOAD')} 〕⬣`,
+            caption: `⬣〔 ${fytBold('TWITTER DOWNLOAD')} 〕⬣`,
           },
           { quoted: message }
         );
@@ -98,7 +98,7 @@ export default {
           remoteJid,
           {
             [isVid ? "video" : "image"]: { url: mediaUrl },
-            caption: `〔 ${fytBold('TWITTER DOWNLOAD')} 〕⬣`,
+            caption: `⬣〔 ${fytBold('TWITTER DOWNLOAD')} 〕⬣`,
           },
           { quoted: message }
         );
