@@ -59,7 +59,6 @@ export function countActiveSubBots() {
 
 export function getSubBotSlotStatus(senderId) {
   const max = getMaxSubBots();
-  // Corregido: Usamos 'senderId' que es el parámetro que recibe la función
   const id = resolveSubBotSenderId(null, senderId); 
   const active = listActiveSubBotSessions();
   const count = active.length;
@@ -109,15 +108,16 @@ export async function stopSubBot(senderId) {
   return handled;
 }
 
-export async function loadAllSubBots(mainSock) {
+// 🛠️ Restauración autónoma e independiente de todos los sub-bots
+export async function loadAllSubBots() {
   const sessions = listActiveSubBotSessions();
   if (sessions.length === 0) return;
   
-  console.log(chalk.cyan(`[SUB-BOT] Encontradas ${sessions.length} sesiones activas. Restaurando...`));
+  console.log(chalk.cyan(`[SUB-BOT] Encontradas ${sessions.length} sesiones activas. Restaurando autónomamente...`));
   
   for (const senderId of sessions) {
     try {
-      await createSubBot(mainSock, null, "autoload", null, senderId);
+      await createSubBot(null, null, "autoload", null, senderId);
       await new Promise((resolve) => setTimeout(resolve, 3000));
     } catch (e) {
       console.error(`[SUB-BOT] Error levantando la sesión automática ${senderId}:`, e.message);
@@ -125,19 +125,23 @@ export async function loadAllSubBots(mainSock) {
   }
 }
 
-export async function createSubBot(sock, m, type, phoneNumber = null, autoSenderId = null) {
+export async function createSubBot(sock = null, m = null, type = "qr", phoneNumber = null, autoSenderId = null) {
   const isAutoload = type === "autoload";
-  const remoteJid = isAutoload ? null : m.key.remoteJid;
-  const sender = isAutoload ? null : (m.key.participant || m.key.remoteJid);
+  const remoteJid = isAutoload ? null : m?.key?.remoteJid;
+  const sender = isAutoload ? null : (m?.key?.participant || m?.key?.remoteJid);
   
   const senderId = autoSenderId || 
                    resolveSubBotSenderId(phoneNumber, null) || 
-                   sender.split("@")[0].split(":")[0];
+                   sender?.split("@")[0]?.split(":")[0];
                    
+  if (!senderId) return;
+
   const sessionPath = path.join(sessionsDir, senderId);
 
   if (!isAutoload && !canRegisterSubBot(senderId)) {
-    await sock.sendMessage(remoteJid, { text: SUB_LIMIT_MESSAGE }, { quoted: m });
+    if (sock && remoteJid && m) {
+      await sock.sendMessage(remoteJid, { text: SUB_LIMIT_MESSAGE }, { quoted: m });
+    }
     return;
   }
 
@@ -158,7 +162,9 @@ export async function createSubBot(sock, m, type, phoneNumber = null, autoSender
           try { s.ws?.close(); } catch {}
           activeSubBots.delete(senderId);
         }
-        await sock.sendMessage(remoteJid, { text: "⏳ El tiempo de vinculación ha expirado (60 segundos). Inténtalo de nuevo." }, { quoted: m });
+        if (sock && remoteJid && m) {
+          await sock.sendMessage(remoteJid, { text: "⏳ El tiempo de vinculación ha expirado (60 segundos). Inténtalo de nuevo." }, { quoted: m });
+        }
         if (fs.existsSync(sessionPath)) fs.rmSync(sessionPath, { recursive: true, force: true });
       }
     }, 60000);
@@ -222,7 +228,7 @@ export async function createSubBot(sock, m, type, phoneNumber = null, autoSender
     subSock.ev.on("connection.update", async (update) => {
       const { connection, lastDisconnect, qr } = update;
 
-      if (qr && type === "qr" && !isConnected && !isAutoload) {
+      if (qr && type === "qr" && !isConnected && !isAutoload && sock && remoteJid && m) {
         const qrBuffer = await QRCode.toBuffer(qr);
         await sock.sendMessage(remoteJid, { image: qrBuffer, caption: "〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐀𝐂𝐓𝐈𝐕𝐄 〕⬣" }, { quoted: m });
       }
@@ -249,7 +255,7 @@ export async function createSubBot(sock, m, type, phoneNumber = null, autoSender
           activeSubBots.delete(senderId);
           if (timeout) clearTimeout(timeout);
         } else if (!subSock.isClosedManually) {
-          console.log(`[SUB-BOT] Reconectando sesión caída de ${senderId} en 7 segundos...`);
+          console.log(`[SUB-BOT] Reconectando sesión caída de ${senderId} de forma autónoma en 7 segundos...`);
           try { subSock.ev.removeAllListeners(); } catch {}
           setTimeout(start, 7000);
         }
@@ -258,9 +264,9 @@ export async function createSubBot(sock, m, type, phoneNumber = null, autoSender
         isConnected = true;
         if (timeout) clearTimeout(timeout);
         
-        console.log(chalk.green(`✅ Sub-Bot (${senderId}) restablecido y corriendo perfectamente.`));
+        console.log(chalk.green(`✅ Sub-Bot (${senderId}) restablecido y corriendo de forma independiente.`));
         
-        if (!wasConnected && !isAutoload) {
+        if (!wasConnected && !isAutoload && sock && remoteJid && m) {
           await sock.sendMessage(remoteJid, {
             text: "╭〔 ✅ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n\n┃ 🤖 ¡𝐒𝐮𝐛-𝐛𝐨𝐭 𝐯𝐢𝐧𝐜𝐮𝐥𝐚𝐝𝐨 𝐜𝐨𝐧 𝐞́𝐱𝐢𝐭𝐨!\n┃ ⚡ Ahora el bot está activo en tu cuenta\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣",
           }, { quoted: m });
@@ -268,7 +274,6 @@ export async function createSubBot(sock, m, type, phoneNumber = null, autoSender
       }
     });
 
-    // 🛠️ SOLUCIÓN PARA SUB-BOTS: Ejecución paralela sin interrumpir flujos internos
     const isRegistered = state.creds && (state.creds.registered || state.creds.me);
     if (type === "code" && phoneNumber && !isRegistered && !codeRequested && !isAutoload) {
       codeRequested = true;
@@ -281,7 +286,9 @@ export async function createSubBot(sock, m, type, phoneNumber = null, autoSender
           let code = await subSock.requestPairingCode(phoneNumber);
           code = code?.match(/.{1,4}/g)?.join("-") || code;
           
-          await sock.sendMessage(remoteJid, { text: `*${code.toUpperCase()}*` }, { quoted: m });
+          if (sock && remoteJid && m) {
+            await sock.sendMessage(remoteJid, { text: `🔑 Código de vinculación Sub-Bot:\n\n*${code.toUpperCase()}*` }, { quoted: m });
+          }
           console.log(`[SUB-BOT] Código entregado con éxito para ${senderId}`);
         } catch (err) {
           console.error("Error solicitando código en sub-bot:", err);

@@ -3,7 +3,7 @@ import makeWASocket, {
   DisconnectReason,
   fetchLatestWaWebVersion,
 } from "@whiskeysockets/baileys";
-import {loadAllSubBots} from "./models/subbotManager.js"
+import { loadAllSubBots } from "./models/subbotManager.js";
 import { Boom } from "@hapi/boom";
 import qrcodeTerminal from "qrcode-terminal";
 import pino from "pino";
@@ -52,7 +52,7 @@ function setupExitHandlers() {
       await flushDB();
       await flushAllSubBotDBs();
     } catch (err) {
-      console.error(chalk.red("[EXIT] Error guardando DB in beforeExit:"), err);
+      console.error(chalk.red("[EXIT] Error guardando DB en beforeExit:"), err);
     }
   });
 }
@@ -171,25 +171,34 @@ async function connectToWhatsApp() {
 
   sock.ev.on("creds.update", saveCreds);
 
-  // 🛠️ SOLUCIÓN: Ejecución paralela sin bloquear el hilo de ejecución principal del socket
   if (chosenPairingCode && !isRegistered) {
     (async () => {
       try {
-        console.log(chalk.yellow("⏳ Esperando que el socket esté listo..."));
+        console.log(chalk.yellow("⏳ Esperando estabilización del socket principal para vincular..."));
         await sock.waitForSocketOpen();
-        await new Promise((resolve) => setTimeout(resolve, 3000));
+        await new Promise((resolve) => setTimeout(resolve, 5000));
         
+        if (!chosenPhoneNumber) {
+          console.log(chalk.red("[Error] Falta el número telefónico para la solicitud."));
+          return;
+        }
+
         console.log(chalk.yellow(`🔑 Solicitando código para: ${chosenPhoneNumber}`));
         let code = await sock.requestPairingCode(chosenPhoneNumber);
         code = code?.match(/.{1,4}/g)?.join("-") || code;
+        
         console.log(
-          chalk.green(`\n🔑 Código de vinculación: `) +
-            chalk.bgGreen.black(` ${code.toUpperCase()} `) +
-            "\n",
+          "\n" +
+          chalk.green(`╭──────────────────────────────────────────╮\n`) +
+          chalk.green(`│ 🔑 CÓDIGO DE VINCULACIÓN PRINCIPAL:      │\n`) +
+          chalk.green(`│                                          │\n`) +
+          `│        ` + chalk.bgGreen.black.bold(`  ${code.toUpperCase()}  `) + `        │\n` +
+          chalk.green(`│                                          │\n`) +
+          chalk.green(`╰──────────────────────────────────────────╯\n`)
         );
       } catch (err) {
         console.error(
-          chalk.red("Error al solicitar el código de emparejamiento:"),
+          chalk.red("❌ Error al solicitar el código de emparejamiento del principal:"),
           err,
         );
       }
@@ -292,9 +301,14 @@ async function connectToWhatsApp() {
     }
     if (u.connection === "open") {
       console.log(chalk.green("✅ Bot Principal en línea y validado"));
-      await loadAllSubBots(sock)
     }
   });
 }
+
+// 🚀 Carga e inicialización de sub-bots de forma 100% independiente
+(async () => {
+  console.log(chalk.cyan("🚀 Cargando e iniciando sub-bots autónomamente..."));
+  await loadAllSubBots();
+})();
 
 connectToWhatsApp();
