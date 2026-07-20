@@ -19,6 +19,15 @@ export default {
       errorText += `╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`;
       return socket.sendMessage(remoteJid, { text: errorText }, { quoted: message });
     }
+    if (!text.includes("x.com")) {
+      let text = `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n`;
+      text += `┃ ❌ ${fytBold("FALTA ENLACE")}\n`;
+      text += `╰━━━━━━━━━━━━⬣\n\n`;
+      text += `┃ > Por favor, proporciona un\n`;
+      text += `┃ > enlace de Twitter\n\n`;
+      text += `╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`;
+      return socket.sendMessage(remoteJid, { text }, { quoted: message });
+    }
 
     // ⏳ Reacción de espera
     await socket.sendMessage(remoteJid, {
