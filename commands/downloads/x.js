@@ -33,33 +33,33 @@ export default {
 
       // Si es un video
       if (type === "video" && Array.isArray(result) && result.length > 0) {
-        // Ordena los videos extrayendo el número de la calidad (ej: "900p" -> 900) de mayor a menor
+
         const sortedVideos = [...result].sort((a, b) => {
           const resA = parseInt(a.quality) || 0;
           const resB = parseInt(b.quality) || 0;
           return resB - resA;
         });
 
-        // Selecciona el primero que es el de más alta resolución
+ 
         const bestVideo = sortedVideos[0];
 
         return socket.sendMessage(remoteJid,
           {
             video: { url: bestVideo.url },
-            caption: `╭〔 ♞ 𝐀𝐔𝐑𝐀 𝐃𝐎𝐌𝐀𝐈𝐍𝐒 〕⬣\n┃\n┃ 🎥 *Twitter Video*\n┃ ⚙️ *Calidad:* ${bestVideo.quality || "Máxima"}\n┃\n╰━━━━━━━━━━━━━━━━━━⬣`,
+            caption: `╭〔 ${fytBold('TWITTER DOWNLOAD')} 〕⬣\n┃\n┃ 🎥 *Twitter Video*\n┃\n╰━━━━━━━━━━━━━━━━━━⬣`,
           },
           { quoted: message }
         );
       }
 
-      // Si es una imagen
+      // imagen
       if (type === "image" || (typeof result === "string" && result.match(/\.(jpg|jpeg|png|webp)/i))) {
         const imageUrl = typeof result === "string" ? result : (Array.isArray(result) ? result[0]?.url || result[0] : thumbnail);
 
         return socket.sendMessage(remoteJid,
           {
             image: { url: imageUrl },
-            caption: `╭〔 ♞ 𝐀𝐔𝐑𝐀 𝐃𝐎𝐌𝐀𝐈𝐍𝐒 〕⬣\n┃\n┃ 🖼️ *Twitter Image*\n┃\n╰━━━━━━━━━━━━━━━━━━⬣`,
+            caption: `╭〔 ${fytBold('TWITTER DOWNLOAD')}⬣\n┃\n┃ 🖼️ *Twitter Image*\n┃\n╰━━━━━━━━━━━━━━━━━━⬣`,
           },
           { quoted: message }
         );
@@ -74,7 +74,7 @@ export default {
           m.key.remoteJid,
           {
             [isVid ? "video" : "image"]: { url: mediaUrl },
-            caption: `╭〔 ♞ 𝐀𝐔𝐑𝐀 𝐃𝐎𝐌𝐀𝐈𝐍𝐒 〕⬣\n┃\n┃ 📥 *Twitter Media*\n┃\n╰━━━━━━━━━━━━━━━━━━⬣`,
+            caption: `╭〔 ${fytBold('TWITTER DOWNLOAD')} 〕⬣\n┃\n┃ 📥 *Twitter Media*\n┃\n╰━━━━━━━━━━━━━━━━━━⬣`,
           },
           { quoted: message }
         );
