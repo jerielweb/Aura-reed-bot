@@ -48,8 +48,47 @@ export default {
 
       const { filename, filetype, filesize, uploaded, download } = res.result;
 
+      // 🔍 Detección precisa de Extensión y Mimetype
+      const cleanLink = link.toLowerCase();
+      const cleanDownload = (download || "").toLowerCase();
+      const cleanName = (filename || "").toLowerCase();
+      const cleanType = (filetype || "").toLowerCase();
+
+      let ext = "bin";
+      let mimetype = "application/octet-stream";
+
+      if (cleanLink.endsWith(".apk") || cleanDownload.includes(".apk") || cleanName.endsWith(".apk") || cleanType.includes("apk") || cleanType.includes("android")) {
+        ext = "apk";
+        mimetype = "application/vnd.android.package-archive";
+      } else if (cleanLink.endsWith(".zip") || cleanDownload.includes(".zip") || cleanName.endsWith(".zip") || cleanType.includes("zip")) {
+        ext = "zip";
+        mimetype = "application/zip";
+      } else if (cleanLink.endsWith(".rar") || cleanDownload.includes(".rar") || cleanName.endsWith(".rar") || cleanType.includes("rar")) {
+        ext = "rar";
+        mimetype = "application/x-rar-compressed";
+      } else if (cleanLink.endsWith(".pdf") || cleanDownload.includes(".pdf") || cleanName.endsWith(".pdf") || cleanType.includes("pdf")) {
+        ext = "pdf";
+        mimetype = "application/pdf";
+      } else if (cleanLink.endsWith(".mp3") || cleanDownload.includes(".mp3") || cleanName.endsWith(".mp3") || cleanType.includes("audio")) {
+        ext = "mp3";
+        mimetype = "audio/mpeg";
+      } else if (cleanLink.endsWith(".mp4") || cleanDownload.includes(".mp4") || cleanName.endsWith(".mp4") || cleanType.includes("video")) {
+        ext = "mp4";
+        mimetype = "video/mp4";
+      } else {
+        // Si ya trae una extensión en el título
+        const match = filename.match(/\.([a-z0-9]+)$/i);
+        if (match) ext = match[1].toLowerCase();
+      }
+
+      // Limpia el nombre y asegura que termine con la extensión correcta sin duplicar
+      let finalFileName = filename.replace(/\.[^/.]+$/, ""); // Remueve extensión antigua si la hay
+      finalFileName = `${finalFileName}.${ext}`;
+
       // Plantilla unificada como Caption
       let caption = `╭〔 📦 ${fytBold("MEDIAFIRE DOWNLOADER")} 〕━⬣\n\n`;
+      caption += `┃ 📂 ${fytBold("DESCARGANDO ARCHIVO")}\n`;
+      caption += `┃ ⏳ Espere un momento...\n\n`;
       caption += `┣━━━━━━━━━━━━⬣\n\n`;
       caption += `┃ ➥ ${fytBold(filename)}\n\n`;
       caption += `┃ > ${fytBold("Tamaño:")} › ${filesize}\n`;
@@ -61,20 +100,12 @@ export default {
       caption += `┃ > enviando, espera un momento...\n\n`;
       caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
 
-      // Detección de extensión / Mimetype
-      const ext = filename.split(".").pop()?.toLowerCase() || "";
-      let mimetype = "application/octet-stream";
-      if (ext === "apk") mimetype = "application/vnd.android.package-archive";
-      else if (ext === "zip") mimetype = "application/zip";
-      else if (ext === "rar") mimetype = "application/x-rar-compressed";
-      else if (ext === "pdf") mimetype = "application/pdf";
-
-      // Envío único del documento con la plantilla en la propiedad `caption`
+      // Envío único del documento con el mimetype y nombre corregidos
       await socket.sendMessage(
         remoteJid,
         {
           document: { url: download },
-          fileName: filename.endsWith(`.${ext}`) ? filename : `${filename}.${ext}`,
+          fileName: finalFileName,
           mimetype,
           caption,
         },
