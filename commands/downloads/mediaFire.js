@@ -48,7 +48,7 @@ export default {
 
       const { filename, filetype, filesize, uploaded, download } = res.result;
 
-      // 🔍 Detección precisa de Extensión y Mimetype
+      // Detección de extensión
       const cleanLink = link.toLowerCase();
       const cleanDownload = (download || "").toLowerCase();
       const cleanName = (filename || "").toLowerCase();
@@ -57,7 +57,7 @@ export default {
       let ext = "bin";
       let mimetype = "application/octet-stream";
 
-      if (cleanLink.endsWith(".apk") || cleanDownload.includes(".apk") || cleanName.endsWith(".apk") || cleanType.includes("apk") || cleanType.includes("android")) {
+      if (cleanLink.endsWith(".apk") || cleanDownload.includes(".apk") || cleanName.includes("apk") || cleanType.includes("apk") || cleanType.includes("android")) {
         ext = "apk";
         mimetype = "application/vnd.android.package-archive";
       } else if (cleanLink.endsWith(".zip") || cleanDownload.includes(".zip") || cleanName.endsWith(".zip") || cleanType.includes("zip")) {
@@ -69,21 +69,10 @@ export default {
       } else if (cleanLink.endsWith(".pdf") || cleanDownload.includes(".pdf") || cleanName.endsWith(".pdf") || cleanType.includes("pdf")) {
         ext = "pdf";
         mimetype = "application/pdf";
-      } else if (cleanLink.endsWith(".mp3") || cleanDownload.includes(".mp3") || cleanName.endsWith(".mp3") || cleanType.includes("audio")) {
-        ext = "mp3";
-        mimetype = "audio/mpeg";
-      } else if (cleanLink.endsWith(".mp4") || cleanDownload.includes(".mp4") || cleanName.endsWith(".mp4") || cleanType.includes("video")) {
-        ext = "mp4";
-        mimetype = "video/mp4";
-      } else {
-        // Si ya trae una extensión en el título
-        const match = filename.match(/\.([a-z0-9]+)$/i);
-        if (match) ext = match[1].toLowerCase();
       }
 
-      // Limpia el nombre y asegura que termine con la extensión correcta sin duplicar
-      let finalFileName = filename.replace(/\.[^/.]+$/, ""); // Remueve extensión antigua si la hay
-      finalFileName = `${finalFileName}.${ext}`;
+      // Nombre completo exacto
+      let finalFileName = filename.toLowerCase().endsWith(`.${ext}`) ? filename : `${filename}.${ext}`;
 
       // Plantilla unificada como Caption
       let caption = `╭〔 📦 ${fytBold("MEDIAFIRE DOWNLOADER")} 〕━⬣\n\n`;
@@ -100,11 +89,20 @@ export default {
       caption += `┃ > enviando, espera un momento...\n\n`;
       caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
 
-      // Envío único del documento con el mimetype y nombre corregidos
+      // 📥 Descargar mediante Stream (Soporta archivos pesados de hasta 2GB sin saturar la RAM)
+      const response = await axios({
+        method: "get",
+        url: download,
+        responseType: "stream",
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+        }
+      });
+
       await socket.sendMessage(
         remoteJid,
         {
-          document: { url: download },
+          document: { stream: response.data },
           fileName: finalFileName,
           mimetype,
           caption,
@@ -120,7 +118,7 @@ export default {
     } catch (error) {
       console.error("[MEDIAFIRE CMD ERROR]:", error);
       await socket.sendMessage(remoteJid, { react: { text: "❌", key: message.key } });
-      return socket.sendMessage(remoteJid, { text: `❌ Ocurrió un error al procesar el archivo: ${error.message}` }, { quoted: message });
+      return socket.sendMessage(remoteJid, { text: `❌ Ocurrió un error al procesar o descargar el archivo.` }, { quoted: message });
     }
   },
 };
