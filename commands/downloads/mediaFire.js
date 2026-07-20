@@ -9,6 +9,19 @@ const HEADERS = {
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 };
 
+// Mimetypes según extensión
+const MIME_TYPES = {
+  apk: "application/vnd.android.package-archive",
+  zip: "application/zip",
+  rar: "application/x-rar-compressed",
+  pdf: "application/pdf",
+  mp3: "audio/mpeg",
+  mp4: "video/mp4",
+  jpg: "image/jpeg",
+  png: "image/png",
+  bin: "application/octet-stream",
+};
+
 function parseKey(url) {
   const m = url.match(/mediafire\.com\/file\/([a-z0-9]+)/);
   return m ? m[1] : null;
@@ -80,7 +93,7 @@ async function mediafireInfo(url) {
 export default {
   name: ["md", "mf", "mediafire"],
   category: "downloads",
-  description: "Descarga archivos de Mediafire usando scraper local con caché.",
+  description: "Descarga archivos de Mediafire con detección de extensión y caché local.",
 
   execute: async (socket, message, args) => {
     const remoteJid = message.key.remoteJid;
@@ -115,11 +128,17 @@ export default {
     let isCacheHit = false;
 
     try {
-      // Obtener metadatos mediante el scraper
       const fileData = await mediafireInfo(link);
 
-      // Limpiar nombre de archivo para evitar errores en SO
-      const finalFileName = fileData.name.replace(/[<>:"/\\|?*]/g, "");
+      // Limpiar caracteres no válidos para el FS
+      const cleanName = fileData.name.replace(/[<>:"/\\|?*]/g, "");
+
+      // Detección de extensión
+      const extMatch = cleanName.match(/\.([a-z0-9]+)$/i);
+      const ext = extMatch ? extMatch[1].toLowerCase() : "bin";
+      const mimetype = MIME_TYPES[ext] || MIME_TYPES.bin;
+
+      const finalFileName = extMatch ? cleanName : `${cleanName}.${ext}`;
 
       if (!fs.existsSync(cacheDir)) {
         fs.mkdirSync(cacheDir, { recursive: true });
@@ -131,7 +150,7 @@ export default {
         console.log(`[MEDIAFIRE CACHE] [HIT] Archivo en caché local: ${cachePath}`);
         isCacheHit = true;
       } else {
-        console.log(`[MEDIAFIRE CACHE] [MISS] Descargando archivo directo...`);
+        console.log(`[MEDIAFIRE CACHE] [MISS] Descargando desde enlace directo...`);
 
         const res = await axios({
           method: "get",
@@ -153,13 +172,14 @@ export default {
 
       const motorLabel = isCacheHit ? "Scraper Local (Caché)" : "Scraper Local";
 
-      // 1️⃣ Mensaje informativo
+      // 1️⃣ Plantilla informativa
       let caption = `╭〔 📦 ${fytBold("MEDIAFIRE DOWNLOADER")} 〕━⬣\n\n`;
       caption += `┃ 📂 ${fytBold("DESCARGANDO ARCHIVO")}\n`;
       caption += `┃ ⏳ Espere un momento...\n\n`;
       caption += `┣━━━━━━━━━━━━⬣\n\n`;
       caption += `┃ ➥ ${fytBold(finalFileName)}\n\n`;
       caption += `┃ > ${fytBold("Tamaño:")} › ${fileData.size}\n`;
+      caption += `┃ > ${fytBold("Extensión:")} › .${ext.toUpperCase()}\n`;
       caption += `┃ > ${fytBold("Motor:")} › ${motorLabel}\n`;
       caption += `┃ > ${fytBold("Link:")} › ${link}\n\n`;
       caption += `┣━━━━━━━━━━━━⬣\n\n`;
@@ -167,16 +187,16 @@ export default {
       caption += `┃ > enviando, espera un momento...\n\n`;
       caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
 
-      // Envío 1: Texto
+      // Envío 1: Mensaje de texto
       await socket.sendMessage(remoteJid, { text: caption }, { quoted: message });
 
-      // Envío 2: Documento por separado
+      // Envío 2: Documento por separado con su MimeType
       await socket.sendMessage(
         remoteJid,
         {
           document: { url: cachePath },
           fileName: finalFileName,
-          mimetype: "application/octet-stream",
+          mimetype,
         },
         { quoted: message }
       );
