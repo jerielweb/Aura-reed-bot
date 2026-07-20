@@ -51,7 +51,7 @@ export default {
         await socket.sendMessage(remoteJid,
           {
             video: { url: bestVideo.url },
-            caption: `╭〔 ${fytBold('TWITTER DOWNLOAD')} 〕⬣\n┃\n┃ 🎥 *Twitter Video*\n┃\n╰━━━━━━━━━━━━━━━━━━⬣`,
+            caption: `╭〔 ${fytBold('TWITTER DOWNLOAD')} 〕⬣\n┃ 🎥 *Twitter Video*\n╰━━━━━━━━━━━━━━━━━━⬣`,
           },
           { quoted: message }
         );
@@ -69,7 +69,7 @@ export default {
         await socket.sendMessage(remoteJid,
           {
             image: { url: imageUrl },
-            caption: `╭〔 ${fytBold('TWITTER DOWNLOAD')} 〕⬣\n┃\n┃ 🖼️ *Twitter Image*\n┃\n╰━━━━━━━━━━━━━━━━━━⬣`,
+            caption: `╭〔 ${fytBold('TWITTER DOWNLOAD')} 〕⬣\n┃ 🖼️ *Twitter Image*\n╰━━━━━━━━━━━━━━━━━━⬣`,
           },
           { quoted: message }
         );
@@ -89,7 +89,7 @@ export default {
           remoteJid,
           {
             [isVid ? "video" : "image"]: { url: mediaUrl },
-            caption: `╭〔 ${fytBold('TWITTER DOWNLOAD')} 〕⬣\n┃\n┃ 📥 *Twitter Media*\n┃\n╰━━━━━━━━━━━━━━━━━━⬣`,
+            caption: `╭〔 ${fytBold('TWITTER DOWNLOAD')} 〕⬣\n┃ 📥 *Twitter Media*\n╰━━━━━━━━━━━━━━━━━━⬣`,
           },
           { quoted: message }
         );
