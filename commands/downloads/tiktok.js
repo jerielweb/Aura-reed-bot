@@ -1,26 +1,51 @@
-import axios from "axios";
 import { fytBold } from "../../models/TextStyle.js";
+import axios from "axios";
+import FornatNumber from "./../../controllers/functions/formatNumbers.js";
 
-const HEADERS = {
-  "User-Agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-};
+const API_KEY = "oboe";
+
+async function getDownloadData(tiktokUrl) {
+  const res = await axios.get("https://api.alyacore.xyz/dl/tiktokv2", {
+    params: { url: tiktokUrl, key: API_KEY },
+    timeout: 15000,
+  });
+  if (!res.data || !res.data.status) {
+    throw new Error("No se pudo obtener el video de TikTok.");
+  }
+  return res.data.data;
+}
+
+async function searchTikTok(query) {
+  const res = await axios.get("https://api.alyacore.xyz/search/tiktok", {
+    params: { query, key: API_KEY },
+    timeout: 15000,
+  });
+  const results = res.data?.data || [];
+  if (!results.length) {
+    throw new Error("No se encontraron resultados para tu búsqueda.");
+  }
+  return results[0];
+}
 
 export default {
-  name: ["tt", "tiktok"],
+  name: ["tt", "tiktok", "ttdl", "tiktokdl"],
+  description: "Descarga o busca videos de TikTok",
   category: "downloads",
-  description: "Descarga videos de TikTok en HD directamente por enlace o búsqueda.",
 
   execute: async (socket, message, args) => {
     const remoteJid = message.key.remoteJid;
-    const query = args.join(" ").trim();
+    const text = args.join(" ").trim();
 
-    if (!query) {
+    if (!text) {
+      let errorText = `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n`;
+      errorText += `┃ ❌ ${fytBold("FALTA BÚSQUEDA O LINK")}\n`;
+      errorText += `╰━━━━━━━━━━━━⬣\n\n`;
+      errorText += `┃ > Proporciona un enlace de TikTok\n`;
+      errorText += `┃ > o un término de búsqueda.\n\n`;
+      errorText += `╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`;
       return await socket.sendMessage(
         remoteJid,
-        {
-          text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("FALTA PARÁMETRO")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, proporciona un enlace\n┃ > de TikTok o un término de búsqueda.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
-        },
+        { text: errorText },
         { quoted: message }
       );
     }
@@ -30,61 +55,56 @@ export default {
     });
 
     try {
-      const apiKey = global.Apis?.apiAiya?.apikey || "oboe";
-      const apiUrl = `https://api.alyacore.xyz/dl/tiktokv2?url=${encodeURIComponent(query)}&key=${apiKey}`;
+      const isUrl = text.includes("tiktok.com");
+      let videoData;
+      let targetUrl = text;
 
-      const res = await axios.get(apiUrl, { headers: HEADERS, timeout: 15000 });
-      const resData = res.data;
+      if (isUrl) {
+        videoData = await getDownloadData(text);
+      } else {
+        const firstResult = await searchTikTok(text);
+        
+        targetUrl = firstResult.url || `https://www.tiktok.com/@${firstResult.author?.unique_id || "user"}/video/${firstResult.id}`;
+        
+        const searchInfo = `╭〔 🔍 ${fytBold("TIKTOK SEARCH")} 〕━⬣\n\n` +
+          `┃ ➥ ${fytBold(firstResult.title || "Sin título")}\n\n` +
+          `┃ > ${fytBold("Autor:")} › ${firstResult.author?.nickname || "N/A"} (@${firstResult.author?.unique_id || ""})\n` +
+          `┃ > ${fytBold("Duración:")} › ${firstResult.duration || "N/A"}\n` +
+          `┃ > ${fytBold("Vistas:")} › ${FornatNumber(firstResult.stats?.views || 0)}\n` +
+          `┃ > ${fytBold("Likes:")} › ${FornatNumber(firstResult.stats?.likes || 0)}\n` +
+          `┃ > ${fytBold("Enlace:")} › ${targetUrl}\n\n` +
+          `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
 
-      if (!resData?.status || !resData?.data) {
-        throw new Error("No se pudo obtener información del video.");
+        await socket.sendMessage(remoteJid, { text: searchInfo }, { quoted: message });
+
+        try {
+          videoData = await getDownloadData(targetUrl);
+        } catch {
+          videoData = firstResult;
+        }
       }
 
-      // Priorizar HD -> SD sin marca de agua -> Cualquier enlace disponible
-      const hdObj = resData.data.find((item) => item.type === "nowatermark_hd");
-      const noWmObj = resData.data.find((item) => item.type === "nowatermark");
-      const downloadUrl = hdObj?.url || noWmObj?.url || resData.data[0]?.url;
+      const videoUrl = videoData.dl || videoData.nowm || videoData.watermark || videoData.video;
+      if (!videoUrl) throw new Error("No se encontró el enlace directo del video.");
 
-      if (!downloadUrl) {
-        throw new Error("No se encontró un enlace de descarga válido.");
-      }
+      const videoRes = await axios.get(videoUrl, {
+        responseType: "arraybuffer",
+        timeout: 30000,
+      });
 
-      const videoData = {
-        id: resData.id || Date.now(),
-        title: resData.title || "Sin título",
-        downloadUrl,
-        author: resData.author?.nickname || resData.author?.fullname || "Desconocido",
-        duration: resData.duration || `${resData.durations || 0} Segundos`,
-        views: resData.stats?.views || "0",
-        likes: resData.stats?.likes || "0",
-        quality: hdObj ? "HD (Sin marca)" : "SD (Sin marca)",
-      };
+      const videoBuffer = Buffer.from(videoRes.data);
 
-      // 1️⃣ Mensaje Informativo
-      let caption = `╭〔 🎵 ${fytBold("TIKTOK DOWNLOADER")} 〕━⬣\n\n`;
-      caption += `┃ 📂 ${fytBold("DESCARGANDO VIDEO")}\n`;
-      caption += `┃ ⏳ Espere un momento...\n\n`;
-      caption += `┣━━━━━━━━━━━━⬣\n\n`;
-      caption += `┃ ➥ ${fytBold(videoData.title.slice(0, 60))}${videoData.title.length > 60 ? "..." : ""}\n\n`;
-      caption += `┃ > ${fytBold("Autor:")} › @${videoData.author}\n`;
-      caption += `┃ > ${fytBold("Calidad:")} › ${videoData.quality}\n`;
-      caption += `┃ > ${fytBold("Duración:")} › ${videoData.duration}\n`;
-      caption += `┃ > ${fytBold("Vistas:")} › ${videoData.views}\n`;
-      caption += `┃ > ${fytBold("Likes:")} › ${videoData.likes}\n\n`;
-      caption += `┣━━━━━━━━━━━━⬣\n\n`;
-      caption += `┃ > El video se está\n`;
-      caption += `┃ > enviando, espera un momento...\n\n`;
+      let caption = `╭〔 ${fytBold("TIKTOK DOWNLOADER")} 〕━⬣\n\n`;
+      caption += `┃ 🎬 ${fytBold(videoData.title?.trim() || "TikTok Video")}\n`;
+      caption += `┃ > ${fytBold("Autor:")} › ${videoData.author?.nickname || "N/A"}\n\n`;
       caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
 
-      await socket.sendMessage(remoteJid, { text: caption }, { quoted: message });
-
-      // 2️⃣ Envío directo del video HD mediante URL
       await socket.sendMessage(
         remoteJid,
         {
-          video: { url: videoData.downloadUrl },
+          video: videoBuffer,
+          caption: caption,
           mimetype: "video/mp4",
-          fileName: `${videoData.id}.mp4`,
         },
         { quoted: message }
       );
@@ -92,19 +112,14 @@ export default {
       await socket.sendMessage(remoteJid, {
         react: { text: "✅", key: message.key },
       });
-
     } catch (error) {
-      console.error("Error en TikTok Downloader:", error);
-
+      console.error(error);
       await socket.sendMessage(remoteJid, {
         react: { text: "❌", key: message.key },
       });
-
       await socket.sendMessage(
         remoteJid,
-        {
-          text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("ERROR DE DESCARGA")}\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message || "Ocurrió un error inesperado."}\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
-        },
+        { text: `❌ Error: ${error.message}` },
         { quoted: message }
       );
     }
