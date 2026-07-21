@@ -1,10 +1,10 @@
-import ImportDownloader from "../../controllers/tiktokDownloader.js";
+import downloader from "../../controllers/tiktokDownloader.js";
 import formatter from "../../controllers/functions/formatNumbers.js";
 
 const TIKTOK_REGEX = /^(https?:\/\/)?(www\.|vm\.|vt\.)?tiktok\.com\/.*$/i;
 
 export default {
-  name: ["tiktok", "tt", "tk"],
+  name: ["tiktok", "tt", "tk", "ttv"],
   category: "downloads",
   description:
     "Busca y descarga videos de TikTok. Usa: .tiktok [enlace/búsqueda]",
@@ -31,39 +31,36 @@ export default {
       let videoData = null;
 
       if (!TIKTOK_REGEX.test(text)) {
-        const searchResult = (await ImportDownloader.search(text)) || {};
-        finalUrl = searchResult.url || text;
+        const searchResult = await downloader.search(text);
+        finalUrl = searchResult.url;
         videoData = {
           title: searchResult.title || "Video de TikTok",
           author: searchResult.author || "TikTok User",
           duration: searchResult.duration ? `${searchResult.duration}s` : "N/A",
-          views: searchResult.views ?? 0,
-          likes: searchResult.likes ?? 0,
-          thumbnail: searchResult.cover || searchResult.thumbnail || null,
+          views: searchResult.views || "0",
+          likes: searchResult.likes || "0",
+          thumbnail: searchResult.cover,
           url: finalUrl,
         };
       } else {
-        const info = (await ImportDownloader.getDownloadInfo(finalUrl)) || {};
+        const info = await downloader.getDownloadInfo(finalUrl);
         videoData = {
           title: info.title || "Video de TikTok",
           author: info.author || "TikTok User",
           duration: info.duration ? `${info.duration}s` : "N/A",
-          views: info.views ?? 0,
-          likes: info.likes ?? 0,
-          thumbnail: info.cover || info.thumbnail || null,
+          views: info.views || "0",
+          likes: info.likes || "0",
+          thumbnail: info.cover,
           url: finalUrl,
         };
       }
 
-      const title = videoData.title || "Video de TikTok";
-      const author = videoData.author || "TikTok User";
-      const duration = videoData.duration || "N/A";
-      const views = videoData.views ?? 0;
-      const likes = videoData.likes ?? 0;
+      const title = videoData.title;
+      const author = videoData.author;
+      const duration = videoData.duration;
+      const views = videoData.views || "0";
+      const likes = videoData.likes || "0";
       const thumbnail = videoData.thumbnail;
-
-      const formattedViews = formatter ? formatter(views) : views;
-      const formattedLikes = formatter ? formatter(likes) : likes;
 
       let caption = `╭〔 🎬 𝐓𝐈𝐊𝐓𝐎𝐊 𝐕𝐈𝐃𝐄𝐎 〕━⬣\n\n`;
       caption += `┃ 🎥 𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀𝐍𝐃𝐎 𝐀𝐑𝐂𝐇𝐈𝐕𝐎\n`;
@@ -72,8 +69,8 @@ export default {
       caption += `┃ ➥ 𝐃𝐞𝐬𝐜𝐚𝐫𝐠𝐚𝐧𝐝𝐨 › ${title}\n\n`;
       caption += `┃ > 𝐀𝐮𝐭𝐨𝐫 › ${author}\n`;
       caption += `┃ > 𝐃𝐮𝐫𝐚𝐜𝐢𝐨́𝐧 › ${duration}\n`;
-      caption += `┃ > 𝐕𝐢𝐬𝐭𝐚𝐬 › ${formattedViews}\n`;
-      caption += `┃ > Likes › ${formattedLikes}\n`;
+      caption += `┃ > 𝐕𝐢𝐬𝐭𝐚𝐬 › ${formatter(views)}\n`;
+      caption += `┃ > Likes › ${formatter(likes)}\n`;
       caption += `┃ > 𝐌𝐨𝐝𝐨 › Video (MP4)\n`;
       caption += `┃ > 𝐄𝐧𝐥𝐚𝐜𝐞 › ${finalUrl}\n\n`;
       caption += `┣━━━━━━━━━━━━⬣\n\n`;
@@ -95,19 +92,13 @@ export default {
         );
       }
 
-      const downloadInfo = (await ImportDownloader.getDownloadInfo(finalUrl)) || {};
-      const videoDirectUrl = downloadInfo.downloadUrl || downloadInfo.url || downloadInfo.video;
-
-      if (!videoDirectUrl) {
-        throw new Error("No se pudo obtener el enlace directo del video.");
-      }
-
+      const { path: videoPath } = await downloader.getVideo(finalUrl);
       await socket.sendMessage(
         remoteJid,
         {
-          video: { url: videoDirectUrl },
+          video: { url: videoPath },
           mimetype: "video/mp4",
-          fileName: `${String(title).replace(/[<>:"/\\|?*]/g, "")}.mp4`,
+          fileName: `${title.replace(/[<>:"/\\|?*]/g, "")}.mp4`,
           caption: `🎬 *𝐓𝐢́𝐭𝐮𝐥𝐨:* ${title}\n⚡ *𝐀𝐮𝐫𝐚 𝐑𝐞𝐞𝐝 𝐃𝐨𝐰𝐧𝐥𝐨𝐚𝐝𝐞𝐫*`,
         },
         { quoted: message },
