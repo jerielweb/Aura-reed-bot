@@ -1,52 +1,24 @@
-import { fytBold } from "../../models/TextStyle.js";
-import axios from "axios";
-import FornatNumber from "./../../controllers/functions/formatNumbers.js";
+import ImportDownloader from "../../controllers/tiktokDownloader.js";
+import formatter from "../../controllers/functions/formatNumbers.js";
 
-const API_KEY = "oboe";
-
-async function getDownloadData(tiktokUrl) {
-  const res = await axios.get("https://api.alyacore.xyz/dl/tiktokv2", {
-    params: { url: tiktokUrl, key: API_KEY },
-    timeout: 15000,
-  });
-  if (!res.data || !res.data.status) {
-    throw new Error("No se pudo obtener el video de TikTok.");
-  }
-  return res.data.data;
-}
-
-async function searchTikTok(query) {
-  const res = await axios.get("https://api.alyacore.xyz/search/tiktok", {
-    params: { query, key: API_KEY },
-    timeout: 15000,
-  });
-  const results = res.data?.data || [];
-  if (!results.length) {
-    throw new Error("No se encontraron resultados para tu búsqueda.");
-  }
-  return results[0];
-}
+const TIKTOK_REGEX = /^(https?:\/\/)?(www\.|vm\.|vt\.)?tiktok\.com\/.*$/i;
 
 export default {
-  name: ["tt", "tiktok", "ttdl", "tiktokdl"],
-  description: "Descarga o busca videos de TikTok",
+  name: ["tiktok", "tt", "tk", "ttv"],
   category: "downloads",
-
+  description:
+    "Busca y descarga videos de TikTok. Usa: .tiktok [enlace/búsqueda]",
   execute: async (socket, message, args) => {
     const remoteJid = message.key.remoteJid;
     const text = args.join(" ").trim();
 
     if (!text) {
-      let errorText = `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n`;
-      errorText += `┃ ❌ ${fytBold("FALTA BÚSQUEDA O LINK")}\n`;
-      errorText += `╰━━━━━━━━━━━━⬣\n\n`;
-      errorText += `┃ > Proporciona un enlace de TikTok\n`;
-      errorText += `┃ > o un término de búsqueda.\n\n`;
-      errorText += `╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`;
       return await socket.sendMessage(
         remoteJid,
-        { text: errorText },
-        { quoted: message }
+        {
+          text: "╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐅𝐀𝐋𝐓𝐀 𝐁𝐔́𝐒𝐐𝐔𝐄𝐃𝐀\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, proporciona un\n┃ > enlace de TikTok o una búsqueda.\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣",
+        },
+        { quoted: message },
       );
     }
 
@@ -55,72 +27,99 @@ export default {
     });
 
     try {
-      const isUrl = text.includes("tiktok.com");
-      let videoData;
-      let targetUrl = text;
+      let finalUrl = text;
+      let videoData = null;
 
-      if (isUrl) {
-        videoData = await getDownloadData(text);
+      if (!TIKTOK_REGEX.test(text)) {
+        const searchResult = await ImportDownloader.search(text);
+        finalUrl = searchResult.url;
+        videoData = {
+          title: searchResult.title || "Video de TikTok",
+          author: searchResult.author || "TikTok User",
+          duration: searchResult.duration ? `${searchResult.duration}s` : "N/A",
+          views: searchResult.views || "0",
+          likes: searchResult.likes || "0",
+          thumbnail: searchResult.cover,
+          url: finalUrl,
+        };
       } else {
-        const firstResult = await searchTikTok(text);
-        
-        targetUrl = firstResult.url || `https://www.tiktok.com/@${firstResult.author?.unique_id || "user"}/video/${firstResult.id}`;
-        
-        const searchInfo = `╭〔 🔍 ${fytBold("TIKTOK SEARCH")} 〕━⬣\n\n` +
-          `┃ ➥ ${fytBold(firstResult.title || "Sin título")}\n\n` +
-          `┃ > ${fytBold("Autor:")} › ${firstResult.author?.nickname || "N/A"} (@${firstResult.author?.unique_id || ""})\n` +
-          `┃ > ${fytBold("Duración:")} › ${firstResult.duration || "N/A"}\n` +
-          `┃ > ${fytBold("Vistas:")} › ${FornatNumber(firstResult.stats?.views || 0)}\n` +
-          `┃ > ${fytBold("Likes:")} › ${FornatNumber(firstResult.stats?.likes || 0)}\n` +
-          `┃ > ${fytBold("Enlace:")} › ${targetUrl}\n\n` +
-          `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
-
-        await socket.sendMessage(remoteJid, { text: searchInfo }, { quoted: message });
-
-        try {
-          videoData = await getDownloadData(targetUrl);
-        } catch {
-          videoData = firstResult;
-        }
+        const info = await ImportDownloader.getDownloadInfo(finalUrl);
+        videoData = {
+          title: info.title || "Video de TikTok",
+          author: info.author || "TikTok User",
+          duration: info.duration ? `${info.duration}s` : "N/A",
+          views: info.views || "0",
+          likes: info.likes || "0",
+          thumbnail: info.cover,
+          url: finalUrl,
+        };
       }
 
-      const videoUrl = videoData.dl || videoData.nowm || videoData.watermark || videoData.video;
-      if (!videoUrl) throw new Error("No se encontró el enlace directo del video.");
+      const title = videoData.title;
+      const author = videoData.author;
+      const duration = videoData.duration;
+      const views = videoData.views || "0";
+      const likes = videoData.likes || "0";
+      const thumbnail = videoData.thumbnail;
 
-      const videoRes = await axios.get(videoUrl, {
-        responseType: "arraybuffer",
-        timeout: 30000,
-      });
+      let caption = `╭〔 🎬 𝐓𝐈𝐊𝐓𝐎𝐊 𝐕𝐈𝐃𝐄𝐎 〕━⬣\n\n`;
+      caption += `┃ 🎥 𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀𝐍𝐃𝐎 𝐀𝐑𝐂𝐇𝐈𝐕𝐎\n`;
+      caption += `┃ ⏳ 𝐄𝐬𝐩𝐞𝐫𝐞 𝐮𝐧 𝐦𝐨𝐦𝐞𝐧𝐭𝐨...\n\n`;
+      caption += `┣━━━━━━━━━━━━⬣\n\n`;
+      caption += `┃ ➥ 𝐃𝐞𝐬𝐜𝐚𝐫𝐠𝐚𝐧𝐝𝐨 › ${title}\n\n`;
+      caption += `┃ > 𝐀𝐮𝐭𝐨𝐫 › ${author}\n`;
+      caption += `┃ > 𝐃𝐮𝐫𝐚𝐜𝐢𝐨́𝐧 › ${duration}\n`;
+      caption += `┃ > 𝐕𝐢𝐬𝐭𝐚𝐬 › ${formatter(views)}\n`;
+      caption += `┃ > Likes › ${formatter(likes)}\n`;
+      caption += `┃ > 𝐌𝐨𝐝𝐨 › Video (MP4)\n`;
+      caption += `┃ > 𝐄𝐧𝐥𝐚𝐜𝐞 › ${finalUrl}\n\n`;
+      caption += `┣━━━━━━━━━━━━⬣\n\n`;
+      caption += `┃ > 𝐄𝐥 𝐚𝐫𝐜𝐡𝐢𝐯𝐨 𝐬𝐞 𝐞𝐬𝐭𝐚́\n`;
+      caption += `┃ > 𝐞𝐧𝐯𝐢𝐚𝐧𝐝𝐨, 𝐞𝐬𝐩𝐞𝐫𝐚 𝐮𝐧 𝐦𝐨𝐦𝐞𝐧𝐭𝐨...\n\n`;
+      caption += `╰━━〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐀𝐂𝐓𝐈𝐕𝐄 〕━━⬣`;
 
-      const videoBuffer = Buffer.from(videoRes.data);
+      if (thumbnail) {
+        await socket.sendMessage(
+          remoteJid,
+          { image: { url: thumbnail }, caption },
+          { quoted: message },
+        );
+      } else {
+        await socket.sendMessage(
+          remoteJid,
+          { text: caption },
+          { quoted: message },
+        );
+      }
 
-      let caption = `╭〔 ${fytBold("TIKTOK DOWNLOADER")} 〕━⬣\n\n`;
-      caption += `┃ 🎬 ${fytBold(videoData.title?.trim() || "TikTok Video")}\n`;
-      caption += `┃ > ${fytBold("Autor:")} › ${videoData.author?.nickname || "N/A"}\n\n`;
-      caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
+      const downloadInfo = await ImportDownloader.getDownloadInfo(finalUrl);
+      const videoDirectUrl = downloadInfo.downloadUrl || downloadInfo.url;
 
       await socket.sendMessage(
         remoteJid,
         {
-          video: videoBuffer,
-          caption: caption,
+          video: { url: videoDirectUrl },
           mimetype: "video/mp4",
+          fileName: `${title.replace(/[<>:"/\\|?*]/g, "")}.mp4`,
+          caption: `🎬 *𝐓𝐢́𝐭𝐮𝐥𝐨:* ${title}\n⚡ *𝐀𝐮𝐫𝐚 𝐑𝐞𝐞𝐝 𝐃𝐨𝐰𝐧𝐥𝐨𝐚𝐝𝐞𝐫*`,
         },
-        { quoted: message }
+        { quoted: message },
       );
 
       await socket.sendMessage(remoteJid, {
         react: { text: "✅", key: message.key },
       });
     } catch (error) {
-      console.error(error);
+      console.error("Error en tiktok downloader command:", error);
       await socket.sendMessage(remoteJid, {
         react: { text: "❌", key: message.key },
       });
       await socket.sendMessage(
         remoteJid,
-        { text: `❌ Error: ${error.message}` },
-        { quoted: message }
+        {
+          text: `╭〔 ❌ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ⚠️ 𝐄𝐑𝐑𝐎𝐑 𝐃𝐄 𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message || "Ocurrió un error inesperado."}\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`,
+        },
+        { quoted: message },
       );
     }
   },
