@@ -1,5 +1,15 @@
 import axios from "axios";
 import { Downloader } from "@tobyg74/tiktok-api-dl";
+import ffmpeg from "fluent-ffmpeg";
+import ffmpegPath from "ffmpeg-static";
+import ffprobePath from "@ffprobe-installer/ffprobe";
+import fs from "fs";
+import path from "path";
+import {
+  ensureDirectory,
+  downloadStreamToFile,
+  ffmpegSemaphore,
+} from "./downloadUtils.js";
 import formatNumbers from "./functions/formatNumbers.js";
 
 const getFirstValue = (...values) =>
@@ -28,6 +38,7 @@ const parseDelimitedNumber = (value) => {
   if (value === undefined || value === null) return 0;
   const raw = String(value).trim();
   if (!raw) return 0;
+  // Delirius returns thousands as dot separators like 523.256, not decimals.
   if (/^\d{1,3}(?:\.\d{3})+$/.test(raw)) {
     return Number(raw.replace(/\./g, ""));
   }
@@ -120,7 +131,16 @@ export function parseDownloaderResult(result) {
   };
 }
 
+// Configurar rutas de FFmpeg
+ffmpeg.setFfmpegPath(ffmpegPath);
+ffmpeg.setFfprobePath(ffprobePath.path);
+
 class TikTokDownloader {
+  constructor() {
+    this.tempDir = path.resolve("./tmp");
+    ensureDirectory(this.tempDir);
+  }
+
   async search(query) {
     const faaUrl = global.Apis?.appiFaa?.url || "https://api-faa.my.id/";
     const deliriusUrl =
@@ -210,14 +230,18 @@ class TikTokDownloader {
     const alyacoreUrl =
       global.Apis?.apiAiya?.url || "https://api.alyacore.xyz/";
 
+    // Intentar tobyg74/tiktok-api-dl primero (Scraper Local)
     try {
       console.log(
         "[TikTokDownloader] Intentando descargar metadatos con tobyg74/tiktok-api-dl...",
       );
 
       const result = await Downloader(url);
+
+      // Algunas implementaciones devuelven un objeto "raw"/"resultNotParsed" o estructuras distintas.
       const parsed = result.resultNotParsed || result.raw || result;
 
+      // Normalizar referencias a objetos de video/música/estadísticas
       const videoObj =
         result.video ||
         parsed.content?.video ||
@@ -311,30 +335,36 @@ class TikTokDownloader {
       );
     }
 
+    // Carrera de APIs de respaldo si falla el scraper local
     const apis = [
       {
         name: "Alya Core",
         fn: async () => {
           const res = await axios.get(
             `${alyacoreUrl}dl/tiktokv2?url=${encodeURIComponent(url)}`,
-            { timeout: 20000 },
+            {
+              timeout: 20000,
+            },
           );
 
           const result = res.data;
           if (!result || !result.status)
             throw new Error("No data in Alya Core");
 
+          // 1. Extracción e inspección segura de la URL del video HD (3° elemento)
           let videoUrl = null;
           if (Array.isArray(result.data) && result.data[2]?.url) {
             videoUrl = result.data[2].url;
           }
 
+          // Respaldo por si el array viene más corto (usa el video normal)
           if (!videoUrl && Array.isArray(result.data)) {
             videoUrl = result.data[1]?.url || result.data[0]?.url;
           }
 
           if (!videoUrl) throw new Error("[Alya Core] No video URL found");
 
+          // 2. Retornamos TODOS los metadatos mapeados correctamente desde el JSON
           return {
             id: result.id || `tiktok_${Date.now()}`,
             title: result.title || "",
@@ -367,6 +397,7 @@ class TikTokDownloader {
           const data = res.data?.data;
           if (!data) throw new Error("No data in Delirius");
 
+          // Extraer URL de video desde media
           let videoUrl = null;
           if (data.meta?.media && Array.isArray(data.meta.media)) {
             const videoMedia = data.meta.media.find((m) => m.type === "video");
@@ -400,6 +431,7 @@ class TikTokDownloader {
           const result = res.data?.result;
           if (!result) throw new Error("No result in Faa");
 
+          // Extraer URL de video (preferir alternativa sin watermark)
           const videoUrl =
             result.alternatives?.selected || result.data || result.url;
           if (!videoUrl) throw new Error("[Faa] No video URL found");
@@ -440,6 +472,8 @@ class TikTokDownloader {
 
       let info = winner.info;
 
+      // Si la fuente ganadora devuelve 0/ vacío para views o likes,
+      // intentamos llamar secuencialmente a las otras APIs para completar esos valores.
       const viewsEmpty =
         !info.views ||
         info.views === 0 ||
@@ -453,6 +487,7 @@ class TikTokDownloader {
 
       if (viewsEmpty || likesEmpty) {
         for (const api of apis) {
+          // Saltar la que ya ganó
           if (api.name === winner.name) continue;
           try {
             const candidate = await api.fn();
@@ -463,6 +498,7 @@ class TikTokDownloader {
             if (likesEmpty && candidate.likes) {
               info.likes = candidate.likes;
             }
+            // Completar otros campos si faltan
             if ((!info.duration || info.duration === 0) && candidate.duration) {
               info.duration = candidate.duration;
             }
@@ -481,9 +517,10 @@ class TikTokDownloader {
             if ((!info.author || info.author === "") && candidate.author) {
               info.author = candidate.author;
             }
+            // Si ya tenemos ambos, salimos
             if (info.views && info.likes) break;
           } catch (e) {
-            // Ignorar errores de candidatos secundarios
+            // ignorar errores de candidatos secundarios
           }
         }
       }
@@ -502,23 +539,85 @@ class TikTokDownloader {
 
   async getAudio(url) {
     const info = await this.getDownloadInfo(url);
-    const downloadUrl = info.audioUrl || info.videoUrl;
+    const cachePath = path.join(this.tempDir, `${info.id}.mp3`);
 
-    if (!downloadUrl) {
-      throw new Error("No se encontró URL directa para el audio.");
+    if (fs.existsSync(cachePath)) {
+      console.log(`[TikTok Cacho] Cargando audio: ${info.id}`);
+      return { path: cachePath, info };
     }
 
-    return { url: downloadUrl, info };
+    const tempIn = path.join(this.tempDir, `raw_audio_${info.id}`);
+
+    // Si tenemos URL de audio directo, lo descargamos y lo convertimos/guardamos
+    // Si no, descargamos el video y le extraemos el audio
+    const downloadUrl = info.audioUrl || info.videoUrl;
+    const isMp3Direct = !!info.audioUrl;
+
+    console.log(`[TikTokDownloader] Descargando audio desde: ${downloadUrl}`);
+    await downloadStreamToFile(downloadUrl, tempIn, { timeout: 60000 });
+
+    // Transcodificar a mp3 para compatibilidad absoluta
+    console.log("[TikTokDownloader] Transcodificando audio a MP3...");
+    await ffmpegSemaphore.run(
+      () =>
+        new Promise((resolve, reject) => {
+          ffmpeg(tempIn)
+            .outputOptions([
+              "-vn",
+              "-preset ultrafast",
+              "-acodec libmp3lame",
+              "-ac 2",
+              "-ab 192k",
+              "-ar 44100",
+            ])
+            .on("error", reject)
+            .on("end", resolve)
+            .save(cachePath);
+        }),
+    );
+
+    if (fs.existsSync(tempIn)) fs.unlinkSync(tempIn);
+    return { path: cachePath, info };
   }
 
   async getVideo(url) {
     const info = await this.getDownloadInfo(url);
+    const cachePath = path.join(this.tempDir, `${info.id}.mp4`);
 
-    if (!info.videoUrl) {
-      throw new Error("No se encontró URL directa para el video.");
+    if (fs.existsSync(cachePath)) {
+      console.log(`[TikTok Caché] Cargando video: ${info.id}`);
+      return { path: cachePath, info };
     }
 
-    return { url: info.videoUrl, info };
+    const tempIn = path.join(this.tempDir, `raw_${info.id}.mp4`);
+
+    console.log(`[TikTokDownloader] Descargando video desde: ${info.videoUrl}`);
+    await downloadStreamToFile(info.videoUrl, tempIn, { timeout: 60000 });
+
+    console.log("[TikTokDownloader] Transcodificando video con FFmpeg...");
+    await ffmpegSemaphore.run(
+      () =>
+        new Promise((resolve, reject) => {
+          ffmpeg(tempIn)
+            .outputOptions([
+              "-threads 2",
+              "-c:v libx264",
+              "-preset ultrafast",
+              "-profile:v baseline",
+              "-level 3.0",
+              "-pix_fmt yuv420p",
+              "-c:a aac",
+              "-movflags +faststart",
+              "-deadline realtime",
+            ])
+            .on("error", reject)
+            .on("end", resolve)
+            .save(cachePath);
+        }),
+    );
+
+    if (fs.existsSync(tempIn)) fs.unlinkSync(tempIn);
+    return { path: cachePath, info };
   }
 }
 

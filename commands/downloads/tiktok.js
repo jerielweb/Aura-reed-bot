@@ -4,7 +4,7 @@ import formatter from "../../controllers/functions/formatNumbers.js";
 const TIKTOK_REGEX = /^(https?:\/\/)?(www\.|vm\.|vt\.)?tiktok\.com\/.*$/i;
 
 export default {
-  name: ["tiktok", "tt", "tk", "ttv"],
+  name: ["tiktok", "tt", "tk"],
   category: "downloads",
   description:
     "Busca y descarga videos de TikTok. Usa: .tiktok [enlace/búsqueda]",
@@ -92,11 +92,11 @@ export default {
         );
       }
 
-      const { url: videoDirectUrl } = await downloader.getVideo(finalUrl);
+      const { path: videoPath } = await downloader.getVideo(finalUrl);
       await socket.sendMessage(
         remoteJid,
         {
-          video: { url: videoDirectUrl },
+          video: { url: videoPath },
           mimetype: "video/mp4",
           fileName: `${title.replace(/[<>:"/\\|?*]/g, "")}.mp4`,
           caption: `🎬 *𝐓𝐢́𝐭𝐮𝐥𝐨:* ${title}\n⚡ *𝐀𝐮𝐫𝐚 𝐑𝐞𝐞𝐝 𝐃𝐨𝐰𝐧𝐥𝐨𝐚𝐝𝐞𝐫*`,
