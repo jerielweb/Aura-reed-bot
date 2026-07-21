@@ -6,10 +6,13 @@ const HEADERS = {
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 };
 
+// Regex para capturar cualquier enlace de TikTok (cortos, normales y con parámetros largos)
+const TIKTOK_REGEX = /(?:https?:\/\/)?(?:www\.|vt\.|vm\.|m\.)?tiktok\.com\/(?:(?:\w+\/video\/\d+)|(?:v\/\d+)|(?:\w+))(?:\S+)?/i;
+
 export default {
   name: ["tt", "tiktok"],
   category: "downloads",
-  description: "Descarga videos de TikTok por enlace o término de búsqueda de forma directa.",
+  description: "Descarga videos de TikTok por cualquier tipo de enlace o búsqueda.",
 
   execute: async (socket, message, args) => {
     const remoteJid = message.key.remoteJid;
@@ -31,13 +34,17 @@ export default {
 
     try {
       const apiKey = global.Apis?.apiAiya?.apikey || "oboe";
-      const isUrl = /(tiktok\.com)/i.test(query);
+      
+      // Extrae la URL limpia si mandan texto mezclado con la URL
+      const matchUrl = query.match(TIKTOK_REGEX);
+      const isUrl = Boolean(matchUrl);
+      const targetUrl = isUrl ? matchUrl[0] : query;
 
       let videoData = null;
 
       if (isUrl) {
-        // Opción 1: Enlace directo
-        const apiUrl = `https://api.alyacore.xyz/dl/tiktok?url=${encodeURIComponent(query)}&key=${apiKey}`;
+        // Opción 1: Enlace (Normal, acortado o largo)
+        const apiUrl = `https://api.alyacore.xyz/dl/tiktok?url=${encodeURIComponent(targetUrl)}&key=${apiKey}`;
         const res = await axios.get(apiUrl, { headers: HEADERS, timeout: 15000 });
         const resData = res.data;
 
@@ -45,32 +52,41 @@ export default {
           throw new Error("No se pudo obtener información del enlace provisto.");
         }
 
-        const nowmObj = resData.data.find((item) => item.type === "nowatermark_hd") || 
-                        resData.data.find((item) => item.type === "nowatermark");
+        let downloadUrl = null;
+
+        if (Array.isArray(resData.data)) {
+          const nowmObj = resData.data.find((item) => item.type === "nowatermark_hd") || 
+                          resData.data.find((item) => item.type === "nowatermark");
+          downloadUrl = nowmObj ? nowmObj.url : resData.data[0]?.url;
+        } else if (typeof resData.data === "object") {
+          downloadUrl = resData.data.play || resData.data.wmplay || resData.data.url;
+        } else if (typeof resData.data === "string") {
+          downloadUrl = resData.data;
+        }
 
         videoData = {
-          id: resData.id,
+          id: resData.id || Date.now(),
           title: resData.title || "Sin título",
-          downloadUrl: nowmObj ? nowmObj.url : resData.data[0]?.url,
+          downloadUrl,
           author: resData.author?.nickname || resData.author?.fullname || "Desconocido",
           duration: resData.duration || `${resData.durations || 0} Segundos`,
           views: resData.stats?.views || "0",
           likes: resData.stats?.likes || "0",
         };
       } else {
-        // Opción 2: Búsqueda por texto (Primer resultado)
+        // Opción 2: Búsqueda por texto
         const apiUrl = `https://api.alyacore.xyz/search/tiktok?query=${encodeURIComponent(query)}&key=${apiKey}`;
         const res = await axios.get(apiUrl, { headers: HEADERS, timeout: 15000 });
         const resData = res.data;
 
-        if (!resData?.status || !resData?.data || resData.data.length === 0) {
+        if (!resData?.status || !Array.isArray(resData?.data) || resData.data.length === 0) {
           throw new Error(`No se encontraron resultados para: "${query}"`);
         }
 
         const item = resData.data[0];
 
         videoData = {
-          id: item.id,
+          id: item.id || Date.now(),
           title: item.title?.trim() || "Sin título",
           downloadUrl: item.dl || item.watermark,
           author: item.author?.nickname || item.author?.unique_id || "Desconocido",
