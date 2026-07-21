@@ -1,4 +1,4 @@
-Import axios from "axios";
+import axios from "axios";
 import { Downloader } from "@tobyg74/tiktok-api-dl";
 import formatNumbers from "./functions/formatNumbers.js";
 
