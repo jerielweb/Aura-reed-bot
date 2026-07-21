@@ -92,11 +92,11 @@ export default {
         );
       }
 
-      const { path: videoPath } = await downloader.getVideo(finalUrl);
+      const { url: videoDirectUrl } = await ImportDownloader.getVideo(finalUrl);
       await socket.sendMessage(
         remoteJid,
         {
-          video: { url: videoPath },
+          video: { url: videoDirectUrl },
           mimetype: "video/mp4",
           fileName: `${title.replace(/[<>:"/\\|?*]/g, "")}.mp4`,
           caption: `🎬 *𝐓𝐢́𝐭𝐮𝐥𝐨:* ${title}\n⚡ *𝐀𝐮𝐫𝐚 𝐑𝐞𝐞𝐝 𝐃𝐨𝐰𝐧𝐥𝐨𝐚𝐝𝐞𝐫*`,
