@@ -1,4 +1,4 @@
-import downloader from "../../controllers/tiktokDownloader.js";
+import ImportDownloader from "../../controllers/tiktokDownloader.js";
 import formatter from "../../controllers/functions/formatNumbers.js";
 
 const TIKTOK_REGEX = /^(https?:\/\/)?(www\.|vm\.|vt\.)?tiktok\.com\/.*$/i;
