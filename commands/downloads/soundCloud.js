@@ -3,62 +3,36 @@ import axios from "axios";
 import FomatTime from "./../../controllers/functions/formatTimeCont.js";
 import FornatNumber from "./../../controllers/functions/formatNumbers.js";
 
-let cachedClientId = null;
-let cacheTime = null;
+const API_KEY = "oboe";
 
-async function getClientId() {
-  // Corrección del tiempo de expiración (1 hora)
-  if (cachedClientId && Date.now() - cacheTime < 3600000) return cachedClientId;
-
-  const html = await axios
-    .get("https://soundcloud.com", {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
-      },
-      timeout: 10000,
-    })
-    .then((r) => r.data);
-
-  const scriptUrls = [
-    ...html.matchAll(/src="(https:\/\/a-v2\.sndcdn\.com\/assets\/[^"]+\.js)"/g),
-  ].map((m) => m[1]);
-
-  // Corregido el conflicto de nombres en el bucle
-  for (const scriptUrl of scriptUrls.slice(-5)) {
-    try {
-      const cli = await axios.get(scriptUrl).then((r) => r.data);
-      const match = cli.match(/client_id:"([a-zA-Z0-9]+)"/);
-      if (match) {
-        cachedClientId = match[1];
-        cacheTime = Date.now();
-        return cachedClientId;
-      }
-    } catch {}
+async function getTikTokData(queryOrUrl) {
+  const isUrl = queryOrUrl.includes("tiktok.com");
+  
+  if (isUrl) {
+    const res = await axios.get("https://api.alyacore.xyz/dl/tiktokv2", {
+      params: { url: queryOrUrl, key: API_KEY },
+      timeout: 15000,
+    });
+    if (!res.data || !res.data.status) {
+      throw new Error("No se pudo obtener el video de TikTok.");
+    }
+    return res.data.data;
+  } else {
+    const res = await axios.get("https://api.alyacore.xyz/search/tiktok", {
+      params: { query: queryOrUrl, key: API_KEY },
+      timeout: 15000,
+    });
+    const results = res.data?.data || [];
+    if (!results.length) {
+      throw new Error("No se encontraron resultados para tu búsqueda.");
+    }
+    return results[0];
   }
-  throw new Error("No se pudo obtener el client_id de SoundCloud");
-}
-
-async function searchTrackByQuery(query) {
-  const clientId = await getClientId();
-  const searchRes = await axios.get(
-    "https://api-v2.soundcloud.com/search/tracks",
-    {
-      params: { q: query, client_id: clientId, limit: 1 },
-      timeout: 10000,
-    },
-  );
-
-  const results = searchRes.data.collection || [];
-  if (!results.length)
-    throw new Error("No se encontraron resultados para tu búsqueda.");
-
-  return results[0];
 }
 
 export default {
-  name: ["scplay", "scdl", "sc", "soundcloud"],
-  description: "Descarga canciones de SoundCloud",
+  name: ["tt", "tiktok", "ttdl", "tiktokdl"],
+  description: "Descarga videos de TikTok",
   category: "downloads",
 
   execute: async (socket, message, args) => {
@@ -70,13 +44,13 @@ export default {
       errorText += `┃ ❌ ${fytBold("FALTA BUSQUEDA")}\n`;
       errorText += `╰━━━━━━━━━━━━⬣\n\n`;
       errorText += `┃ > Por favor, proporciona un\n`;
-      errorText += `┃ > enlace de SoundCloud\n`;
+      errorText += `┃ > enlace de TikTok\n`;
       errorText += `┃ > o una busqueda.\n\n`;
       errorText += `╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`;
       return await socket.sendMessage(
         remoteJid,
         { text: errorText },
-        { quoted: message },
+        { quoted: message }
       );
     }
 
@@ -85,92 +59,51 @@ export default {
     });
 
     try {
-      if (!text.includes("soundcloud.com")) {
-        const searchResult = await searchTrackByQuery(text);
-        text = searchResult.permalink_url || searchResult.uri;
-      }
+      const data = await getTikTokData(text);
 
-      const clientId = await getClientId();
+      const videoUrl = data.dl || data.watermark;
+      if (!videoUrl) throw new Error("No se encontró el enlace de descarga del video.");
 
-      const trackRes = await axios.get(
-        "https://api-v2.soundcloud.com/resolve",
-        {
-          params: { url: text, client_id: clientId },
-          timeout: 10000,
-        },
-      );
+      const title = data.title?.trim() || "Sin título";
+      const authorName = data.author?.nickname || "N/A";
+      const authorTag = data.author?.unique_id ? `@${data.author.unique_id}` : "";
+      const views = FornatNumber(data.stats?.views || 0);
+      const likes = FornatNumber(data.stats?.likes || 0);
+      const comments = FornatNumber(data.stats?.comments || 0);
+      const shares = FornatNumber(data.stats?.shares || 0);
+      const duration = data.duration || "N/A";
 
-      const track = trackRes.data;
+      let caption = `╭〔 ${fytBold("TIKTOK DOWNLOADER")} 〕━⬣\n\n`;
+      caption += `┃ 🎬 ${fytBold("DESCARGANDO VIDEO")}\n`;
+      caption += `┃ ⏳ Espere un momento...\n\n`;
+      caption += `┣━━━━━━━━━━━━⬣\n\n`;
+      caption += `┃ ➥ ${fytBold(title)}\n\n`;
+      caption += `┃ > ${fytBold("Autor:")} › ${authorName} ${authorTag}\n`;
+      caption += `┃ > ${fytBold("Duración:")} › ${duration}\n`;
+      caption += `┃ > ${fytBold("Vistas:")} › ${views}\n`;
+      caption += `┃ > ${fytBold("Likes:")} › ${likes}\n`;
+      caption += `┃ > ${fytBold("Comentarios:")} › ${comments}\n`;
+      caption += `┃ > ${fytBold("Compartidos:")} › ${shares}\n`;
+      caption += `┣━━━━━━━━━━━━⬣\n\n`;
+      caption += `┃ > El video se está\n`;
+      caption += `┃ > enviando, espera un momento...\n\n`;
+      caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
 
-      if (!track || track.kind !== "track")
-        throw new Error("No se encontró el track en esa URL");
-
-      const transcodings = track.media?.transcodings || [];
-      const mp3 = transcodings.find(
-        (t) =>
-          t.format?.mime_type === "audio/mpeg" &&
-          t.format?.protocol === "progressive",
-      );
-      const hls = transcodings.find((t) => t.format?.protocol === "hls");
-      const transcoding = mp3 || hls;
-
-      if (!transcoding) throw new Error("No hay stream disponible");
-      if (!mp3)
-        throw new Error(
-          "Este track solo tiene stream HLS, no se puede descargar de forma progresiva",
-        );
-
-      const streamRes = await axios.get(transcoding.url, {
-        params: { client_id: clientId },
-        timeout: 10000,
-      });
-
-      const audioRes = await axios.get(streamRes.data.url, {
+      const videoRes = await axios.get(videoUrl, {
         responseType: "arraybuffer",
         timeout: 30000,
       });
 
-      const audioBuffer = Buffer.from(audioRes.data);
-      const thumbnail = track.artwork_url?.replace("large", "t500x500") || null;
+      const videoBuffer = Buffer.from(videoRes.data);
 
-      let caption = `╭〔 ${fytBold("SC DOWNLOADER")} 〕━⬣\n\n`;
-      caption += `┃ 🔊 ${fytBold("DESCARGANDO ARCHIVO")}\n`;
-      caption += `┃ ⏳ Espere un momento...\n\n`;
-      caption += `┣━━━━━━━━━━━━⬣\n\n`;
-      caption += `┃ ➥ ${fytBold(track.title)}\n\n`;
-      caption += `┃ > ${fytBold("Artista:")} › ${track.user?.username || "N/A"}\n`;
-      caption += `┃ > ${fytBold("Duración")} › ${FomatTime(track.duration)}\n`;
-      caption += `┃ > ${fytBold("Vistas:")} › ${FornatNumber(FornatNumber(track.playback_count)) || "0"}\n`;
-      caption += `┃ > ${fytBold("Likes:")} › ${FornatNumber(track.likes_count) || "No se"}\n`;
-      caption += `┃ > ${fytBold("Url:")} › ${track.permalink_url}\n`;
-      caption += `┣━━━━━━━━━━━━⬣\n\n`;
-      caption += `┃ > El archivo se esta\n`;
-      caption += `┃ > enviando, espera un momento...\n\n`;
-      caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
-
-      if (thumbnail) {
-        await socket.sendMessage(
-          remoteJid,
-          { image: { url: thumbnail }, caption },
-          { quoted: message },
-        );
-      } else {
-        await socket.sendMessage(
-          remoteJid,
-          { text: caption },
-          { quoted: message },
-        );
-      }
-
-      const cleanTitle = track.title.replace(/[<>:"/\\|?*]/g, "");
       await socket.sendMessage(
         remoteJid,
         {
-          audio: audioBuffer,
-          mimetype: "audio/mpeg",
-          fileName: `${cleanTitle}.mp3`,
+          video: videoBuffer,
+          caption: caption,
+          mimetype: "video/mp4",
         },
-        { quoted: message },
+        { quoted: message }
       );
 
       await socket.sendMessage(remoteJid, {
@@ -184,7 +117,7 @@ export default {
       await socket.sendMessage(
         remoteJid,
         { text: `❌ Error: ${error.message}` },
-        { quoted: message },
+        { quoted: message }
       );
     }
   },
