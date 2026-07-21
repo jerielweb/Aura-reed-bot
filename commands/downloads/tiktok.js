@@ -1,4 +1,4 @@
-import ImportDownloader from "../../controllers/tiktokDownloader.js";
+import downloader from "../../controllers/tiktokDownloader.js";
 import formatter from "../../controllers/functions/formatNumbers.js";
 
 const TIKTOK_REGEX = /^(https?:\/\/)?(www\.|vm\.|vt\.)?tiktok\.com\/.*$/i;
@@ -92,7 +92,7 @@ export default {
         );
       }
 
-      const { url: videoDirectUrl } = await ImportDownloader.getVideo(finalUrl);
+      const { url: videoDirectUrl } = await downloader.getVideo(finalUrl);
       await socket.sendMessage(
         remoteJid,
         {
