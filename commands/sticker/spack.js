@@ -42,13 +42,10 @@ const searchStickerly = (query) =>
 
 const getPackDetail = (url) =>
   withRetry(async () => {
-    // Extrae únicamente el ID/código del pack (ej. "L9B53U" de "https://sticker.ly/s/L9B53U")
-    const packCode = url.split("/").pop();
-
     const { data } = await axios.get(
       "https://api.alyacore.xyz/stickerly/detail",
       {
-        params: { url: packCode, key: "oboe" },
+        params: { url, key: "oboe" },
       }
     );
     return data;
@@ -68,7 +65,7 @@ export default {
         react: { text: "❌", key: message.key },
       });
       let text = `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n`;
-      text += `┃ ${fytBold("FALTA BÚSQUEDA")}\n`;
+      text += `┃ ${fytBold("SINTAXIS INCORRECTA")}\n`;
       text += `╰━━━━━━━━━━━━⬣\n\n`;
       text += `┃ > Debes ingresar el nombre del pack a buscar.\n`;
       text += `┃ > Ejemplo: ${prefix || "."}spack gatos\n\n`;
@@ -108,38 +105,6 @@ export default {
         );
       }
 
-      // Probar iterativamente los packs hasta encontrar uno que no dé error 500
-      let detail = null;
-      for (const pack of freePacks) {
-        try {
-          const res = await getPackDetail(pack.url);
-          if (res?.status && res?.detalles?.stickers?.length) {
-            detail = res;
-            break; // Se encontró un pack válido
-          }
-        } catch (e) {
-          // Si el pack da error 500 u otro fallo, continúa con el siguiente resultado
-          continue;
-        }
-      }
-
-      if (!detail) {
-        await socket.sendMessage(remoteJid, {
-          react: { text: "❌", key: message.key },
-        });
-        let text = `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n`;
-        text += `┃ ⚠️ ${fytBold("ERROR DE LECTURA")}\n`;
-        text += `╰━━━━━━━━━━━━⬣\n\n`;
-        text += `┃ > No se pudo obtener el contenido de ningún paquete de la búsqueda.\n\n`;
-        text += `╰〔 ⚡${fytBold("SYSTEM ALERT")} 〕⬣`;
-
-        return await socket.sendMessage(
-          remoteJid,
-          { text },
-          { quoted: message }
-        );
-      }
-
       // Metadata del usuario / DB
       const senderNum =
         message.key.participant ||
@@ -148,6 +113,26 @@ export default {
 
       const packName = user.text1 || global.packname || "Aura Reed";
       const authorName = user.text2 || global.author || `@${senderNum}`;
+
+      const bestPack = freePacks[0];
+      const detail = await getPackDetail(bestPack.url);
+
+      if (!detail.status || !detail.detalles?.stickers?.length) {
+        await socket.sendMessage(remoteJid, {
+          react: { text: "❌", key: message.key },
+        });
+        let text = `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n`;
+        text += `┃ ⚠️ ${fytBold("ERROR DE LECTURA")}\n`;
+        text += `╰━━━━━━━━━━━━⬣\n\n`;
+        text += `┃ > No se pudo obtener el contenido del paquete.\n\n`;
+        text += `╰〔 ⚡${fytBold("SYSTEM ALERT")} 〕⬣`;
+
+        return await socket.sendMessage(
+          remoteJid,
+          { text },
+          { quoted: message }
+        );
+      }
 
       const { detalles } = detail;
       const stickers = detalles.stickers.slice(0, 30);
