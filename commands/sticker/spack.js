@@ -145,7 +145,7 @@ export default {
       infoText += `╰━━━━━━━━━━━━⬣\n\n`;
       infoText += `┃ 📌 Pack: ${detalles.name}\n`;
       infoText += `┃ 🖼️ Stickers: ${stickers.length}\n`;
-      infoText += `┃ ⏳ Descargando y convirtiendo elementos...\n\n`;
+      infoText += `┃ ⏳ Obteniendo Paquete...\n\n`;
       infoText += `╰〔 ⚡${fytBold("SYSTEM INFO")} 〕⬣`;
 
       await socket.sendMessage(
