@@ -100,6 +100,9 @@ export default {
     const remoteJid = message.key.remoteJid;
 
     if (!remoteJid.endsWith("@g.us")) {
+      await socket.sendMessage(remoteJid, {
+        react: { text: "❌", key: message.key },
+      });
       let text = `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n`;
       text += `┃ ${fytBold("ACCIÓN INCOMPATIBLE")}\n`;
       text += `╰━━━━━━━━━━━━⬣\n\n`;
@@ -112,9 +115,13 @@ export default {
       );
     }
 
+    // Reacción de espera
+    await socket.sendMessage(remoteJid, {
+      react: { text: "⏳", key: message.key },
+    });
+
     const inputContent = args.join(" ");
 
-    // Buscar si hay un mensaje citado (quoted) de forma nativa en Baileys
     const quotedMsg =
       message.message?.extendedTextMessage?.contextInfo?.quotedMessage ||
       message.message?.ephemeralMessage?.message?.extendedTextMessage
@@ -126,7 +133,6 @@ export default {
         const mediaType = type.replace("Message", "").toLowerCase();
 
         if (["image", "video", "audio", "document"].includes(mediaType)) {
-          // Descarga directa con la función nativa de Baileys
           const buffer = await downloadMediaMessage(
             {
               key: {
@@ -157,6 +163,9 @@ export default {
             quotedMsg.extendedTextMessage?.text;
 
           if (!statusText) {
+            await socket.sendMessage(remoteJid, {
+              react: { text: "❌", key: message.key },
+            });
             let text = `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n`;
             text += `┃ ⚠️ ${fytBold("ERROR DE ESTADO")}\n`;
             text += `╰━━━━━━━━━━━━⬣\n\n`;
@@ -176,6 +185,9 @@ export default {
         }
       } else {
         if (!inputContent) {
+          await socket.sendMessage(remoteJid, {
+            react: { text: "❌", key: message.key },
+          });
           let text = `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n`;
           text += `┃ ⚠️ ${fytBold("ERROR DE ESTADO")}\n`;
           text += `╰━━━━━━━━━━━━⬣\n\n`;
@@ -195,6 +207,11 @@ export default {
         });
       }
 
+      // Reacción de éxito
+      await socket.sendMessage(remoteJid, {
+        react: { text: "✅", key: message.key },
+      });
+
       let text = `╭〔 ✅ ${fytBold("AURA REED")} 〕⬣\n`;
       text += `┃ 🟢 ${fytBold("ESTADO PUBLICADO")}\n`;
       text += `╰━━━━━━━━━━━━⬣\n\n`;
@@ -204,6 +221,11 @@ export default {
       await socket.sendMessage(remoteJid, { text }, { quoted: message });
     } catch (e) {
       console.error(e);
+      // Reacción de error
+      await socket.sendMessage(remoteJid, {
+        react: { text: "❌", key: message.key },
+      });
+
       let text = `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n`;
       text += `┃ ⚠️ ${fytBold("ERROR DE SISTEMA")}\n`;
       text += `╰━━━━━━━━━━━━⬣\n\n`;
