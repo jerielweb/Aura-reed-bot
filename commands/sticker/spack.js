@@ -111,8 +111,11 @@ export default {
         message.key.remoteJid.replace(/@s.whatsapp.net|@g.us/, "");
       const user = db?.users?.[senderNum] || {};
 
+      // Obtiene el apodo/nombre de WhatsApp o el guardado en DB
+      const pushName = message.pushName || user.name || "Usuario";
+
       const packName = user.text1 || global.packname || "Aura Reed";
-      const authorName = user.text2 || global.author || `@${senderNum}`;
+      const authorName = user.text2 || global.author || pushName;
 
       const bestPack = freePacks[0];
       const detail = await getPackDetail(bestPack.url);
