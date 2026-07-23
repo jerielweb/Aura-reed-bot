@@ -12,6 +12,7 @@ export const categories = [
   "interaction",
   "AI",
   "stalk",
+  "gacha",
 ];
 
 export const Aliases = {
@@ -44,4 +45,8 @@ export const Aliases = {
   inteligenciaartificial: "AI",
   stalk: "stalk",
   inspección: "stalk",
+  gacha: "gacha",
+  waifu: "gacha",
+  waifus: "gacha",
+  harem: "gacha",
 };
