@@ -119,8 +119,8 @@ export function formatProfileText(user, pushName, jid) {
   text += `┃ 🆔 𝐈𝐃 › ${jid.split("@")[0]}\n\n`;
   text += `┃ ⚧️ 𝐆𝐞́𝐧𝐞𝐫𝐨 › ${genre}\n`;
   text += `┃ 🎂 𝐂𝐮𝐦𝐩𝐥𝐞𝐚𝐧̃𝐨𝐬 › ${birthday}\n`;
-  text += `┃ 🎈 ${fytBold('Edad › ')}${yearsOld} `
-  text += `┃ 💍 𝐄𝐬𝐭𝐚𝐝𝐨 › ${married}\n\n`;
+  text += `┃ 🎈 ${fytBold('Edad › ')}${yearsOld}\n\n `;
+  text += `┃ 💍 𝐄𝐬𝐭𝐚𝐝𝐨 › ${married}\n`;
   text += `┃ 📊 𝐍𝐢𝐯𝐞𝐥 › ${level}\n`;
   text += `┃ ✨ 𝐗𝐏 › ${formatter(xp)}\n`;
   text += `┃ 💵 𝐂𝐚𝐫𝐭𝐞𝐫𝐚 › ₡${formatter(coins)}\n`;
