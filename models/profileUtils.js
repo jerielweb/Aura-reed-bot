@@ -1,6 +1,7 @@
 import { resolveLidToRealJid } from "./utils.js";
 import { getGroupUser } from "./groupDb.js";
 import formatter from "../controllers/functions/formatNumbers.js";
+import {fytBold} from "./TextStyle.js"
 
 export const GENRES = {
   hombre: "Hombre",
@@ -78,12 +79,33 @@ export function parseBirthday(input) {
   const mm = String(month).padStart(2, "0");
   return year ? `${dd}/${mm}/${year}` : `${dd}/${mm}`;
 }
+export function calculateAge(birthdayStr) {
+  if (!birthdayStr) return null;
+  const parts = birthdayStr.split("/");
+  if (parts.length < 3) return null; // Si no tiene año, no se puede calcular la edad exactas
+
+  const day = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10) - 1; // Los meses en JS van de 0 a 11
+  const year = parseInt(parts[2], 10);
+
+  const today = new Date();
+  let age = today.getFullYear() - year;
+  const m = today.getMonth() - month;
+
+  if (m < 0 || (m === 0 && today.getDate() < day)) {
+    age--;
+  }
+
+  return age >= 0 ? age : null;
+}
+
 
 export function formatProfileText(user, pushName, jid) {
   const coins = user.coins || 0;
   const bank = user.bank || 0;
   const xp = user.xp || 0;
   const level = user.level || calculateLevel(xp);
+  const yearsOld = calculateAge(user.birthday);
   const genre = user.genre ? GENRES[user.genre] || user.genre : "No definido";
   const birthday = user.birthday || "No definido";
   const married = user.marriedTo
@@ -97,6 +119,7 @@ export function formatProfileText(user, pushName, jid) {
   text += `┃ 🆔 𝐈𝐃 › ${jid.split("@")[0]}\n\n`;
   text += `┃ ⚧️ 𝐆𝐞́𝐧𝐞𝐫𝐨 › ${genre}\n`;
   text += `┃ 🎂 𝐂𝐮𝐦𝐩𝐥𝐞𝐚𝐧̃𝐨𝐬 › ${birthday}\n`;
+  text += `┃ 🎈 ${fytBold('Edad › ')}${yearsOld} `
   text += `┃ 💍 𝐄𝐬𝐭𝐚𝐝𝐨 › ${married}\n\n`;
   text += `┃ 📊 𝐍𝐢𝐯𝐞𝐥 › ${level}\n`;
   text += `┃ ✨ 𝐗𝐏 › ${formatter(xp)}\n`;
