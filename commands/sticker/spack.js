@@ -138,7 +138,7 @@ export default {
       }
 
       const { detalles } = detail;
-      const stickers = detalles.stickers.slice(0, 30);
+      const stickers = detalles.stickers.slice(0, 60);
 
       let infoText = `╭〔 📦 ${fytBold("AURA REED")} 〕⬣\n`;
       infoText += `┃ 🏷️ ${fytBold("PROCESANDO PACK")}\n`;
