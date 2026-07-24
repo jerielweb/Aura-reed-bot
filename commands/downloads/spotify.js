@@ -12,7 +12,7 @@ export default {
 
     // 1. Validación de entrada vacía
     if (!text) {
-      let errorText = `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n\n`;
+      let errorText = `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n`;
       errorText += `┃ ❌ ${fytBold("FALTA BÚSQUEDA")}\n`;
       errorText += `╰━━━━━━━━━━━━⬣\n\n`;
       errorText += `┃ > Ingresa el nombre de una canción o\n`;
@@ -55,7 +55,7 @@ export default {
       }
 
       // 2. Enviar tarjeta informativa/portada
-      let caption = `╭〔 🎵 ${fytBold("SPOTIFY DOWNLOAD")} 〕⬣\n`;
+      let caption = `╭〔 🎵 ${fytBold("SPOTIFY DOWNLOAD")} 〕⬣\n\n`;
       caption += `┃ ➥ ${fytBold(`${song.title}`)}\n\n`;
       caption += `┃ > ${fytBold("Atista:")} › ${song.artist}\n`;
       caption += `┃ > ${fytBold("Album:")} › ${song.album}\n`;
