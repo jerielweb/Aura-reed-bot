@@ -8,7 +8,19 @@ export default function fomatNumber(valor) {
   const normalized = raw.replace(/,/g, "");
   const numero = Number(normalized);
   if (!Number.isFinite(numero)) return raw;
-
+  
+  if (numero >= 1e24) {
+    return `${(numero / 1e24).toFixed(1)}Sp`
+  }
+  if (numero >= 1e21) {
+    return `${(numero / 1e21).toFixed(1)}Sx`
+  }
+  if (numero >= 1e18) {
+    return `${(numero / 1e18).toFixed(1)}Qn`
+  }
+  if (numero >= 1e15) {
+    return `${(numero / 1e15).toFixed(1)}Qd`
+  }
   if (numero >= 1e12) {
     return `${(numero / 1e12).toFixed(1)}T`;
   }
