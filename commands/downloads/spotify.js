@@ -1,105 +1,113 @@
-import downloader from "../../controllers/spotifyDownloader.js";
 import { fytBold } from "../../models/TextStyle.js";
+import axios from "axios";
 
 export default {
-  name: [
-    "spotify",
-    "sp",
-    "spotifydl",
-    "spotifydownload",
-    "spt",
-    "spotifyaudio",
-    "spta",
-    "splay",
-  ],
-  category: "downloads",
-  description: "Busca y descarga canciones de Spotify.",
-  execute: async (socket, message, args) => {
-    const remoteJid = message.key.remoteJid;
-    const text = args.join(" ").trim();
+  name: ["spotify", "splay", "sp", "spdl"],
+  category: "download",
+  description: "Descarga canciones de Spotify por enlace o búsqueda.",
 
+  execute: async (socket, message, args, { prefix }) => {
+    const text = args.join(" ").trim();
+    const remoteJid = message.key.remoteJid;
+
+    // 1. Validación de entrada vacía
     if (!text) {
-      return await socket.sendMessage(
-        remoteJid,
-        {
-          text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("FALTA BUSQUEDA")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, proporciona un\n┃ > enlace de Spotify o una busqueda.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
-        },
-        { quoted: message },
-      );
+      let errorText = `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n`;
+      errorText += `┃ ❌ ${fytBold("ENTRADA VACÍA")}\n`;
+      errorText += `╰━━━━━━━━━━━━⬣\n\n`;
+      errorText += `┃ > Ingresa el nombre de una canción o\n`;
+      errorText += `┃ > un enlace válido de Spotify.\n`;
+      errorText += `┃ > Ejemplo: ${prefix || "."}spotify Quiéreme mientras se pueda\n\n`;
+      errorText += `╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`;
+      return socket.sendMessage(remoteJid, { text: errorText }, { quoted: message });
     }
 
+    // Reacción inicial de procesamiento
     await socket.sendMessage(remoteJid, {
-      react: { text: "⏳", key: message.key },
+      react: { text: "🎵", key: message.key },
     });
 
     try {
-      // Descargar y obtener la ruta del archivo + metadatos
-      const {
-        metadata,
-        path: audioPath,
-        downloadSource,
-      } = await downloader.download(text);
+      const apiKey = global.Apis?.apiAiya?.apikey || "oboe";
+      const isUrl = text.includes("open.spotify.com");
 
-      const title = metadata.title || "Canción de Spotify";
-      const artist = metadata.artist || "Desconocido";
-      const duration = metadata.duration || "N/A";
-      const cover = metadata.cover;
-      const finalUrl = metadata.url || text;
+      // Definir la URL y parámetros según si es enlace o búsqueda de texto
+      const endpoint = isUrl
+        ? "https://api.alyacore.xyz/dl/spotifyv2"
+        : "https://api.alyacore.xyz/dl/spotifyplay";
 
-      let caption = `╭〔 🎵 ${fytBold("SPOTIFY DOWNLOADER")} 〕━⬣\n\n`;
-      caption += `┃ 🔊 ${fytBold("DESCARGANDO ARCHIVO")}\n`;
-      caption += `┃ ⏳ Espere un momento...\n\n`;
-      caption += `┣━━━━━━━━━━━━⬣\n\n`;
-      caption += `┃ ➥ ${fytBold(title)}\n\n`;
-      caption += `┃ > ${fytBold("Artista")} › ${artist}\n`;
-      caption += `┃ > ${fytBold("Duración")} › ${duration}\n`;
-      caption += `┃ > ${fytBold("Modo")} › Audio (MP3)\n`;
-      caption += `┃ > ${fytBold("Link")} › ${finalUrl}\n\n`;
-      caption += `┣━━━━━━━━━━━━⬣\n\n`;
-      caption += `┃ > El archivo se esta\n`;
-      caption += `┃ > enviando, espera un momento...\n\n`;
-      caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
+      const params = isUrl
+        ? { url: text, key: apiKey }
+        : { query: text, key: apiKey };
 
-      if (cover) {
+      const { data: res } = await axios.get(endpoint, { params });
+
+      if (!res.status || !res.data) {
+        throw new Error("No se pudo obtener la información de la canción.");
+      }
+
+      const song = res.data;
+      
+      // Manejar la diferencia en la propiedad de descarga (string vs objeto)
+      const downloadUrl = typeof song.dl === "string" ? song.dl : song.dl?.mp3;
+
+      if (!downloadUrl) {
+        throw new Error("El enlace de descarga del audio no está disponible.");
+      }
+
+      // 2. Enviar tarjeta informativa/portada
+      let caption = `╭〔 🎵 ${fytBold("SPOTIFY DOWNLOAD")} 〕⬣\n`;
+      caption += `┃ ➥ ${fytBold("TITULO")} › ${song.title}\n\n`;
+      caption += `┃ > ${fytBold("ARTISTA")} › ${song.artist}\n`;
+      caption += `┃ > ${fytBold("ÁLBUM")} › ${song.album}\n`;
+      caption += `┃ > ${fytBold("DURACIÓN")} › ${song.duration}\n`;
+      caption += `╰━━━━━━━━━━━━⬣\n\n`;
+      caption += `┃ ⏳ Descargando audio...\n\n`;
+      caption += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;
+
+      if (song.cover || song.coverHd) {
         await socket.sendMessage(
           remoteJid,
-          { image: { url: cover }, caption },
-          { quoted: message },
-        );
-      } else {
-        await socket.sendMessage(
-          remoteJid,
-          { text: caption },
-          { quoted: message },
+          {
+            image: { url: song.coverHd || song.cover },
+            caption,
+          },
+          { quoted: message }
         );
       }
 
-      // Enviar archivo de audio
+      // 3. Descargar el buffer del audio y enviarlo como documento o nota de voz
+      const audioBuffer = (
+        await axios.get(downloadUrl, { responseType: "arraybuffer" })
+      ).data;
+
       await socket.sendMessage(
         remoteJid,
         {
-          audio: { url: audioPath },
-          mimetype: "audio/mpeg",
-          fileName: `${title.replace(/[<>:"/\\|?*]/g, "")}.mp3`,
+          audio: Buffer.from(audioBuffer),
+          mimetype: "audio/mp3",
+          fileName: `${song.artist} - ${song.title}.mp3`,
         },
-        { quoted: message },
+        { quoted: message }
       );
 
+      // Reacción de éxito
       await socket.sendMessage(remoteJid, {
         react: { text: "✅", key: message.key },
       });
     } catch (error) {
-      console.error("Error en Spotify Downloader:", error);
+      console.error(error);
       await socket.sendMessage(remoteJid, {
         react: { text: "❌", key: message.key },
       });
-      await socket.sendMessage(
-        remoteJid,
-        {
-          text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("ERROR DE DESCARGA")}\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message || "Ocurrio un error inesperado."}\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
-        },
-        { quoted: message },
-      );
+
+      let textErr = `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n`;
+      textErr += `┃ ⚠️ ${fytBold("ERROR DE DESCARGA")}\n`;
+      textErr += `╰━━━━━━━━━━━━⬣\n\n`;
+      textErr += `┃ > ${error.message || "Ocurrió un error inesperado."}\n\n`;
+      textErr += `╰〔 ⚡ ${fytBold("SYSTEM ALERT")} 〕⬣`;
+
+      await socket.sendMessage(remoteJid, { text: textErr }, { quoted: message });
     }
   },
 };
