@@ -2,15 +2,14 @@ import { fytBold } from "../../models/TextStyle.js";
 import axios from "axios";
 
 export default {
-  name: ["spotify", "splay", "sp", "spdl"],
+  name: ["spotifydoc", "docsplay", "dsp", "dspdl"],
   category: "download",
-  description: "Descarga canciones de Spotify por enlace o búsqueda.",
+  description: "Descarga canciones de Spotify por enlace o búsqueda como documento.",
 
   execute: async (socket, message, args, { prefix }) => {
     const text = args.join(" ").trim();
     const remoteJid = message.key.remoteJid;
 
-    // 1. Validación de entrada vacía
     if (!text) {
       let errorText = `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n`;
       errorText += `┃ ❌ ${fytBold("FALTA BÚSQUEDA")}\n`;
@@ -21,7 +20,6 @@ export default {
       return socket.sendMessage(remoteJid, { text: errorText }, { quoted: message });
     }
 
-    // Reacción inicial de procesamiento
     await socket.sendMessage(remoteJid, {
       react: { text: "🎵", key: message.key },
     });
@@ -30,7 +28,6 @@ export default {
       const apiKey = global.Apis?.apiAiya?.apikey || "oboe";
       const isUrl = text.includes("open.spotify.com");
 
-      // Definir la URL y parámetros según si es enlace o búsqueda de texto
       const endpoint = isUrl
         ? "https://api.alyacore.xyz/dl/spotifyv2"
         : "https://api.alyacore.xyz/dl/spotifyplay";
@@ -46,23 +43,20 @@ export default {
       }
 
       const song = res.data;
-      
-      // Manejar la diferencia en la propiedad de descarga (string vs objeto)
       const downloadUrl = typeof song.dl === "string" ? song.dl : song.dl?.mp3;
 
       if (!downloadUrl) {
         throw new Error("El enlace de descarga del audio no está disponible.");
       }
 
-      // 2. Enviar tarjeta informativa/portada
       let caption = `╭〔 🎵 ${fytBold("SPOTIFY DOWNLOAD")} 〕⬣\n\n`;
       caption += `┃ ➥ ${fytBold(`${song.title}`)}\n\n`;
-      caption += `┃ > ${fytBold("Atista:")} › ${song.artist}\n`;
-      caption += `┃ > ${fytBold("Album:")} › ${song.album}\n`;
-      caption += `┃ > ${fytBold("Duración")} › ${song.duration}\n`;
-      caption += `┃ > ${fytBold("Tipo:")} › Audio (MP3)\n`;
+      caption += `┃ > ${fytBold("Artista:")} › ${song.artist}\n`;
+      caption += `┃ > ${fytBold("Álbum:")} › ${song.album || "Desconocido"}\n`;
+      caption += `┃ > ${fytBold("Duración:")} › ${song.duration}\n`;
+      caption += `┃ > ${fytBold("Tipo:")} › Documento (MP3)\n`;
       caption += `╰━━━━━━━━━━━━⬣\n\n`;
-      caption += `┃ ⏳ Descargando audio...\n\n`;
+      caption += `┃ ⏳ Descargando documento...\n\n`;
       caption += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;
 
       if (song.cover || song.coverHd) {
@@ -76,22 +70,17 @@ export default {
         );
       }
 
-      // 3. Descargar el buffer del audio y enviarlo como documento o nota de voz
-      const audioBuffer = (
-        await axios.get(downloadUrl, { responseType: "arraybuffer" })
-      ).data;
-
+      // Envío del archivo como documento directamente vía URL
       await socket.sendMessage(
         remoteJid,
         {
-          audio: Buffer.from(audioBuffer),
-          mimetype: "audio/mp4",
+          document: { url: downloadUrl },
+          mimetype: "audio/mpeg",
           fileName: `${song.artist} - ${song.title}.mp3`,
         },
         { quoted: message }
       );
 
-      // Reacción de éxito
       await socket.sendMessage(remoteJid, {
         react: { text: "✅", key: message.key },
       });
