@@ -12,7 +12,7 @@ export default {
 
     // 1. Validación de entrada vacía
     if (!text) {
-      let errorText = `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n`;
+      let errorText = `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n\n`;
       errorText += `┃ ❌ ${fytBold("FALTA BÚSQUEDA")}\n`;
       errorText += `╰━━━━━━━━━━━━⬣\n\n`;
       errorText += `┃ > Ingresa el nombre de una canción o\n`;
