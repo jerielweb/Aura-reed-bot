@@ -13,11 +13,10 @@ export default {
     // 1. Validación de entrada vacía
     if (!text) {
       let errorText = `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n`;
-      errorText += `┃ ❌ ${fytBold("ENTRADA VACÍA")}\n`;
+      errorText += `┃ ❌ ${fytBold("FALTA BÚSQUEDA")}\n`;
       errorText += `╰━━━━━━━━━━━━⬣\n\n`;
       errorText += `┃ > Ingresa el nombre de una canción o\n`;
-      errorText += `┃ > un enlace válido de Spotify.\n`;
-      errorText += `┃ > Ejemplo: ${prefix || "."}spotify Quiéreme mientras se pueda\n\n`;
+      errorText += `┃ > un enlace válido de Spotify.\n\n`;
       errorText += `╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`;
       return socket.sendMessage(remoteJid, { text: errorText }, { quoted: message });
     }
@@ -57,10 +56,10 @@ export default {
 
       // 2. Enviar tarjeta informativa/portada
       let caption = `╭〔 🎵 ${fytBold("SPOTIFY DOWNLOAD")} 〕⬣\n`;
-      caption += `┃ ➥ ${fytBold("TITULO")} › ${song.title}\n\n`;
-      caption += `┃ > ${fytBold("ARTISTA")} › ${song.artist}\n`;
-      caption += `┃ > ${fytBold("ÁLBUM")} › ${song.album}\n`;
-      caption += `┃ > ${fytBold("DURACIÓN")} › ${song.duration}\n`;
+      caption += `┃ ➥ ${fytBold(`${song.title}`)}\n\n`;
+      caption += `┃ > ${fytBold("Atista:")} › ${song.artist}\n`;
+      caption += `┃ > ${fytBold("Album:")} › ${song.album}\n`;
+      caption += `┃ > ${fytBold("Duración")} › ${song.duration}\n`;
       caption += `╰━━━━━━━━━━━━⬣\n\n`;
       caption += `┃ ⏳ Descargando audio...\n\n`;
       caption += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;
