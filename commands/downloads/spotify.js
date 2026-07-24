@@ -85,7 +85,7 @@ export default {
         remoteJid,
         {
           audio: Buffer.from(audioBuffer),
-          mimetype: "audio/mp3",
+          mimetype: "audio/mp4",
           fileName: `${song.artist} - ${song.title}.mp3`,
         },
         { quoted: message }
