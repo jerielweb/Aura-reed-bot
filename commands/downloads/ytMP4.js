@@ -111,8 +111,8 @@ export default {
       caption += `┃ > ${fytBold("Artista")}› ${author}\n`;
       caption += `┃ > ${fytBold("Duración")} › ${duration}\n`;
       caption += `┃ > ${fytBold("Vistas")} › ${formatter(views)}\n`;
-      caption += `┃ > ${fytBold("Tipo")} > Video MP4`
-      caption += `┃ > ${fytBold("Url")} › ${finalUrl}\n\n`;
+      caption += `┃ > ${fytBold("Tipo")} > Video MP4\n`
+      caption += `┃ > ${fytBold("Url")} › ${finalUrl}\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ ⏳ Descargando video...\n`;
       caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
