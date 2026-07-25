@@ -18,6 +18,15 @@ export default {
         { quoted: message }
       );
     }
+    if (!isBotAdmin) {
+      let noAdminText = `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n`;
+      noAdminText += `┃ ❌ ${fytBold("SIN PERMISOS")}\n`;
+      noAdminText += `╰━━━━━━━━━━━━⬣\n\n`;
+      noAdminText += `┃ > No pude desilenciar al usuario.\n`;
+      noAdminText += `┃ > Necesito ser administrador del grupo.\n\n`;
+      noAdminText += `╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`;
+      return socket.sendMessage(remoteJid, { text: noAdminText }, { quoted: message });
+    }
 
     // Resolver el objetivo etiquetado o respondido
     let targetJid = null;
