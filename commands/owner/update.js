@@ -11,14 +11,15 @@ export default {
   execute: async (socket, message, args) => {
     const remoteJid = message.key.remoteJid;
 
-    let text = `╭〔 🚀 ${fytBold("AURA REED")} 〕⬣\n`;
-    text += `┃ ⚙️ ${fytBold("SISTEMA UPDATE")}\n`;
-    text += `╰━━━━━━━━━━━━⬣\n\n`;
-    text += `┃ > Buscando actualizaciones\n`;
-    text += `┃ > en el repositorio...\n\n`;
-    text += `╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`;
+    let initText = `╭〔 🚀 ${fytBold("AURA REED")} 〕⬣\n`;
+    initText += `┃ ⚙️ ${fytBold("SISTEMA UPDATE")}\n`;
+    initText += `╰━━━━━━━━━━━━⬣\n\n`;
+    initText += `┃ > Buscando actualizaciones\n`;
+    initText += `┃ > en el repositorio...\n\n`;
+    initText += `╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`;
 
-    await socket.sendMessage(remoteJid, { text }, { quoted: message });
+    // Guardamos la referencia del mensaje inicial para editarlo después
+    const initMsg = await socket.sendMessage(remoteJid, { text: initText }, { quoted: message });
 
     exec("git reset --hard && git pull", async (err, stdout, stderr) => {
       if (err) {
@@ -28,11 +29,11 @@ export default {
         textErr += `┃ > Error al actualizar:\n`;
         textErr += `┃ > ${err.message}\n\n`;
         textErr += `╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`;
-        return await socket.sendMessage(
-          remoteJid,
-          { text: textErr },
-          { quoted: message },
-        );
+
+        return await socket.sendMessage(remoteJid, {
+          text: textErr,
+          edit: initMsg.key,
+        });
       }
 
       if (stdout.includes("Already up to date")) {
@@ -42,11 +43,11 @@ export default {
         textUp += `┃ > El bot ya se encuentra\n`;
         textUp += `┃ > en su versión más reciente.\n\n`;
         textUp += `╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`;
-        return await socket.sendMessage(
-          remoteJid,
-          { text: textUp },
-          { quoted: message },
-        );
+
+        return await socket.sendMessage(remoteJid, {
+          text: textUp,
+          edit: initMsg.key,
+        });
       }
 
       // Formatear los cambios de Git de forma limpia
@@ -59,11 +60,10 @@ export default {
       textSuccess += `\`\`\`\n${stdout.trim()}\n\`\`\`\n\n`;
       textSuccess += `╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`;
 
-      await socket.sendMessage(
-        remoteJid,
-        { text: textSuccess },
-        { quoted: message },
-      );
+      await socket.sendMessage(remoteJid, {
+        text: textSuccess,
+        edit: initMsg.key,
+      });
     });
   },
 };
