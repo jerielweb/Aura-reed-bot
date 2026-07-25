@@ -115,9 +115,35 @@ async function resolveMessageLids(m, sock, remoteJid) {
 }
 
 export async function handleMessage(sock, m, db, saveDB) {
-  if (!m || !m.message) return;
+  if (!m || !m.message || m.key.fromMe) return;
 
   const remoteJid = m.key.remoteJid;
+  const isGroup = remoteJid.endsWith("@g.us");
+  const senderRaw = m.key.participant || remoteJid;
+
+  // ════════════════════════════════════════════════════════════════
+  // 🔇 DETECTOR Y BORRADO AUTOMÁTICO DE USUARIOS SILENCIADOS (MUTE)
+  // ════════════════════════════════════════════════════════════════
+  if (isGroup && senderRaw) {
+    try {
+      const senderJid = await resolveLidToRealJid(senderRaw, sock, remoteJid);
+      const mutedUsers = db.groups?.[remoteJid]?.mutedUsers || [];
+
+      if (mutedUsers.includes(senderJid)) {
+        await sock.sendMessage(remoteJid, {
+          delete: {
+            remoteJid: remoteJid,
+            fromMe: false,
+            id: m.key.id,
+            participant: senderRaw,
+          },
+        });
+        return; // Detener ejecución inmediatamente
+      }
+    } catch (e) {
+      console.error("[handleMessage] Error al verificar/borrar usuario silenciado:", e);
+    }
+  }
 
   // Resolve all LIDs in tags (mentionedJid) and replies (participant) to real phone numbers
   try {
@@ -125,9 +151,6 @@ export async function handleMessage(sock, m, db, saveDB) {
   } catch (e) {
     console.error("[handleMessage] Error resolving message LIDs:", e);
   }
-
-  const isGroup = remoteJid.endsWith("@g.us");
-  const senderRaw = m.key.participant || remoteJid;
 
   const text =
     m.message.conversation ||
