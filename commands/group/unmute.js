@@ -8,7 +8,7 @@ export default {
   description: "Quita el silencio a un usuario para que sus mensajes no se borren.",
   adminOnly: true,
 
-  execute: async (socket, message, args, { db, saveDB }) => {
+  execute: async (socket, message, args, { db, saveDB, isBotAdmin }) => {
     const remoteJid = message.key.remoteJid;
 
     if (!remoteJid.endsWith("@g.us")) {

@@ -8,7 +8,7 @@ export default {
   adminOnly: true,
   botAdminOnly: true,
 
-  execute: async (socket, message, args, { db }) => {
+  execute: async (socket, message, args, { db, saveDB, isBotAdmin }) => {
     const remoteJid = message.key.remoteJid;
 
     if (!remoteJid.endsWith("@g.us")) {
