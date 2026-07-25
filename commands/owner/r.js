@@ -1,31 +1,46 @@
-import { spawn } from "child_process";
+import { exec } from "child_process";
+import { fytBold } from "../../models/TextStyle.js";
 
 export default {
-  name: ["restart", "reiniciar"],
+  name: ["r", "run", "exec", "terminal"],
   category: "owner",
-  description: "Reinicia el bot.",
-  ownerOnly: true,
+  outerWidth: true,
+  description: "Ejecuta comandos en la terminal del servidor.",
+  async execute(sock, m, args, { prefix }) {
+    const remoteJid = m.key.remoteJid;
+    const command = args.join(" ").trim();
 
-  execute: async (socket, message, args) => {
-    const remoteJid = message.key.remoteJid;
+    if (!command) {
+      return await sock.sendMessage(
+        remoteJid,
+        {
+          text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("FALTA COMANDO")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, escribe el comando de terminal.\n┃ > Ejemplo: *${prefix}r pm2 restart all*\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
+        },
+        { quoted: m },
+      );
+    }
 
-    let text = `╭〔 🔄 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
-    text += `┃ ⚙️ 𝐒𝐈𝐒𝐓𝐄𝐌𝐀 𝐑𝐄𝐒𝐓𝐀𝐑𝐓\n`;
-    text += `╰━━━━━━━━━━━━⬣\n\n`;
-    text += `┃ > El bot se está reiniciando\n`;
-    text += `┃ > espere un momento...\n\n`;
-    text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
+    // Reaccionar para indicar que se está procesando en la shell
+    await sock.sendMessage(remoteJid, { react: { text: "💻", key: m.key } });
 
-    await socket.sendMessage(remoteJid, { text }, { quoted: message });
+    exec(command, async (error, stdout, stderr) => {
+      // Combinar la salida estándar y los errores si existen
+      let respuestaTerminal = "";
+      if (stdout) respuestaTerminal += stdout;
+      if (stderr) respuestaTerminal += `\n[STDERR]\n${stderr}`;
+      if (error) respuestaTerminal += `\n[ERROR CRÍTICO]\n${error.message}`;
 
-  setTimeout(() => {
-    const p = spawn(process.argv[0], process.argv.slice(1), {
-    cwd: process.cwd(),
-    detached: true,
-    stdio: "inherit",
-  });
-  p.unref();
-  process.exit(0);
-    }, 1000);
+      respuestaTerminal =
+        respuestaTerminal.trim() || "Comando ejecutado sin salida de texto.";
+
+      // Responder con el resultado de la consola
+      await sock.sendMessage(
+        remoteJid,
+        {
+          text: `╭〔 🖥️ ${fytBold("TERMINAL EXEC")} 〕━⬣\n\n\`\`\`\n${respuestaTerminal}\n\`\`\`\n\n╰━━〔 ⚡ ${fytBold("SYSTEM")} 〕━━⬣`,
+        },
+        { quoted: m },
+      );
+    });
   },
 };
