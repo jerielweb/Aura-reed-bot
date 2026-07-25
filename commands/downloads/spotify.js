@@ -57,6 +57,7 @@ export default {
       // 2. Enviar tarjeta informativa/portada
       let caption = `╭〔 🎵 ${fytBold("SPOTIFY DOWNLOAD")} 〕⬣\n\n`;
       caption += `┃ ➥ ${fytBold(`${song.title}`)}\n\n`;
+      caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ > ${fytBold("Atista:")} › ${song.artist}\n`;
       caption += `┃ > ${fytBold("Album:")} › ${song.album}\n`;
       caption += `┃ > ${fytBold("Duración")} › ${song.duration}\n`;

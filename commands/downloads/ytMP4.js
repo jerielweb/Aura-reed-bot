@@ -106,17 +106,15 @@ export default {
         `https://i.ytimg.com/vi/${extractVideoId(finalUrl) || "default"}/hqdefault.jpg`;
 
       let caption = `╭〔 🎬 ${fytBold("YT DOWNLOADER")} 〕━⬣\n\n`;
-      caption += `┃ 🎥 ${fytBold("DESCARGANDO ARCHIVO")}\n`;
-      caption += `┃ ⏳ Espere un momento...\n\n`;
-      caption += `┣━━━━━━━━━━━━⬣\n\n`;
       caption += `┃ ➥ ${fytBold(title)}\n\n`;
-      caption += `┃ > Canal › ${author}\n`;
-      caption += `┃ > Duracion › ${duration}\n`;
-      caption += `┃ > Vistas › ${formatter(views)}\n`;
-      caption += `┃ > Enlace › ${finalUrl}\n\n`;
       caption += `┣━━━━━━━━━━━━⬣\n\n`;
-      caption += `┃ > El archivo se esta\n`;
-      caption += `┃ > transcodificando, espera un momento...\n\n`;
+      caption += `┃ > ${fytBold("Artista")}› ${author}\n`;
+      caption += `┃ > ${fytBold("Duración")} › ${duration}\n`;
+      caption += `┃ > ${fytBold("Vistas")} › ${formatter(views)}\n`;
+      caption += `┃ > ${fytBold("Tipo")} > Video MP4`
+      caption += `┃ > ${fytBold("Url")} › ${finalUrl}\n\n`;
+      caption += `┣━━━━━━━━━━━━⬣\n\n`;
+      caption += `┃ ⏳ Descargando video...\n\n`;
       caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
 
       await socket.sendMessage(

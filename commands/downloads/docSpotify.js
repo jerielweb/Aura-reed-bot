@@ -51,10 +51,11 @@ export default {
 
       let caption = `╭〔 🎵 ${fytBold("SPOTIFY DOWNLOAD")} 〕⬣\n\n`;
       caption += `┃ ➥ ${fytBold(`${song.title}`)}\n\n`;
+      caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ > ${fytBold("Artista:")} › ${song.artist}\n`;
       caption += `┃ > ${fytBold("Álbum:")} › ${song.album || "Desconocido"}\n`;
       caption += `┃ > ${fytBold("Duración:")} › ${song.duration}\n`;
-      caption += `┃ > ${fytBold("Tipo:")} › Documento (MP3)\n`;
+      caption += `┃ > ${fytBold("Tipo:")} › Documento (MP3\n`;
       caption += `╰━━━━━━━━━━━━⬣\n\n`;
       caption += `┃ ⏳ Descargando documento...\n\n`;
       caption += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;

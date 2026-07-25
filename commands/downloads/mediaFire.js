@@ -174,17 +174,14 @@ export default {
 
       // 1️⃣ Plantilla informativa
       let caption = `╭〔 📦 ${fytBold("MEDIAFIRE DL")} 〕━⬣\n\n`;
-      caption += `┃ 📂 ${fytBold("DESCARGANDO ARCHIVO")}\n`;
-      caption += `┃ ⏳ Espere un momento...\n\n`;
-      caption += `┣━━━━━━━━━━━━⬣\n\n`;
       caption += `┃ ➥ ${fytBold(finalFileName)}\n\n`;
+      caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ > ${fytBold("Tamaño:")} › ${fileData.size}\n`;
       caption += `┃ > ${fytBold("Extensión:")} › .${ext.toUpperCase()}\n`;
       caption += `┃ > ${fytBold("Motor:")} › ${motorLabel}\n`;
       caption += `┃ > ${fytBold("Link:")} › ${link}\n\n`;
       caption += `┣━━━━━━━━━━━━⬣\n\n`;
-      caption += `┃ > El archivo se esta\n`;
-      caption += `┃ > enviando, espera un momento...\n\n`;
+      caption += `┃ ⏳ Descargando archivo...\n\n`;
       caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
 
       // Envío 1: Mensaje de texto

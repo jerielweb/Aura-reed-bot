@@ -134,18 +134,16 @@ export default {
       const thumbnail = track.artwork_url?.replace("large", "t500x500") || null;
 
       let caption = `╭〔 ${fytBold("SC DOWNLOADER")} 〕━⬣\n\n`;
-      caption += `┃ 🔊 ${fytBold("DESCARGANDO ARCHIVO")}\n`;
-      caption += `┃ ⏳ Espere un momento...\n\n`;
-      caption += `┣━━━━━━━━━━━━⬣\n\n`;
       caption += `┃ ➥ ${fytBold(track.title)}\n\n`;
+      caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ > ${fytBold("Artista:")} › ${track.user?.username || "N/A"}\n`;
       caption += `┃ > ${fytBold("Duración")} › ${FomatTime(track.duration)}\n`;
       caption += `┃ > ${fytBold("Vistas:")} › ${FornatNumber(FornatNumber(track.playback_count)) || "0"}\n`;
       caption += `┃ > ${fytBold("Likes:")} › ${FornatNumber(track.likes_count) || "No se"}\n`;
+      caption += `┃ > ${fytBold("Tipo:")} › Audio MP3`
       caption += `┃ > ${fytBold("Url:")} › ${track.permalink_url}\n`;
       caption += `┣━━━━━━━━━━━━⬣\n\n`;
-      caption += `┃ > El archivo se esta\n`;
-      caption += `┃ > enviando, espera un momento...\n\n`;
+      caption += `┃ ⏳ Descargando audio...\n\n`;
       caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
 
       if (thumbnail) {
