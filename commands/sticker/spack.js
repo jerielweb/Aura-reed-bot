@@ -198,7 +198,7 @@ export default {
         remoteJid,
         {
           stickerPack: {
-            name: detailles.name,
+            name: detalles.name,
             publisher: packName,
             description: `${detalles.name} • ${global.botname || "Aura Reed"}`,
             cover,
