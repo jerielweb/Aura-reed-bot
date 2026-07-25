@@ -16,6 +16,6 @@ export default {
 
     await socket.sendMessage(remoteJid, { text }, { quoted: message });
 
-    setTimeout(() => {process.exit(1)}, 1000);
+    setTimeout(() => {process.exit(1);}, 1000);
   },
 };
