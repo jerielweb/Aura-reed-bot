@@ -1,5 +1,6 @@
 import { fytBold } from "../../models/TextStyle.js";
-import { resolveLidToRealJid } from "../models/utils.js";
+import { resolveLidToRealJid } from "./../../models/utils.js";
+
 
 export default {
   name: ["unmute", "desilenciar"],
