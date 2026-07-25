@@ -70,9 +70,9 @@ export default {
       caption += `┃ > 𝐕𝐢𝐬𝐭𝐚𝐬 › ${formatter(views)}\n`;
       caption += `┃ > Likes › ${formatter(likes)}\n`;
       caption += `┃ > 𝐌𝐨𝐝𝐨 › Video (MP4)\n`;
-      caption += `┃ > 𝐄𝐧𝐥𝐚𝐜𝐞 › ${finalUrl}\n\n`;
-      caption += `┣━━━━━━━━━━━━⬣\n\n`;
-      caption += `┃ ⏳ Descargando Video...\n\n`;
+      caption += `┃ > 𝐄𝐧𝐥𝐚𝐜𝐞 › ${finalUrl}\n`;
+      caption += `┣━━━━━━━━━━━━⬣\n`;
+      caption += `┃ ⏳ Descargando Video...\n`;
       caption += `╰━━〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐀𝐂𝐓𝐈𝐕𝐄 〕━━⬣`;
 
       if (thumbnail) {

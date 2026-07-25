@@ -142,8 +142,8 @@ export default {
       caption += `┃ > ${fytBold("Likes:")} › ${FornatNumber(track.likes_count) || "No se"}\n`;
       caption += `┃ > ${fytBold("Tipo:")} › Audio MP3`
       caption += `┃ > ${fytBold("Url:")} › ${track.permalink_url}\n`;
-      caption += `┣━━━━━━━━━━━━⬣\n\n`;
-      caption += `┃ ⏳ Descargando audio...\n\n`;
+      caption += `┣━━━━━━━━━━━━⬣\n`;
+      caption += `┃ ⏳ Descargando audio...\n`;
       caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
 
       if (thumbnail) {

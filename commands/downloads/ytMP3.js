@@ -116,7 +116,7 @@ export default {
       caption += `┃ > ${fytBold("Vistas")} › ${formatter(views)}\n`;
       caption += `┃ > ${fytBold("Tipo")} › Audio MP3\n`
       caption += `┃ > ${fytBold("Url")} › ${finalUrl}\n`;
-      caption += `┣━━━━━━━━━━━━⬣\n\n`;
+      caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ > ⌛ Descargando audio...\n`;
       caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
 

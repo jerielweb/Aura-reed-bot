@@ -55,9 +55,9 @@ export default {
       caption += `┃ > ${fytBold("Artista:")} › ${song.artist}\n`;
       caption += `┃ > ${fytBold("Álbum:")} › ${song.album || "Desconocido"}\n`;
       caption += `┃ > ${fytBold("Duración:")} › ${song.duration}\n`;
-      caption += `┃ > ${fytBold("Tipo:")} › Documento (MP3\n`;
-      caption += `╰━━━━━━━━━━━━⬣\n\n`;
-      caption += `┃ ⏳ Descargando documento...\n\n`;
+      caption += `┃ > ${fytBold("Tipo:")} › Documento (MP3)\n`;
+      caption += `╰━━━━━━━━━━━━⬣\n`;
+      caption += `┃ ⏳ Descargando documento...\n`;
       caption += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;
 
       if (song.cover || song.coverHd) {

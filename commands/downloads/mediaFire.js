@@ -179,9 +179,9 @@ export default {
       caption += `┃ > ${fytBold("Tamaño:")} › ${fileData.size}\n`;
       caption += `┃ > ${fytBold("Extensión:")} › .${ext.toUpperCase()}\n`;
       caption += `┃ > ${fytBold("Motor:")} › ${motorLabel}\n`;
-      caption += `┃ > ${fytBold("Link:")} › ${link}\n\n`;
-      caption += `┣━━━━━━━━━━━━⬣\n\n`;
-      caption += `┃ ⏳ Descargando archivo...\n\n`;
+      caption += `┃ > ${fytBold("Link:")} › ${link}\n`;
+      caption += `┣━━━━━━━━━━━━⬣\n`;
+      caption += `┃ ⏳ Descargando archivo...\n`;
       caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
 
       // Envío 1: Mensaje de texto

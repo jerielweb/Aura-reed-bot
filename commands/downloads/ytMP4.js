@@ -113,8 +113,8 @@ export default {
       caption += `┃ > ${fytBold("Vistas")} › ${formatter(views)}\n`;
       caption += `┃ > ${fytBold("Tipo")} > Video MP4`
       caption += `┃ > ${fytBold("Url")} › ${finalUrl}\n\n`;
-      caption += `┣━━━━━━━━━━━━⬣\n\n`;
-      caption += `┃ ⏳ Descargando video...\n\n`;
+      caption += `┣━━━━━━━━━━━━⬣\n`;
+      caption += `┃ ⏳ Descargando video...\n`;
       caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
 
       await socket.sendMessage(

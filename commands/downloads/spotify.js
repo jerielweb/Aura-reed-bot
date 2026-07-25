@@ -62,8 +62,8 @@ export default {
       caption += `┃ > ${fytBold("Album:")} › ${song.album}\n`;
       caption += `┃ > ${fytBold("Duración")} › ${song.duration}\n`;
       caption += `┃ > ${fytBold("Tipo:")} › Audio (MP3)\n`;
-      caption += `╰━━━━━━━━━━━━⬣\n\n`;
-      caption += `┃ ⏳ Descargando audio...\n\n`;
+      caption += `╰━━━━━━━━━━━━⬣\n`;
+      caption += `┃ ⏳ Descargando audio...\n`;
       caption += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;
 
       if (song.cover || song.coverHd) {
