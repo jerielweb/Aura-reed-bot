@@ -1,3 +1,5 @@
+import { exec } from "child_process";
+
 export default {
   name: ["restart", "reiniciar"],
   category: "owner",
@@ -17,7 +19,9 @@ export default {
     await socket.sendMessage(remoteJid, { text }, { quoted: message });
 
     setTimeout(() => {
-      process.exit(0);
+      exec("pm2 restart all", (err) => {
+        if (err) process.exit(0);
+      });
     }, 1000);
   },
 };

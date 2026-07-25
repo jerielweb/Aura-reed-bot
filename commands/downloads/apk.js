@@ -1,6 +1,7 @@
 import fetch from "node-fetch";
 import fs from "fs";
 import path from "path";
+import { fytBold } from "../../models/TextStyle.js";
 
 async function fetchJson(url) {
   const res = await fetch(url, {
@@ -125,18 +126,15 @@ export default {
       const motorLabel = isCacheHit ? `${motor} (Caché)` : motor;
 
       let caption = `╭〔 🤖 𝐀𝐏𝐊 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃𝐄𝐑 〕━⬣\n\n`;
-      caption += `┃ 📦 𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀𝐍𝐃𝐎 𝐀𝐑𝐂𝐇𝐈𝐕𝐎\n`;
-      caption += `┃ ⏳ 𝐄𝐬𝐩𝐞𝐫𝐞 𝐮𝐧 𝐦𝐨𝐦𝐞𝐧𝐭𝐨...\n\n`;
+      caption += `┃ ➥ ${fytBold("Aplicación")} › ${name}\n\n`;
       caption += `┣━━━━━━━━━━━━⬣\n\n`;
-      caption += `┃ ➥ 𝐀𝐩𝐥𝐢𝐜𝐚𝐜𝐢𝐨́𝐧 › ${name}\n\n`;
-      caption += `┃ > 𝐈𝐃 App › ${packageId}\n`;
-      caption += `┃ > 𝐓𝐚𝐦𝐚𝐧̃𝐨 › ${size}\n`;
-      caption += `┃ > 𝐕𝐞𝐫𝐬𝐢𝐨́𝐧 › ${lastUpdated}\n`;
-      caption += `┃ > 𝐌𝐨𝐝𝐨 › Aplicación (APK)\n`;
-      caption += `┃ > 𝐌𝐨𝐭𝐨𝐫 › ${motorLabel}\n\n`;
+      caption += `┃ > ${fytBold("ID App")} › ${packageId}\n`;
+      caption += `┃ > ${fytBold("Tamaño")} › ${size}\n`;
+      caption += `┃ > ${fytBold("Versión")} › ${lastUpdated}\n`;
+      caption += `┃ > ${fytBold("Tipo")} › Aplicación (APK)\n`;
+      caption += `┃ > ${fytBold("Fuente")} › ${motorLabel}\n\n`;
       caption += `┣━━━━━━━━━━━━⬣\n\n`;
-      caption += `┃ > 𝐄𝐥 𝐚𝐫𝐜𝐡ι𝐯𝐨 𝐬𝐞 𝐞𝐬𝐭𝐚́\n`;
-      caption += `┃ > 𝐞𝐧𝐯𝐢𝐚𝐧𝐝𝐨, 𝐞𝐬𝐩𝐞𝐫𝐚 𝐮𝐧 𝐦𝐨𝐦𝐞𝐧𝐭𝐨...\n\n`;
+      caption += `┃ ⏳ Descargando APK...\n`;
       caption += `╰━━〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐀𝐂𝐓𝐈𝐕𝐄 〕━━⬣`;
 
       if (banner) {
