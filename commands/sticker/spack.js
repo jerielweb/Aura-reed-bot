@@ -199,7 +199,7 @@ export default {
         {
           stickerPack: {
             name: detalles.name,
-            publisher: packName,
+            publisher: authorName,
             description: `${detalles.name} • ${global.botname || "Aura Reed"}`,
             cover,
             stickers: stickerList,
