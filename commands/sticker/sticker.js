@@ -11,7 +11,7 @@ import { ffmpegSemaphore } from "../../controllers/downloadUtils.js";
 ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath.path);
 
-// Función robusta para desempaquetar y limpiar el mensaje multimedia
+// Función para desempaquetar el mensaje multimedia
 function unwrapMessage(msg) {
   if (!msg) return null;
   if (
@@ -34,47 +34,51 @@ function unwrapMessage(msg) {
   return null;
 }
 
-// Convertidor unificado basado en FFMPEG (seguro y compatible al 100% en Windows)
+// Convertidor con parámetros agresivos de compresión para animados
 async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
   return new Promise((resolve, reject) => {
-    let fps = 30;
-    let quality = 50;
-    let duration = 20; // Límite de 20 segundos
+    let fps = 24;
+    let quality = 45;
+    let duration = 15;
+    let scale = 512;
 
+    // Niveles escalonados de compresión agresiva
     if (attempt === 2) {
-      fps = 25;
-      quality = 35;
-      duration = 15;
-    } else if (attempt >= 3) {
-      fps = 20;
-      quality = 20;
+      fps = 18;
+      quality = 30;
       duration = 10;
-    } else if (attempt >= 4) {
+      scale = 512;
+    } else if (attempt === 3) {
       fps = 15;
+      quality = 20;
+      duration = 8;
+      scale = 384; // Reduce resolución para bajar tamaño drásticamente
+    } else if (attempt >= 4) {
+      fps = 10;
       quality = 10;
       duration = 5;
+      scale = 320;
     }
 
-    // 1. Opciones generales de salida (Separadas correctamente sin mezclar banderas)
     const options = ["-vcodec libwebp", "-an", "-vsync 0"];
 
     if (isVideo) {
       options.push("-loop 0");
       options.push(`-t ${duration}`);
       options.push(`-q:v ${quality}`);
+      options.push("-preset default");
+      options.push("-compression_level 6"); // Máxima compresión WebP
     } else {
       options.push("-q:v 80");
     }
 
-    // 2. Definir la cadena de filtros de video exacta
     const filtroVideo = isVideo
-      ? `format=rgba,scale=512:512:force_original_aspect_ratio=decrease,fps=${fps},pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x000000@0`
+      ? `format=rgba,scale=${scale}:${scale}:force_original_aspect_ratio=decrease,fps=${fps},pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x000000@0`
       : `format=rgba,scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x000000@0`;
 
-    // 3. Ejecutar FFmpeg usando .videoFilters() para evitar conflictos de argumentos
     ffmpeg(inputPath)
       .outputOptions(options)
-      .videoFilters(filtroVideo) // <--- Esto soluciona el "Option not found"
+      .videoFilters(filtroVideo)
       .toFormat("webp")
       .save(outputPath)
       .on("end", resolve)
@@ -85,11 +89,10 @@ async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
 export default {
   name: ["s", "sticker", "stiker"],
   category: "sticker",
-  description: "Convierte imágenes, videos o GIFs en stickers optimizados.",
+  description: "Convierte imágenes, videos, GIFs o stickers animaciones en stickers.",
   execute: async (socket, message, args, { prefix }) => {
     const remoteJid = message.key.remoteJid;
 
-    // Determinar el mensaje multimedia objetivo (citado o directo)
     const quoted =
       message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
     const targetMessage = quoted
@@ -100,7 +103,7 @@ export default {
       return await socket.sendMessage(
         remoteJid,
         {
-          text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("FALTA MEDIO")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, envía una imagen/video\n┃ > con la descripción *${prefix}s* o responde\n┃ > a una imagen/video con *${prefix}s*.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
+          text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("FALTA MEDIO")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, envía una imagen/video/sticker\n┃ > con la descripción *${prefix}s* o responde\n┃ > a un archivo con *${prefix}s*.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
         },
         { quoted: message },
       );
@@ -118,8 +121,6 @@ export default {
     );
 
     try {
-      // Descargar el contenido multimedia
-      console.log("[Sticker] Descargando contenido multimedia...");
       const downloadMsg = { key: message.key, message: targetMessage };
       const buffer = await downloadMediaMessage(
         downloadMsg,
@@ -132,62 +133,51 @@ export default {
         throw new Error("No se pudo descargar el archivo o está vacío.");
       }
 
-      console.log(
-        `[Sticker] Archivo descargado con éxito. Tamaño: ${buffer.length} bytes`,
-      );
-
-      // Escribir archivo temporal de entrada
       await fs.promises.writeFile(tempInPath, buffer);
 
+      // Detectar si es contenido animado (video, doc de video o sticker animado/isAnimated)
       const isVideo =
         !!targetMessage.videoMessage ||
         (targetMessage.documentMessage &&
-          targetMessage.documentMessage.mimetype?.startsWith("video/"));
+          targetMessage.documentMessage.mimetype?.startsWith("video/")) ||
+        (targetMessage.stickerMessage &&
+          targetMessage.stickerMessage.isAnimated);
 
       if (!isVideo) {
-        console.log("[Sticker] Procesando imagen estática con ffmpeg...");
         await ffmpegSemaphore.run(() =>
           convertToSticker(tempInPath, tempOutPath, false),
         );
       } else {
-        console.log("[Sticker] Procesando video/GIF animado con ffmpeg...");
-
         let attempt = 1;
         let fileSize = Infinity;
 
-        while (fileSize > 1000000 && attempt <= 3) {
+        // Intentos progresivos hasta comprimir a < 1 MB (Límite de WhatsApp)
+        while (fileSize > 1000000 && attempt <= 4) {
           if (fs.existsSync(tempOutPath)) {
             await fs.promises.unlink(tempOutPath);
           }
 
-          console.log(`[Sticker] Optimizando video, intento: ${attempt}...`);
           await ffmpegSemaphore.run(() =>
             convertToSticker(tempInPath, tempOutPath, true, attempt),
           );
 
           fileSize = fs.statSync(tempOutPath).size;
-          console.log(
-            `[Sticker] Tamaño final del archivo en intento ${attempt}: ${fileSize} bytes`,
-          );
           attempt++;
         }
 
         if (fileSize > 1000000) {
           throw new Error(
-            "El video es demasiado largo o pesado para un sticker animado. Intenta con uno de menos de 4 segundos.",
+            "El video/sticker es demasiado pesado. Intenta con uno más corto.",
           );
         }
       }
 
-      // Leer sticker generado
       const stickerBuffer = await fs.promises.readFile(tempOutPath);
 
-      // Obtener el nombre del usuario y formatear metadatos
       const pushName = message.pushName || "Usuario";
       const packName = `${fytBold("AURA REED")} 🧠 ${fytBold("BOT")}`;
       const author = `@${pushName}`;
 
-      console.log(`[Sticker] Inyectando metadatos para ${pushName}...`);
       let finalStickerBuffer;
       try {
         const { addStickerMetadata } =
@@ -198,11 +188,9 @@ export default {
           author,
         );
       } catch (err) {
-        console.error("[Sticker] Error al inyectar metadatos:", err);
         finalStickerBuffer = stickerBuffer;
       }
 
-      // Enviar sticker
       await socket.sendMessage(remoteJid, {
         react: { text: "✅", key: message.key },
       });
@@ -227,7 +215,6 @@ export default {
         { quoted: message },
       );
     } finally {
-      // Limpieza de archivos temporales
       try {
         if (fs.existsSync(tempInPath)) await fs.promises.unlink(tempInPath);
         if (fs.existsSync(tempOutPath)) await fs.promises.unlink(tempOutPath);
