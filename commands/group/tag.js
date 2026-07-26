@@ -57,8 +57,7 @@ export default {
               message: quotedMsg,
             },
             ...forwardOptions,
-          },
-          { quoted: message }
+          }
         );
       }
     }
