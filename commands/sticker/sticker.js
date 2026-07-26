@@ -49,6 +49,10 @@ async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
       fps = 20;
       quality = 20;
       duration = 10;
+    } else if (attempt >= 4) {
+      fps = 15;
+      quality = 10;
+      duration = 5;
     }
 
     // 1. Opciones generales de salida (Separadas correctamente sin mezclar banderas)
