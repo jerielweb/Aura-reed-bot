@@ -18,6 +18,7 @@ export default {
         { quoted: message }
       );
     }
+
     if (!isBotAdmin) {
       let noAdminText = `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n`;
       noAdminText += `┃ ❌ ${fytBold("SIN PERMISOS")}\n`;
@@ -27,6 +28,7 @@ export default {
       noAdminText += `╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`;
       return socket.sendMessage(remoteJid, { text: noAdminText }, { quoted: message });
     }
+
     // Resolver objetivo por mención o mensaje citado
     let targetJid = null;
     const ctx = message.message?.extendedTextMessage?.contextInfo;
@@ -60,34 +62,28 @@ export default {
     const userTag = `@${targetJid.split("@")[0]}`;
 
     if (isMuted) {
-      db.groups[remoteJid].mutedUsers = mutedUsers.filter((j) => j !== targetJid);
-
-      let text = `╭〔 🔊 ${fytBold("AURA REED")} 〕⬣\n`;
-      text += `┃ ✅ ${fytBold("DESILENCIADO")}\n`;
-      text += `╰━━━━━━━━━━━━⬣\n\n`;
-      text += `┃ > El usuario ${userTag} ya puede hablar.\n\n`;
-      text += `╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`;
-
       return socket.sendMessage(
         remoteJid,
-        { text, mentions: [targetJid] },
-        { quoted: message }
-      );
-    } else {
-      db.groups[remoteJid].mutedUsers.push(targetJid);
-
-      let text = `╭〔 🔇 ${fytBold("AURA REED")} 〕⬣\n`;
-      text += `┃ 🛑 ${fytBold("USUARIO SILENCIADO")}\n`;
-      text += `╰━━━━━━━━━━━━⬣\n\n`;
-      text += `┃ > Los mensajes de ${userTag} serán\n`;
-      text += `┃ > eliminados automáticamente.\n\n`;
-      text += `╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`;
-
-      return socket.sendMessage(
-        remoteJid,
-        { text, mentions: [targetJid] },
+        { text: `⚠️ El usuario ${userTag} ya está silenciado.`, mentions: [targetJid] },
         { quoted: message }
       );
     }
+
+    // Agregar a la lista de silenciados
+    db.groups[remoteJid].mutedUsers.push(targetJid);
+    if (typeof saveDB === "function") saveDB(db);
+
+    let text = `╭〔 🔇 ${fytBold("AURA REED")} 〕⬣\n`;
+    text += `┃ 🛑 ${fytBold("USUARIO SILENCIADO")}\n`;
+    text += `╰━━━━━━━━━━━━⬣\n\n`;
+    text += `┃ > Los mensajes de ${userTag} serán\n`;
+    text += `┃ > eliminados automáticamente.\n\n`;
+    text += `╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`;
+
+    return socket.sendMessage(
+      remoteJid,
+      { text, mentions: [targetJid] },
+      { quoted: message }
+    );
   },
 };
