@@ -8,7 +8,7 @@ export default {
   adminOnly: true,
   botAdminOnly: true,
 
-  execute: async (socket, message, args, { db, saveDB, isBotAdmin }) => {
+  execute: async (socket, message, args, { db, saveDB, isBotAdmin, groupMetadata }) => {
     const remoteJid = message.key.remoteJid;
 
     if (!remoteJid.endsWith("@g.us")) {
@@ -51,6 +51,31 @@ export default {
       errorText += `┃ > usuario que deseas silenciar.\n\n`;
       errorText += `╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`;
       return socket.sendMessage(remoteJid, { text: errorText }, { quoted: message });
+    }
+
+    // Validar si el objetivo es Administrador
+    const clean = (id) => (id ? String(id).split("@")[0].split(":")[0] : null);
+    const targetBase = clean(targetJid);
+    const isUserAdmin = groupMetadata?.participants?.some((p) => {
+      const pIdClean = clean(p.id);
+      const pLidClean = clean(p.lid);
+      const pPhoneClean = clean(p.phoneNumber);
+      const matches =
+        targetBase &&
+        (pIdClean === targetBase ||
+          pLidClean === targetBase ||
+          pPhoneClean === targetBase);
+      return matches && (p.admin === "admin" || p.admin === "superadmin");
+    });
+
+    if (isUserAdmin) {
+      let text = `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n`;
+      text += `┃ ${fytBold("ACCIÓN PROHIBIDA")} \n╰━━━━━━━━━━━━⬣\n\n`;
+      text += `┃ > No puedes silenciar a\n`;
+      text += `┃ > un administrador del grupo.\n\n`;
+      text += `╰〔 ⚡ ${fytBold("SYSTEM ALERT")} 〕⬣`;
+
+      return socket.sendMessage(remoteJid, { text }, { quoted: message });
     }
 
     if (!db.groups) db.groups = {};
