@@ -3,7 +3,7 @@ import { fytBold } from "./../../models/TextStyle.js";
 
 export default {
   name: ["say", "decir"],
-  category: "utility",
+  category: "fun",
   description: "Repite un mensaje o reenvía multimedia sin etiqueta de reenviado",
   adminOnly: false,
   execute: async (socket, message, args) => {
