@@ -27,41 +27,36 @@ export default {
       const isUrl = TIKTOK_REGEX.test(text);
       let targetUrl = text;
 
-      // 1. Si es búsqueda por texto
       if (!isUrl) {
         const searchRes = await Tiktok.Search(text, { type: "video" });
         const results = searchRes?.result;
-        
-        // En v1 res.result es directamente un Array de videos
         const first = Array.isArray(results) ? results[0] : results?.videos?.[0];
 
         if (!first) throw new Error("No se encontraron resultados para la búsqueda.");
-        
         targetUrl = first.play || first.url || first.link || `https://www.tiktok.com/@${first.author?.username || 'user'}/video/${first.id}`;
       }
 
-      // 2. Descarga usando la versión 1 (v1) de la API
       const downloadData = await Tiktok.Downloader(targetUrl, { version: "v1" });
-      
+
       if (downloadData?.status !== "success" || !downloadData?.result) {
-        throw new Error("No se pudo obtener la información del enlace.");
+        throw new Error(downloadData?.message || "No se pudo obtener la información del video.");
       }
 
       const res = downloadData.result;
 
-      // Estructura oficial v1: video1, video2, video_hd
-      const videoUrl = res.video1 || res.video2 || res.video_hd || (typeof res.video === "string" ? res.video : null);
+      // Mapeo usando la interfaz exacta: res.video.playAddr[]
+      const videoUrl = res.video?.playAddr?.[0] || res.video?.downloadAddr?.[0];
 
       if (!videoUrl) {
-        throw new Error("No se pudo extraer el enlace del video.");
+        throw new Error("No se pudo extraer el enlace de descarga del video.");
       }
 
       const title = res.desc || "Video de TikTok";
-      const author = res.author?.nickname || "TikTok User";
-      const duration = res.duration ? `${res.duration}s` : "N/A";
-      const views = res.statistics?.playCount || res.statistics?.play_count || 0;
-      const likes = res.statistics?.diggCount || res.statistics?.digg_count || 0;
-      const thumbnail = res.cover || res.dynamic_cover;
+      const author = res.author?.nickname || res.author?.username || "TikTok User";
+      const duration = res.video?.duration ? `${res.video.duration}s` : "N/A";
+      const views = res.statistics?.playCount || 0;
+      const likes = res.statistics?.likeCount || 0;
+      const thumbnail = res.cover?.[0] || res.dynamicCover?.[0] || res.originCover?.[0];
 
       const caption =
         `╭〔 🎬 𝐓𝐈𝐊𝐓𝐎𝐊 𝐕𝐈𝐃𝐄𝐎 〕━⬣\n\n` +
