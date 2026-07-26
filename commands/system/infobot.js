@@ -146,8 +146,8 @@ export default {
     textoInfo += `┃ > ${fytBold("Version:")} ${global.version || "1.0.0"}\n`;
     textoInfo += `┃ > ${fytBold("Owner:")} Jeriel B.\n`;
     textoInfo += `┃ > ${fytBold("Prefix:")} [ ${prefix} ]\n`;
-    textoInfo += `┃ > ${fytBold("Fecha:")} ${new Date().toLocaleDateString("es-CR")}\n\n`;
-    textoInfo += `┃ > ${fytBold("Seciones:")} ${bots}\n`;
+    textoInfo += `┃ > ${fytBold("Fecha:")} ${new Date().toLocaleDateString("es-CR")}\n`;
+    textoInfo += `┃ > ${fytBold("Sub-bots:")} ${bots}\n`;
     textoInfo += `┃ > ${fytBold("Url:")} ${chanellink}\n`;
     textoInfo += `╰━━━━━━━━━━━━━━━━━━⬣\n\n`;
 
@@ -159,7 +159,7 @@ export default {
     textoInfo += `┃ ➪ ${fytBold("RAM Bot:")}\n┃ ✦ ${ramBot} GB\n\n`;
     textoInfo += `┃ ➪ ${fytBold("Total Comandos:")}\n┃ ✦ ${totalCmds} comandos cargados\n\n`;
     textoInfo += `┃ ➪ ${fytBold("Estado de Instancia:")}\n┃ ✦ ${botType} - Operativo 🟢\n\n`;
-    textoInfo += `╰〔 ⚡ ${fytBold(botName.toUpperCase() + " BOT")} 〕⬣\n\n`;
+    textoInfo += `╰〔 ⚡ ${fytBold(botName.toUpperCase() + " BOT")} 〕⬣`;
 
     // ── MANEJO DEL BANNER ──
     let bannerPath = BannerBot;
@@ -218,7 +218,7 @@ export default {
         contextInfo: {
           mentionedJid: [m.key.participant || remoteJid],
           isForwarded: true,
-          forwardingScore: 1,
+          forwardingScore: 2,
           forwardedNewsletterMessageInfo: {
             newsletterJid: "120363424808187278@newsletter",
             newsletterName: "⋆ 𝔸𝕦𝕣𝕒 ℝ𝕖𝕖𝕕 ℂ𝕙𝕒𝕟𝕖𝕝𝕝 𝕆𝕗𝕚𝕔𝕚𝕒𝕝 ⋆",

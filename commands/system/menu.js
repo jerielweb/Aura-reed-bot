@@ -96,7 +96,7 @@ export default {
       textoMenu += `┃ ➪ ${fytBold(prefix + "menu <categoría>")}\n`;
       textoMenu += `┃ ✦ Muestra el menú de una categoría específica.\n\n`;
     }
-    textoMenu += `╰〔 ⚡ ${fytBold(botName.toUpperCase() + " BOT")} 〕⬣\n\n`;
+    textoMenu += `╰〔 ⚡ ${fytBold(botName.toUpperCase() + " BOT")} 〕⬣`;
 
     let bannerPath = BannerBot;
     let isGif = false;
