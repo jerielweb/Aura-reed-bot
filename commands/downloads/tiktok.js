@@ -64,7 +64,7 @@ export default {
 
       let caption = `╭〔 🎬 𝐓𝐈𝐊𝐓𝐎𝐊 𝐕𝐈𝐃𝐄𝐎 〕━⬣\n\n`;
       caption += `┃ ➥ 𝐃𝐞𝐬𝐜𝐚𝐫𝐠𝐚𝐧𝐝𝐨 › ${title}\n\n`;
-      caption += `┣━━━━━━━━━━━━⬣\n\n`;
+      caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ > 𝐀𝐮𝐭𝐨𝐫 › ${author}\n`;
       caption += `┃ > 𝐃𝐮𝐫𝐚𝐜𝐢𝐨́𝐧 › ${duration}\n`;
       caption += `┃ > 𝐕𝐢𝐬𝐭𝐚𝐬 › ${formatter(views)}\n`;

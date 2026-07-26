@@ -136,12 +136,12 @@ export default {
       let caption = `╭〔 ${fytBold("SC DOWNLOADER")} 〕━⬣\n\n`;
       caption += `┃ ➥ ${fytBold(track.title)}\n\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
-      caption += `┃ > ${fytBold("Artista:")} › ${track.user?.username || "N/A"}\n`;
+      caption += `┃ > ${fytBold("Artista")} › ${track.user?.username || "N/A"}\n`;
       caption += `┃ > ${fytBold("Duración")} › ${FomatTime(track.duration)}\n`;
-      caption += `┃ > ${fytBold("Vistas:")} › ${FornatNumber(FornatNumber(track.playback_count)) || "0"}\n`;
-      caption += `┃ > ${fytBold("Likes:")} › ${FornatNumber(track.likes_count) || "No se"}\n`;
-      caption += `┃ > ${fytBold("Tipo:")} › Audio MP3\n`
-      caption += `┃ > ${fytBold("Url:")} › ${track.permalink_url}\n`;
+      caption += `┃ > ${fytBold("Vistas")} › ${FornatNumber(FornatNumber(track.playback_count)) || "0"}\n`;
+      caption += `┃ > ${fytBold("Likes")} › ${FornatNumber(track.likes_count) || "No se"}\n`;
+      caption += `┃ > ${fytBold("Tipo")} › Audio MP3\n`
+      caption += `┃ > ${fytBold("Url")} › ${track.permalink_url}\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ ⏳ Descargando audio...\n`;
       caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;

@@ -176,10 +176,10 @@ export default {
       let caption = `╭〔 📦 ${fytBold("MEDIAFIRE DL")} 〕━⬣\n\n`;
       caption += `┃ ➥ ${fytBold(finalFileName)}\n\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
-      caption += `┃ > ${fytBold("Tamaño:")} › ${fileData.size}\n`;
-      caption += `┃ > ${fytBold("Extensión:")} › .${ext.toUpperCase()}\n`;
-      caption += `┃ > ${fytBold("Motor:")} › ${motorLabel}\n`;
-      caption += `┃ > ${fytBold("Link:")} › ${link}\n`;
+      caption += `┃ > ${fytBold("Tamaño")} › ${fileData.size}\n`;
+      caption += `┃ > ${fytBold("Extensión")} › .${ext.toUpperCase()}\n`;
+      caption += `┃ > ${fytBold("Motor")} › ${motorLabel}\n`;
+      caption += `┃ > ${fytBold("Link")} › ${link}\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ ⏳ Descargando archivo...\n`;
       caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
