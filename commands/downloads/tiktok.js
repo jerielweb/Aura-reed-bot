@@ -27,44 +27,41 @@ export default {
       const isUrl = TIKTOK_REGEX.test(text);
       let targetUrl = text;
 
+      // 1. Si es búsqueda por texto
       if (!isUrl) {
         const searchRes = await Tiktok.Search(text, { type: "video" });
-        const results = searchRes?.result?.videos || searchRes?.result || [];
-        const first = Array.isArray(results) ? results[0] : results;
+        const results = searchRes?.result;
+        
+        // En v1 res.result es directamente un Array de videos
+        const first = Array.isArray(results) ? results[0] : results?.videos?.[0];
 
         if (!first) throw new Error("No se encontraron resultados para la búsqueda.");
+        
         targetUrl = first.play || first.url || first.link || `https://www.tiktok.com/@${first.author?.username || 'user'}/video/${first.id}`;
       }
 
-      const downloadData = await Tiktok.Downloader(targetUrl, { version: "v2" });
-      const res = downloadData?.result;
-
-      if (!res) throw new Error("No se pudo obtener la información del video.");
-
-      // Extracción segura garantizando que sea String
-      let videoUrl = null;
-      if (typeof res.video === "string") {
-        videoUrl = res.video;
-      } else if (Array.isArray(res.video)) {
-        videoUrl = res.video[0];
-      } else if (typeof res.video === "object") {
-        videoUrl = res.video?.noWatermark || res.video?.url || res.video?.[0];
-      }
+      // 2. Descarga usando la versión 1 (v1) de la API
+      const downloadData = await Tiktok.Downloader(targetUrl, { version: "v1" });
       
-      if (!videoUrl) {
-        videoUrl = res.video1 || res.video2 || res.play;
+      if (downloadData?.status !== "success" || !downloadData?.result) {
+        throw new Error("No se pudo obtener la información del enlace.");
       }
 
-      if (!videoUrl || typeof videoUrl !== "string") {
+      const res = downloadData.result;
+
+      // Estructura oficial v1: video1, video2, video_hd
+      const videoUrl = res.video1 || res.video2 || res.video_hd || (typeof res.video === "string" ? res.video : null);
+
+      if (!videoUrl) {
         throw new Error("No se pudo extraer el enlace del video.");
       }
 
-      const title = res.desc || res.title || "Video de TikTok";
-      const author = res.author?.nickname || res.nickname || "TikTok User";
+      const title = res.desc || "Video de TikTok";
+      const author = res.author?.nickname || "TikTok User";
       const duration = res.duration ? `${res.duration}s` : "N/A";
-      const views = res.statistics?.play_count || res.play_count || 0;
-      const likes = res.statistics?.digg_count || res.digg_count || 0;
-      const thumbnail = res.cover || res.origin_cover || res.dynamic_cover;
+      const views = res.statistics?.playCount || res.statistics?.play_count || 0;
+      const likes = res.statistics?.diggCount || res.statistics?.digg_count || 0;
+      const thumbnail = res.cover || res.dynamic_cover;
 
       const caption =
         `╭〔 🎬 𝐓𝐈𝐊𝐓𝐎𝐊 𝐕𝐈𝐃𝐄𝐎 〕━⬣\n\n` +
