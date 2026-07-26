@@ -1,5 +1,6 @@
 import fs from "fs";
 import os from "os";
+import process from "process";
 import { fytBold } from "../../models/TextStyle.js";
 import {
   prepareWAMessageMedia,
@@ -9,8 +10,14 @@ import { categories } from "./../../controllers/consts/cat.js";
 
 const mediaCacheMap = new Map();
 
-// Función auxiliar para formatear el tiempo activo (Uptime)
-function formatUptime(seconds) {
+// Helper para formatear bytes a Gigabytes (GB)
+function formatBytes(bytes) {
+  if (!bytes || isNaN(bytes) || bytes === Infinity) return "0.00";
+  return (bytes / 1024 / 1024 / 1024).toFixed(2);
+}
+
+// Helper para formatear el tiempo activo
+function formatTime(seconds) {
   const d = Math.floor(seconds / (3600 * 24));
   const h = Math.floor((seconds % (3600 * 24)) / 3600);
   const m = Math.floor((seconds % 3600) / 60);
@@ -18,7 +25,49 @@ function formatUptime(seconds) {
   return `${d > 0 ? d + "d " : ""}${h}h ${m}m ${s}s`;
 }
 
-// Función para contar el total de comandos disponibles en las carpetas
+// Lectura de RAM real del servidor/contenedor (Cgroups v2, v1 o Fallback)
+function getMemoryInfo() {
+  try {
+    if (
+      fs.existsSync("/sys/fs/cgroup/memory.max") &&
+      fs.existsSync("/sys/fs/cgroup/memory.current")
+    ) {
+      let total = fs.readFileSync("/sys/fs/cgroup/memory.max", "utf8").trim();
+      let used = fs
+        .readFileSync("/sys/fs/cgroup/memory.current", "utf8")
+        .trim();
+
+      if (total !== "max" && !isNaN(Number(total)) && Number(total) > 0) {
+        return { total: Number(total), used: Number(used) };
+      }
+    }
+
+    if (fs.existsSync("/sys/fs/cgroup/memory/memory.limit_in_bytes")) {
+      const total = fs
+        .readFileSync("/sys/fs/cgroup/memory/memory.limit_in_bytes", "utf8")
+        .trim();
+      const used = fs
+        .readFileSync("/sys/fs/cgroup/memory/memory.usage_in_bytes", "utf8")
+        .trim();
+
+      if (
+        !isNaN(Number(total)) &&
+        Number(total) < 9223372036854771712 &&
+        Number(total) > 0
+      ) {
+        return { total: Number(total), used: Number(used) };
+      }
+    }
+  } catch (e) {
+    // Silenciar errores de lectura
+  }
+
+  const used = process.memoryUsage().rss;
+  const total = os.totalmem();
+  return { total, used };
+}
+
+// Conteo total de comandos
 function getTotalCommands() {
   let total = 0;
   for (const cat of categories) {
@@ -46,14 +95,23 @@ export default {
     const tituloEstilizado = fytBold(`${botName.toUpperCase()} BOT`);
     const chanellink = global.chanellink || "https://api.alyacore.xyz/a/10bfc2";
 
-    // Datos del sistema
-    const platform = `${os.type()} (${os.arch()})`;
-    const uptime = formatUptime(process.uptime());
+    // ── OBTENCIÓN DE DATOS REALES DEL SERVIDOR ──
+    const serverName = os.hostname() || "VPS/Host";
+    const platform = `${os.platform()} (${os.arch()})`;
+    const botUp = process.uptime();
     const totalCmds = getTotalCommands();
-    const ramUsed = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2);
-    const ramTotal = (os.totalmem() / 1024 / 1024 / 1024).toFixed(2);
 
-    // Estructura visual de la UI idéntica al Menú
+    // Memoria RAM Real
+    const memory = getMemoryInfo();
+    const ramTotal = formatBytes(memory.total);
+    const ramUsed = formatBytes(memory.used);
+    const ramBot = formatBytes(process.memoryUsage().rss);
+    const ramPercent =
+      memory.total > 0
+        ? ((memory.used / memory.total) * 100).toFixed(1)
+        : "0.0";
+
+    // ── ESTRUCTURA VISUAL UI ──
     let textoInfo = `╭━━〔 ${tituloEstilizado} 〕━━⬣\n`;
     textoInfo += `┃ > ${fytBold("Usuario:")} @${pushName}\n`;
     textoInfo += `┃ > ${fytBold("Bot:")} ${botType}\n`;
@@ -64,15 +122,17 @@ export default {
     textoInfo += `┃ > ${fytBold("Url:")} ${chanellink}\n`;
     textoInfo += `╰━━━━━━━━━━━━━━━━━━⬣\n\n`;
 
-    textoInfo += `┏━━〔 ${fytBold("ESTADÍSTICAS DEL SISTEMA")} 〕━━⬣\n`;
-    textoInfo += `┃ ➪ ${fytBold("VPS / Sistema:")}\n┃ ✦ ${platform}\n\n`;
-    textoInfo += `┃ ➪ ${fytBold("Tiempo Activo:")}\n┃ ✦ ${uptime}\n\n`;
+    textoInfo += `┏━━〔 ${fytBold("DETALLES DEL SISTEMA")} 〕━━⬣\n`;
+    textoInfo += `┃ ➪ ${fytBold("Servidor / Host:")}\n┃ ✦ ${serverName}\n\n`;
+    textoInfo += `┃ ➪ ${fytBold("Plataforma:")}\n┃ ✦ ${platform}\n\n`;
+    textoInfo += `┃ ➪ ${fytBold("Tiempo Activo (Bot):")}\n┃ ✦ ${formatTime(botUp)}\n\n`;
+    textoInfo += `┃ ➪ ${fytBold("RAM Servidor:")}\n┃ ✦ ${ramUsed} GB / ${ramTotal} GB (${ramPercent}%)\n\n`;
+    textoInfo += `┃ ➪ ${fytBold("RAM Bot:")}\n┃ ✦ ${ramBot} GB\n\n`;
     textoInfo += `┃ ➪ ${fytBold("Total Comandos:")}\n┃ ✦ ${totalCmds} comandos cargados\n\n`;
-    textoInfo += `┃ ➪ ${fytBold("Uso de Memoria:")}\n┃ ✦ ${ramUsed} MB / ${ramTotal} GB\n\n`;
     textoInfo += `┃ ➪ ${fytBold("Estado de Instancia:")}\n┃ ✦ ${botType} - Operativo 🟢\n\n`;
     textoInfo += `╰〔 ⚡ ${fytBold(botName.toUpperCase() + " BOT")} 〕⬣\n\n`;
 
-    // Carga de imagen para la vista previa
+    // ── MANEJO DEL BANNER ──
     let bannerPath = BannerBot;
     let isGif = false;
     if (
@@ -108,7 +168,7 @@ export default {
     const getTs = (ts) =>
       typeof ts === "object" ? Number(ts.low || ts) : Number(ts);
 
-    // Renderizado del mensaje extendido con link preview y canal
+    // ── RENDERIZADO DEL MENSAJE ──
     const content = {
       extendedTextMessage: {
         text: textoInfo,
@@ -132,7 +192,7 @@ export default {
           forwardingScore: 1,
           forwardedNewsletterMessageInfo: {
             newsletterJid: "120363424808187278@newsletter",
-            newsletterName: "⋆ 𝔸𝕦𝕣𝕒 ℝ𝕖𝕖𝕕 ℂ𝕙𝕒𝕟𝕖𝕝𝕝 𝕆𝕗𝕚𝕔𝕚𝕒𝕝 ⋆",
+            newsletterName: "⋆ 𝔸𝕦𝕣𝕒 ℝ𝕖𝕖𝕕 ℂ𝕙𝕒𝕟𝕖𝕝𝕝 𝕆𝕕𝕚𝕔𝕚𝕒𝕝 ⋆",
             serverMessageId: -1,
           },
         },
