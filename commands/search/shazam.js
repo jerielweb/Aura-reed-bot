@@ -1,5 +1,5 @@
 import { downloadMediaMessage } from "@whiskeysockets/baileys";
-import { identifySong } from "../../utils/shazamScraper.js";
+import { identifySong } from "../../controllers/shazamScraper.js";
 import { fytBold } from "../../models/TextStyle.js";
 
 export default {
