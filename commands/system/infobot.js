@@ -159,7 +159,7 @@ export default {
     textoInfo += `┃ ➪ ${fytBold("RAM Bot:")}\n┃ ✦ ${ramBot} GB\n\n`;
     textoInfo += `┃ ➪ ${fytBold("Total Comandos:")}\n┃ ✦ ${totalCmds} comandos cargados\n\n`;
     textoInfo += `┃ ➪ ${fytBold("Estado de Instancia:")}\n┃ ✦ ${botType} - Operativo 🟢\n\n`;
-    textoInfo += `╰〔 ⚡ ${fytBold(botName.toUpperCase() + " BOT")} 〕⬣\n`;
+    textoInfo += `╰〔 ⚡ ${fytBold(botName.toUpperCase() + " BOT")} 〕⬣\n\n`;
 
     // ── MANEJO DEL BANNER ──
     let bannerPath = BannerBot;
