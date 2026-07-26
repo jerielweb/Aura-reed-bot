@@ -63,6 +63,7 @@ export default {
 
       let text = `╭〔 🔍 ${fytBold("SHAZAM RESULT")} 〕━⬣\n\n`;
       text += `┃ ➥ ${title}\n\n`;
+      text += `┣━━━━━━━━━━━━⬣\n`;
       text += `┃ > ${fytBold("Artista")} › ${artist}\n`;
       text += `┃ > ${fytBold("Álbum")} › ${album}\n`;
       text += `┃ > ${fytBold("Género")} › ${genre}\n`;
