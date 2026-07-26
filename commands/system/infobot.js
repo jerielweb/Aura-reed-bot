@@ -10,36 +10,41 @@ import { categories } from "./../../controllers/consts/cat.js";
 
 const mediaCacheMap = new Map();
 
-// Obtiene el nombre legible del sistema/distro en Linux sin depender de .env
+// Detecta el nombre del Servidor / Host
 function getServerName() {
-  try {
-    if (fs.existsSync("/etc/os-release")) {
-      const releaseData = fs.readFileSync("/etc/os-release", "utf8");
-      const match = releaseData.match(/PRETTY_NAME="?([^"\n]+)"?/);
-      if (match && match[1]) {
-        return match[1]; // Ejemplo: "Ubuntu 22.04.3 LTS" o "Debian GNU/Linux 11"
-      }
-    }
-  } catch (e) {
-    // Silenciar error si no se puede leer el archivo
-  }
+  const envName = process.env.SERVER_NAME || process.env.P_SERVER_LOCATION || process.env.P_SERVER_NAME;
+  if (envName) return envName;
 
-  // Fallback si es un ID largo de contenedor Docker (Pterodactyl)
   const host = os.hostname();
-  if (host.includes("-") || host.length > 20) {
-    return `${os.type()} Server (Linux)`;
+  // Si es un ID de contenedor (hash largo o UUID)
+  if (host.includes("-") || host.length > 20 || /^[a-f0-9]+$/i.test(host)) {
+    return "Akirax Node ⚡";
   }
 
   return host;
 }
 
-// Helper para formatear bytes a Gigabytes (GB)
+// Detecta el Sistema Operativo real (Ej: Ubuntu 22.04 LTS / Linux arm64)
+function getOperatingSystem() {
+  try {
+    if (fs.existsSync("/etc/os-release")) {
+      const releaseData = fs.readFileSync("/etc/os-release", "utf8");
+      const match = releaseData.match(/PRETTY_NAME="?([^"\n]+)"?/);
+      if (match && match[1]) {
+        return `${match[1]} (${os.arch()})`;
+      }
+    }
+  } catch (e) {}
+  return `${os.type()} ${os.release()} (${os.arch()})`;
+}
+
+// Helper para formatear bytes a GB
 function formatBytes(bytes) {
   if (!bytes || isNaN(bytes) || bytes === Infinity) return "0.00";
   return (bytes / 1024 / 1024 / 1024).toFixed(2);
 }
 
-// Helper para formatear el tiempo activo
+// Helper para formatear tiempo
 function formatTime(seconds) {
   const d = Math.floor(seconds / (3600 * 24));
   const h = Math.floor((seconds % (3600 * 24)) / 3600);
@@ -48,7 +53,7 @@ function formatTime(seconds) {
   return `${d > 0 ? d + "d " : ""}${h}h ${m}m ${s}s`;
 }
 
-// Lectura de RAM Real del servidor/contenedor
+// Lectura de RAM Real
 function getMemoryInfo() {
   try {
     if (
@@ -81,9 +86,7 @@ function getMemoryInfo() {
         return { total: Number(total), used: Number(used) };
       }
     }
-  } catch (e) {
-    // Silenciar errores de lectura
-  }
+  } catch (e) {}
 
   const used = process.memoryUsage().rss;
   const total = os.totalmem();
@@ -118,9 +121,9 @@ export default {
     const tituloEstilizado = fytBold(`${botName.toUpperCase()} BOT`);
     const chanellink = global.chanellink || "https://api.alyacore.xyz/a/10bfc2";
 
-    // ── OBTENCIÓN DE DATOS REALES DEL SERVIDOR ──
-    const serverName = getServerName();
-    const platform = `${os.platform()} (${os.arch()})`;
+    // ── DATOS DEL SISTEMA Y HOST ──
+    const serverHost = getServerName();
+    const osSystem = getOperatingSystem();
     const botUp = process.uptime();
     const totalCmds = getTotalCommands();
 
@@ -146,8 +149,8 @@ export default {
     textoInfo += `╰━━━━━━━━━━━━━━━━━━⬣\n\n`;
 
     textoInfo += `┏━━〔 ${fytBold("DETALLES DEL SISTEMA")} 〕━━⬣\n`;
-    textoInfo += `┃ ➪ ${fytBold("Servidor / Host:")}\n┃ ✦ ${serverName}\n\n`;
-    textoInfo += `┃ ➪ ${fytBold("Plataforma:")}\n┃ ✦ ${platform}\n\n`;
+    textoInfo += `┃ ➪ ${fytBold("Servidor / Host:")}\n┃ ✦ ${serverHost}\n\n`;
+    textoInfo += `┃ ➪ ${fytBold("Sistema Operativo:")}\n┃ ✦ ${osSystem}\n\n`;
     textoInfo += `┃ ➪ ${fytBold("Tiempo Activo (Bot):")}\n┃ ✦ ${formatTime(botUp)}\n\n`;
     textoInfo += `┃ ➪ ${fytBold("RAM Servidor:")}\n┃ ✦ ${ramUsed} GB / ${ramTotal} GB (${ramPercent}%)\n\n`;
     textoInfo += `┃ ➪ ${fytBold("RAM Bot:")}\n┃ ✦ ${ramBot} GB\n\n`;
