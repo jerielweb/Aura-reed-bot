@@ -34,17 +34,16 @@ function unwrapMessage(msg) {
   return null;
 }
 
-// Convertidor con parámetros agresivos de compresión para animados
+// Convertidor con parámetros corregidos para FFmpeg
 async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
   return new Promise((resolve, reject) => {
-    let fps = 60;
-    let quality = 50;
-    let duration = 20;
+    let fps = 24;
+    let quality = 45;
+    let duration = 15;
     let scale = 512;
 
-    // Niveles escalonados de compresión agresiva
     if (attempt === 2) {
-      fps = 30;
+      fps = 18;
       quality = 30;
       duration = 10;
       scale = 512;
@@ -52,7 +51,7 @@ async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
       fps = 15;
       quality = 20;
       duration = 8;
-      scale = 384; // Reduce resolución para bajar tamaño drásticamente
+      scale = 384;
     } else if (attempt >= 4) {
       fps = 10;
       quality = 10;
@@ -60,16 +59,22 @@ async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
       scale = 320;
     }
 
-    const options = ["-vcodec libwebp", "-an", "-vsync 0"];
+    // Cada argumento va como un elemento independiente en el arreglo
+    const options = [
+      "-an",
+      "-vsync", "0"
+    ];
 
     if (isVideo) {
-      options.push("-loop 0");
-      options.push(`-t ${duration}`);
-      options.push(`-q:v ${quality}`);
-      options.push("-preset default");
-      options.push("-compression_level 6"); // Máxima compresión WebP
+      options.push(
+        "-loop", "0",
+        "-t", String(duration),
+        "-q:v", String(quality),
+        "-preset", "default",
+        "-compression_level", "6"
+      );
     } else {
-      options.push("-q:v 80");
+      options.push("-q:v", "80");
     }
 
     const filtroVideo = isVideo
@@ -82,14 +87,17 @@ async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
       .toFormat("webp")
       .save(outputPath)
       .on("end", resolve)
-      .on("error", reject);
+      .on("error", (err) => {
+        console.error("[FFmpeg Error Details]:", err);
+        reject(err);
+      });
   });
 }
 
 export default {
   name: ["s", "sticker", "stiker"],
   category: "sticker",
-  description: "Convierte imágenes, videos, GIFs o stickers animaciones en stickers.",
+  description: "Convierte imágenes, videos, GIFs o stickers animados en stickers.",
   execute: async (socket, message, args, { prefix }) => {
     const remoteJid = message.key.remoteJid;
 
@@ -135,7 +143,7 @@ export default {
 
       await fs.promises.writeFile(tempInPath, buffer);
 
-      // Detectar si es contenido animado (video, doc de video o sticker animado/isAnimated)
+      // Detectar si es contenido animado (video, doc de video o sticker animado)
       const isVideo =
         !!targetMessage.videoMessage ||
         (targetMessage.documentMessage &&
@@ -151,7 +159,7 @@ export default {
         let attempt = 1;
         let fileSize = Infinity;
 
-        // Intentos progresivos hasta comprimir a < 1 MB (Límite de WhatsApp)
+        // Intentos progresivos hasta comprimir a menos de 1 MB
         while (fileSize > 1000000 && attempt <= 4) {
           if (fs.existsSync(tempOutPath)) {
             await fs.promises.unlink(tempOutPath);
