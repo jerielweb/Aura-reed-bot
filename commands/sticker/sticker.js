@@ -34,16 +34,16 @@ function unwrapMessage(msg) {
   return null;
 }
 
-// Convertidor con parámetros corregidos para FFmpeg
+// Convertidor con parámetros para FFmpeg (solo imágenes, videos o GIFs)
 async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
   return new Promise((resolve, reject) => {
-    let fps = 24;
-    let quality = 45;
-    let duration = 15;
+    let fps = 60;
+    let quality = 50;
+    let duration = 20;
     let scale = 512;
 
     if (attempt === 2) {
-      fps = 18;
+      fps = 30;
       quality = 30;
       duration = 10;
       scale = 512;
@@ -59,11 +59,7 @@ async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
       scale = 320;
     }
 
-    // Cada argumento va como un elemento independiente en el arreglo
-    const options = [
-      "-an",
-      "-vsync", "0"
-    ];
+    const options = ["-an", "-vsync", "0"];
 
     if (isVideo) {
       options.push(
@@ -97,7 +93,7 @@ async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
 export default {
   name: ["s", "sticker", "stiker"],
   category: "sticker",
-  description: "Convierte imágenes, videos, GIFs o stickers animados en stickers.",
+  description: "Convierte imágenes, videos o reescribe metadatos de stickers.",
   execute: async (socket, message, args, { prefix }) => {
     const remoteJid = message.key.remoteJid;
 
@@ -141,47 +137,52 @@ export default {
         throw new Error("No se pudo descargar el archivo o está vacío.");
       }
 
-      await fs.promises.writeFile(tempInPath, buffer);
+      let stickerBuffer;
 
-      // Detectar si es contenido animado (video, doc de video o sticker animado)
-      const isVideo =
-        !!targetMessage.videoMessage ||
-        (targetMessage.documentMessage &&
-          targetMessage.documentMessage.mimetype?.startsWith("video/")) ||
-        (targetMessage.stickerMessage &&
-          targetMessage.stickerMessage.isAnimated);
-
-      if (!isVideo) {
-        await ffmpegSemaphore.run(() =>
-          convertToSticker(tempInPath, tempOutPath, false),
-        );
+      // SI YA ES UN STICKER: Nos saltamos FFmpeg para evitar cierres o fallos
+      if (targetMessage.stickerMessage) {
+        stickerBuffer = buffer;
       } else {
-        let attempt = 1;
-        let fileSize = Infinity;
+        // SI ES IMAGEN, VIDEO O DOCUMENTO: Procesamos con FFmpeg
+        await fs.promises.writeFile(tempInPath, buffer);
 
-        // Intentos progresivos hasta comprimir a menos de 1 MB
-        while (fileSize > 1000000 && attempt <= 4) {
-          if (fs.existsSync(tempOutPath)) {
-            await fs.promises.unlink(tempOutPath);
+        const isVideo =
+          !!targetMessage.videoMessage ||
+          (targetMessage.documentMessage &&
+            targetMessage.documentMessage.mimetype?.startsWith("video/"));
+
+        if (!isVideo) {
+          await ffmpegSemaphore.run(() =>
+            convertToSticker(tempInPath, tempOutPath, false),
+          );
+        } else {
+          let attempt = 1;
+          let fileSize = Infinity;
+
+          while (fileSize > 1000000 && attempt <= 4) {
+            if (fs.existsSync(tempOutPath)) {
+              await fs.promises.unlink(tempOutPath);
+            }
+
+            await ffmpegSemaphore.run(() =>
+              convertToSticker(tempInPath, tempOutPath, true, attempt),
+            );
+
+            fileSize = fs.statSync(tempOutPath).size;
+            attempt++;
           }
 
-          await ffmpegSemaphore.run(() =>
-            convertToSticker(tempInPath, tempOutPath, true, attempt),
-          );
-
-          fileSize = fs.statSync(tempOutPath).size;
-          attempt++;
+          if (fileSize > 1000000) {
+            throw new Error(
+              "El video es demasiado pesado. Intenta con uno más corto.",
+            );
+          }
         }
 
-        if (fileSize > 1000000) {
-          throw new Error(
-            "El video/sticker es demasiado pesado. Intenta con uno más corto.",
-          );
-        }
+        stickerBuffer = await fs.promises.readFile(tempOutPath);
       }
 
-      const stickerBuffer = await fs.promises.readFile(tempOutPath);
-
+      // Reescritura / Inyección de Metadatos (Nombre del Pack y Autor)
       const pushName = message.pushName || "Usuario";
       const packName = `${fytBold("AURA REED")} 🧠 ${fytBold("BOT")}`;
       const author = `@${pushName}`;
@@ -196,6 +197,7 @@ export default {
           author,
         );
       } catch (err) {
+        console.error("[Sticker] Error al inyectar metadatos:", err);
         finalStickerBuffer = stickerBuffer;
       }
 
