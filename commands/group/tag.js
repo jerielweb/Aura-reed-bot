@@ -53,8 +53,7 @@ export default {
                 remoteJid,
                 id: ctx.stanzaId,
                 participant: ctx.participant,
-              },
-              message: quotedMsg,
+              }
             },
             ...forwardOptions,
           }
