@@ -12,7 +12,7 @@ export default {
   name: ["menu", "help", "h"],
   description: "Muestra el menú completo.",
   async execute(sock, m, args, { prefix, db }) {
-    const BannerBot = "./assets/img/BotBanner.png";
+    const BannerBot = "./assets/img/BotBanner.jpg";
     const BannerBotMp3 = "./assets/audio/menu_music.opus";
     const remoteJid = m.key.remoteJid;
     const pushName = m.pushName || "Usuario";
