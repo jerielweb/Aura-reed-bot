@@ -10,6 +10,29 @@ import { categories } from "./../../controllers/consts/cat.js";
 
 const mediaCacheMap = new Map();
 
+// Obtiene el nombre legible del sistema/distro en Linux sin depender de .env
+function getServerName() {
+  try {
+    if (fs.existsSync("/etc/os-release")) {
+      const releaseData = fs.readFileSync("/etc/os-release", "utf8");
+      const match = releaseData.match(/PRETTY_NAME="?([^"\n]+)"?/);
+      if (match && match[1]) {
+        return match[1]; // Ejemplo: "Ubuntu 22.04.3 LTS" o "Debian GNU/Linux 11"
+      }
+    }
+  } catch (e) {
+    // Silenciar error si no se puede leer el archivo
+  }
+
+  // Fallback si es un ID largo de contenedor Docker (Pterodactyl)
+  const host = os.hostname();
+  if (host.includes("-") || host.length > 20) {
+    return `${os.type()} Server (Linux)`;
+  }
+
+  return host;
+}
+
 // Helper para formatear bytes a Gigabytes (GB)
 function formatBytes(bytes) {
   if (!bytes || isNaN(bytes) || bytes === Infinity) return "0.00";
@@ -25,7 +48,7 @@ function formatTime(seconds) {
   return `${d > 0 ? d + "d " : ""}${h}h ${m}m ${s}s`;
 }
 
-// Lectura de RAM real del servidor/contenedor (Cgroups v2, v1 o Fallback)
+// Lectura de RAM Real del servidor/contenedor
 function getMemoryInfo() {
   try {
     if (
@@ -96,7 +119,7 @@ export default {
     const chanellink = global.chanellink || "https://api.alyacore.xyz/a/10bfc2";
 
     // ── OBTENCIÓN DE DATOS REALES DEL SERVIDOR ──
-    const serverName = os.hostname() || "VPS/Host";
+    const serverName = getServerName();
     const platform = `${os.platform()} (${os.arch()})`;
     const botUp = process.uptime();
     const totalCmds = getTotalCommands();
@@ -192,7 +215,7 @@ export default {
           forwardingScore: 1,
           forwardedNewsletterMessageInfo: {
             newsletterJid: "120363424808187278@newsletter",
-            newsletterName: "⋆ 𝔸𝕦𝕣𝕒 ℝ𝕖𝕖𝕕 ℂ𝕙𝕒𝕟𝕖𝕝𝕝 𝕆𝕕𝕚𝕔𝕚𝕒𝕝 ⋆",
+            newsletterName: "⋆ 𝔸𝕦𝕣𝕒 ℝ𝕖𝕖𝕕 ℂ𝕙𝕒𝕟𝕖𝕝𝕝 𝕆𝕗𝕚𝕔𝕚𝕒𝕝 ⋆",
             serverMessageId: -1,
           },
         },

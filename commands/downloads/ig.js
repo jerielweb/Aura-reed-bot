@@ -353,7 +353,7 @@ export default {
               ? `instagram_reel_${tempId}.mp4`
               : `instagram_video_${tempId}.mp4`,
             caption: isReel
-              ? `🎬 *𝐈𝐧𝐬𝐭𝐚𝐠𝐫𝐚𝐦 𝐑𝐞𝐞𝐥*\n *𝐀𝐮𝐫𝐚 𝐑𝐞𝐞𝐝 𝐖𝐚𝐁𝐨𝐭*`,
+              ? `🎬 *𝐈𝐧𝐬𝐭𝐚𝐠𝐫𝐚𝐦 𝐑𝐞𝐞𝐥*\n *𝐀𝐮𝐫𝐚 𝐑𝐞𝐞𝐝 𝐖𝐚𝐁𝐨𝐭*`
               : `🎬 *𝐈𝐧𝐬𝐭𝐚𝐠𝐫𝐚𝐦 𝐕𝐢𝐝𝐞𝐨*\n⚡ *𝐀𝐮𝐫𝐚 𝐑𝐞𝐞𝐝 𝐖𝐚𝐁𝐨𝐭*`,
           },
           { quoted: message },
