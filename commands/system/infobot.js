@@ -2,10 +2,8 @@ import fs from "fs";
 import os from "os";
 import process from "process";
 import { fytBold } from "../../models/TextStyle.js";
-import {
-  prepareWAMessageMedia,
-  generateWAMessageFromContent,
-} from "@whiskeysockets/baileys";
+import { prepareWAMessageMedia, generateWAMessageFromContent } from "@whiskeysockets/baileys";
+import { countActiveSubBots, getMaxSubBots } from "../../models/subbotManager.js";
 import { categories } from "./../../controllers/consts/cat.js";
 
 const mediaCacheMap = new Map();
@@ -136,6 +134,10 @@ export default {
       memory.total > 0
         ? ((memory.used / memory.total) * 100).toFixed(1)
         : "0.0";
+        
+    // Conteo de seciones
+    const bots = countActiveSubBots()
+    const MaxBots = getMaxSubBots() 
 
     // ── ESTRUCTURA VISUAL UI ──
     let textoInfo = `╭━━〔 ${tituloEstilizado} 〕━━⬣\n`;
@@ -144,7 +146,8 @@ export default {
     textoInfo += `┃ > ${fytBold("Version:")} ${global.version || "1.0.0"}\n`;
     textoInfo += `┃ > ${fytBold("Owner:")} Jeriel B.\n`;
     textoInfo += `┃ > ${fytBold("Prefix:")} [ ${prefix} ]\n`;
-    textoInfo += `┃ > ${fytBold("Fecha:")} ${new Date().toLocaleDateString("es-CR")}\n`;
+    textoInfo += `┃ > ${fytBold("Fecha:")} ${new Date().toLocaleDateString("es-CR")}\n\n`;
+    textoInfo += `┃ > ${fytBold("Seciones:")} ${bots}\n`;
     textoInfo += `┃ > ${fytBold("Url:")} ${chanellink}\n`;
     textoInfo += `╰━━━━━━━━━━━━━━━━━━⬣\n\n`;
 
