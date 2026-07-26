@@ -44,7 +44,7 @@ export default {
 
       const res = downloadData.result;
 
-      // Mapeo usando la interfaz exacta: res.video.playAddr[]
+      // Priorizar URL estándar sobre HD para evitar saturar el límite de tamaño de WhatsApp
       const videoUrl = res.video?.playAddr?.[0] || res.video?.downloadAddr?.[0];
 
       if (!videoUrl) {
@@ -75,10 +75,15 @@ export default {
       const mediaPayload = thumbnail ? { image: { url: thumbnail }, caption } : { text: caption };
       await socket.sendMessage(remoteJid, mediaPayload, { quoted: message });
 
+      // Descargamos el buffer directamente para que WhatsApp no lo rechace por URL remota/tamaño
+      const videoResponse = await fetch(videoUrl);
+      if (!videoResponse.ok) throw new Error("Falló la descarga del video desde el servidor.");
+      const videoBuffer = Buffer.from(await videoResponse.arrayBuffer());
+
       await socket.sendMessage(
         remoteJid,
         {
-          video: { url: videoUrl },
+          video: videoBuffer,
           mimetype: "video/mp4",
           fileName: `${title.replace(/[<>:"/\\|?*]/g, "")}.mp4`,
           caption: `🎬 *𝐓𝐢́𝐭𝐮𝐥𝐨:* ${title}\n⚡ *𝐀𝐮𝐫𝐚 𝐑𝐞𝐞𝐝 𝐃𝐨𝐰𝐧𝐥𝐨𝐚𝐝𝐞𝐫*`,
