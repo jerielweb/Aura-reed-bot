@@ -37,14 +37,14 @@ function unwrapMessage(msg) {
 // Convertidor con parámetros agresivos de compresión para animados
 async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
   return new Promise((resolve, reject) => {
-    let fps = 24;
-    let quality = 45;
-    let duration = 15;
+    let fps = 60;
+    let quality = 50;
+    let duration = 20;
     let scale = 512;
 
     // Niveles escalonados de compresión agresiva
     if (attempt === 2) {
-      fps = 18;
+      fps = 30;
       quality = 30;
       duration = 10;
       scale = 512;
