@@ -1,7 +1,30 @@
 import Tiktok from "@tobyg74/tiktok-api-dl";
 import formatter from "../../controllers/functions/formatNumbers.js";
+import ffmpeg from "fluent-ffmpeg";
+import { promises as fs } from "fs";
+import path from "path";
+import os from "os";
 
 const TIKTOK_REGEX = /^(https?:\/\/)?(www\.|vm\.|vt\.)?tiktok\.com\/.*$/i;
+
+// Función auxiliar para re-procesar el video sin perder calidad pero haciéndolo compatible con WhatsApp
+const processVideoForWhatsApp = (inputPath, outputPath) => {
+  return new Promise((resolve, reject) => {
+    ffmpeg(inputPath)
+      .outputOptions([
+        "-c:v libx264",       // Códec estándar H.264 compatible con WhatsApp
+        "-crf 20",            // Alta calidad (valores entre 18 y 22 son prácticamente visualmente idénticos al original)
+        "-preset ultrafast",   // Procesamiento rápido en el servidor
+        "-pix_fmt yuv420p",   // Pixel format obligatorio para reproducción móvil
+        "-c:a aac",           // Códec de audio compatible
+        "-b:a 128k"
+      ])
+      .toFormat("mp4")
+      .on("end", () => resolve())
+      .on("error", (err) => reject(err))
+      .save(outputPath);
+  });
+};
 
 export default {
   name: ["tiktok", "tt", "tk"],
@@ -23,6 +46,10 @@ export default {
 
     await socket.sendMessage(remoteJid, { react: { text: "⏳", key: message.key } });
 
+    // Archivos temporales para el procesamiento
+    const tempInput = path.join(os.tmpdir(), `tt_raw_${Date.now()}.mp4`);
+    const tempOutput = path.join(os.tmpdir(), `tt_fixed_${Date.now()}.mp4`);
+
     try {
       const isUrl = TIKTOK_REGEX.test(text);
       let targetUrl = text;
@@ -43,8 +70,6 @@ export default {
       }
 
       const res = downloadData.result;
-
-      // Priorizar URL estándar sobre HD para evitar saturar el límite de tamaño de WhatsApp
       const videoUrl = res.video?.playAddr?.[0] || res.video?.downloadAddr?.[0];
 
       if (!videoUrl) {
@@ -75,15 +100,22 @@ export default {
       const mediaPayload = thumbnail ? { image: { url: thumbnail }, caption } : { text: caption };
       await socket.sendMessage(remoteJid, mediaPayload, { quoted: message });
 
-      // Descargamos el buffer directamente para que WhatsApp no lo rechace por URL remota/tamaño
+      // 1. Descargar video crudo a disco temporal
       const videoResponse = await fetch(videoUrl);
-      if (!videoResponse.ok) throw new Error("Falló la descarga del video desde el servidor.");
-      const videoBuffer = Buffer.from(await videoResponse.arrayBuffer());
+      if (!videoResponse.ok) throw new Error("Falló la descarga del archivo de video.");
+      const buffer = Buffer.from(await videoResponse.arrayBuffer());
+      await fs.writeFile(tempInput, buffer);
+
+      // 2. Procesar con FFmpeg para asegurar compatibilidad de reproductor
+      await processVideoForWhatsApp(tempInput, tempOutput);
+
+      // 3. Leer el video arreglado y enviarlo
+      const processedBuffer = await fs.readFile(tempOutput);
 
       await socket.sendMessage(
         remoteJid,
         {
-          video: videoBuffer,
+          video: processedBuffer,
           mimetype: "video/mp4",
           fileName: `${title.replace(/[<>:"/\\|?*]/g, "")}.mp4`,
           caption: `🎬 *𝐓𝐢́𝐭𝐮𝐥𝐨:* ${title}\n⚡ *𝐀𝐮𝐫𝐚 𝐑𝐞𝐞𝐝 𝐃𝐨𝐰𝐧𝐥𝐨𝐚𝐝𝐞𝐫*`,
@@ -102,6 +134,10 @@ export default {
         },
         { quoted: message }
       );
+    } finally {
+      // Limpieza de temporales para no llenar el almacenamiento de la VPS
+      await fs.unlink(tempInput).catch(() => {});
+      await fs.unlink(tempOutput).catch(() => {});
     }
   },
 };
