@@ -1,4 +1,4 @@
-import { Tiktok } from "@tobyg/tiktok-api-dl";
+import Tiktok from "@tobyg74/tiktok-api-dl";
 import formatter from "../../controllers/functions/formatNumbers.js";
 
 const TIKTOK_REGEX = /^(https?:\/\/)?(www\.|vm\.|vt\.)?tiktok\.com\/.*$/i;
@@ -25,25 +25,39 @@ export default {
 
     try {
       const isUrl = TIKTOK_REGEX.test(text);
-      let data, videoUrl;
+      let targetUrl = text;
 
-      if (isUrl) {
-        data = await Tiktok.Downloader(text, { version: "v2" });
-        const res = data.result || data;
-        videoUrl = res.video?.noWatermark || res.video1 || res.video2 || (Array.isArray(res.video) ? res.video[0] : null);
-      } else {
-        const search = await Tiktok.search(text);
-        const results = search.result || search.data || search;
+      if (!isUrl) {
+        const searchRes = await Tiktok.Search(text, { type: "video" });
+        const results = searchRes?.result?.videos || searchRes?.result || [];
         const first = Array.isArray(results) ? results[0] : results;
-        if (!first) throw new Error("No se encontraron resultados.");
 
-        data = await Tiktok.Downloader(first.url || first.link, { version: "v2" });
-        const res = data.result || data;
-        videoUrl = res.video?.noWatermark || res.video1 || res.video2 || (Array.isArray(res.video) ? res.video[0] : null);
+        if (!first) throw new Error("No se encontraron resultados para la búsqueda.");
+        targetUrl = first.play || first.url || first.link || `https://www.tiktok.com/@${first.author?.username || 'user'}/video/${first.id}`;
       }
 
-      const res = data.result || data;
-      if (!videoUrl) throw new Error("No se pudo obtener el video.");
+      const downloadData = await Tiktok.Downloader(targetUrl, { version: "v2" });
+      const res = downloadData?.result;
+
+      if (!res) throw new Error("No se pudo obtener la información del video.");
+
+      // Extracción segura garantizando que sea String
+      let videoUrl = null;
+      if (typeof res.video === "string") {
+        videoUrl = res.video;
+      } else if (Array.isArray(res.video)) {
+        videoUrl = res.video[0];
+      } else if (typeof res.video === "object") {
+        videoUrl = res.video?.noWatermark || res.video?.url || res.video?.[0];
+      }
+      
+      if (!videoUrl) {
+        videoUrl = res.video1 || res.video2 || res.play;
+      }
+
+      if (!videoUrl || typeof videoUrl !== "string") {
+        throw new Error("No se pudo extraer el enlace del video.");
+      }
 
       const title = res.desc || res.title || "Video de TikTok";
       const author = res.author?.nickname || res.nickname || "TikTok User";
@@ -51,7 +65,6 @@ export default {
       const views = res.statistics?.play_count || res.play_count || 0;
       const likes = res.statistics?.digg_count || res.digg_count || 0;
       const thumbnail = res.cover || res.origin_cover || res.dynamic_cover;
-      const finalUrl = isUrl ? text : (res.url || text);
 
       const caption =
         `╭〔 🎬 𝐓𝐈𝐊𝐓𝐎𝐊 𝐕𝐈𝐃𝐄𝐎 〕━⬣\n\n` +
@@ -62,7 +75,7 @@ export default {
         `┃ > 𝐕𝐢𝐬𝐭𝐚𝐬 › ${formatter(views)}\n` +
         `┃ > Likes › ${formatter(likes)}\n` +
         `┃ > 𝐌𝐨𝐝𝐨 › Video (MP4)\n` +
-        `┃ > 𝐄𝐧𝐥𝐚𝐜𝐞 › ${finalUrl}\n` +
+        `┃ > 𝐄𝐧𝐥𝐚𝐜𝐞 › ${targetUrl}\n` +
         `┣━━━━━━━━━━━━⬣\n` +
         `┃ ⏳ Descargando Video...\n` +
         `╰━━〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐀𝐂𝐓𝐈𝐕𝐄 〕━━⬣`;
