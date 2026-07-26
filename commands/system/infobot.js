@@ -152,13 +152,13 @@ export default {
     textoInfo += `╰━━━━━━━━━━━━━━━━━━⬣\n\n`;
 
     textoInfo += `┏━━〔 ${fytBold("DETALLES DEL SISTEMA")} 〕━━⬣\n`;
-    textoInfo += `┃ ➪ ${fytBold("Servidor / Host:")}\n┃ ✦ ${serverHost}\n\n`;
-    textoInfo += `┃ ➪ ${fytBold("Sistema Operativo:")}\n┃ ✦ ${osSystem}\n\n`;
-    textoInfo += `┃ ➪ ${fytBold("Tiempo Activo (Bot):")}\n┃ ✦ ${formatTime(botUp)}\n\n`;
-    textoInfo += `┃ ➪ ${fytBold("RAM Servidor:")}\n┃ ✦ ${ramUsed} GB / ${ramTotal} GB (${ramPercent}%)\n\n`;
-    textoInfo += `┃ ➪ ${fytBold("RAM Bot:")}\n┃ ✦ ${ramBot} GB\n\n`;
-    textoInfo += `┃ ➪ ${fytBold("Total Comandos:")}\n┃ ✦ ${totalCmds} comandos cargados\n\n`;
-    textoInfo += `┃ ➪ ${fytBold("Estado de Instancia:")}\n┃ ✦ ${botType} - Operativo 🟢\n\n`;
+    textoInfo += `┃ ➪ ${fytBold("Servidor / Host:")}\n┃ ✦ ${serverHost}\n`;
+    textoInfo += `┃ ➪ ${fytBold("Sistema Operativo:")}\n┃ ✦ ${osSystem}\n`;
+    textoInfo += `┃ ➪ ${fytBold("Tiempo Activo (Bot):")}\n┃ ✦ ${formatTime(botUp)}\n`;
+    textoInfo += `┃ ➪ ${fytBold("RAM Servidor:")}\n┃ ✦ ${ramUsed} GB / ${ramTotal} GB (${ramPercent}%)\n`;
+    textoInfo += `┃ ➪ ${fytBold("RAM Bot:")}\n┃ ✦ ${ramBot} GB\n`;
+    textoInfo += `┃ ➪ ${fytBold("Total Comandos:")}\n┃ ✦ ${totalCmds} comandos cargados\n`;
+    textoInfo += `┃ ➪ ${fytBold("Estado de Instancia:")}\n┃ ✦ ${botType} - Operativo 🟢\n`;
     textoInfo += `╰〔 ⚡ ${fytBold(botName.toUpperCase() + " BOT")} 〕⬣`;
 
     // ── MANEJO DEL BANNER ──
