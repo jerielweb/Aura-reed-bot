@@ -111,7 +111,7 @@ export default {
   category: "info",
   description: "Muestra la información detallada y estadísticas del bot.",
   async execute(sock, m, args, { prefix, db }) {
-    const BannerBot = "./assets/img/BotBanner.png";
+    const BannerBot = "./assets/img/BotBanner.jpg";
     const remoteJid = m.key.remoteJid;
     const pushName = m.pushName || "Usuario";
     const botName = db.botName || "Aura Reed";
