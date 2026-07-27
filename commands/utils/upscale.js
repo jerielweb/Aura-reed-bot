@@ -77,7 +77,7 @@ export default {
         remoteJid,
         {
           image: resultBuffer,
-          caption: `╭━━━━〔 ✨ 𝐈𝐌𝐀𝐆𝐄 𝐇𝐃 〕━━━⬣\n┃ ➥ 𝐄𝐬𝐜𝐚𝐥𝐚 › ${scale}x\n╰━━〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐀𝐂𝐓𝐈𝐕𝐄 〕━━⬣`,
+          caption: `╭━━━━〔 ✨ 𝐈𝐌𝐀𝐆𝐄 𝐇𝐃 〕━━━⬣\n\n┃ ➥ 𝐄𝐬𝐜𝐚𝐥𝐚 › ${scale}x\n\n╰━━〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐀𝐂𝐓𝐈𝐕𝐄 〕━━⬣`,
         },
         { quoted: message }
       );
