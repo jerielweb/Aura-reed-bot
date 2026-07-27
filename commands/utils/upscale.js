@@ -24,7 +24,7 @@ export default {
       );
     }
 
-    // 1. Escala por defecto x2, o personalizada si envían un número del 1 al 20
+    // Escala x2 por defecto, o la ingresada del 1 al 20
     let scale = 2;
     const inputScale = parseInt(args[0]);
     if (!isNaN(inputScale) && inputScale >= 1 && inputScale <= 20) {
@@ -36,7 +36,6 @@ export default {
     });
 
     try {
-      // Descargar el buffer de la imagen original
       const targetMessage = isQuotedImage
         ? { message: { imageMessage: quoted.imageMessage } }
         : message;
@@ -47,16 +46,14 @@ export default {
         {}
       );
 
-      // 2. Construir multipart/form-data para enviar en local (archivo)
+      // Armar FormData con la clave correcta "image"
       const form = new FormData();
-      form.append("method", "file"); // O "local" según requiera la API
-      form.append("file", mediaBuffer, {
+      form.append("image", mediaBuffer, {
         filename: "image.jpg",
         contentType: "image/jpeg",
       });
       form.append("scale", scale.toString());
 
-      // Petición POST con responseType 'arraybuffer'
       const response = await axios.post(
         "https://api.alyacore.xyz/tools/upscale?key=oboe",
         form,
@@ -71,7 +68,13 @@ export default {
 
       const resultBuffer = Buffer.from(response.data);
 
-      // Enviar la imagen mejorada en HD
+      // Validar si la API devolvió un JSON de error camuflado en el Buffer
+      const contentType = response.headers["content-type"];
+      if (contentType && contentType.includes("application/json")) {
+        const errorJson = JSON.parse(resultBuffer.toString("utf-8"));
+        throw new Error(errorJson.message || errorJson.error || "Error en la API");
+      }
+
       await socket.sendMessage(
         remoteJid,
         {
@@ -85,7 +88,7 @@ export default {
         react: { text: "✅", key: message.key },
       });
     } catch (error) {
-      console.error("Error en comando HD:", error?.response?.data || error.message);
+      console.error("Error en comando HD:", error.message);
       await socket.sendMessage(remoteJid, {
         react: { text: "❌", key: message.key },
       });
