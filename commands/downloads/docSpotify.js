@@ -1,10 +1,11 @@
 import { fytBold } from "../../models/TextStyle.js";
 import axios from "axios";
+import NodeID3 from "node-id3";
 
 export default {
   name: ["spotifydoc", "docsplay", "dsp", "dspdl"],
   category: "download",
-  description: "Descarga canciones de Spotify por enlace o búsqueda como documento.",
+  description: "Descarga canciones de Spotify por enlace o búsqueda como documento con metadatos ID3.",
 
   execute: async (socket, message, args, { prefix }) => {
     const text = args.join(" ").trim();
@@ -57,25 +58,63 @@ export default {
       caption += `┃ > ${fytBold("Duración")} › ${song.duration}\n`;
       caption += `┃ > ${fytBold("Tipo")} › Documento (MP3)\n`;
       caption += `╰━━━━━━━━━━━━⬣\n`;
-      caption += `┃ ⏳ Descargando documento...\n`;
+      caption += `┃ ⏳ Aplicando metadatos y preparando documento...\n`;
       caption += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;
 
-      if (song.cover || song.coverHd) {
+      const coverUrl = song.coverHd || song.cover;
+
+      if (coverUrl) {
         await socket.sendMessage(
           remoteJid,
           {
-            image: { url: song.coverHd || song.cover },
+            image: { url: coverUrl },
             caption,
           },
           { quoted: message }
         );
       }
 
-      // Envío del archivo como documento directamente vía URL
+      // 1. Descargar el buffer del audio MP3
+      const { data: audioBuffer } = await axios.get(downloadUrl, {
+        responseType: "arraybuffer",
+      });
+
+      // 2. Descargar el buffer de la portada si existe
+      let coverBuffer = null;
+      if (coverUrl) {
+        try {
+          const { data: imgBuf } = await axios.get(coverUrl, {
+            responseType: "arraybuffer",
+          });
+          coverBuffer = Buffer.from(imgBuf);
+        } catch (e) {
+          console.error("Error al descargar la carátula para metadatos:", e.message);
+        }
+      }
+
+      // 3. Definir etiquetas ID3
+      const tags = {
+        title: song.title,
+        artist: song.artist,
+        album: song.album || "Spotify Single",
+        ...(coverBuffer && {
+          image: {
+            mime: "image/jpeg",
+            type: { id: 3, name: "front cover" },
+            description: "Cover",
+            imageBuffer: coverBuffer,
+          },
+        }),
+      };
+
+      // 4. Inyectar metadatos directamente al buffer del MP3
+      const taggedAudioBuffer = NodeID3.write(tags, Buffer.from(audioBuffer));
+
+      // 5. Enviar el buffer procesado como documento
       await socket.sendMessage(
         remoteJid,
         {
-          document: { url: downloadUrl },
+          document: taggedAudioBuffer,
           mimetype: "audio/mpeg",
           fileName: `${song.artist} - ${song.title}.mp3`,
         },
