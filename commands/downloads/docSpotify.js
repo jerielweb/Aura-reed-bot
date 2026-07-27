@@ -1,14 +1,10 @@
 import { fytBold } from "../../models/TextStyle.js";
 import axios from "axios";
-import ffmpeg from "fluent-ffmpeg";
-import { Promises as fs } from "fs";
-import path from "path";
-import os from "os";
 
 export default {
   name: ["spotifydoc", "docsplay", "dsp", "dspdl"],
   category: "download",
-  description: "Descarga canciones de Spotify por enlace o búsqueda como documento con metadatos vía FFmpeg.",
+  description: "Descarga canciones de Spotify por enlace o búsqueda como documento.",
 
   execute: async (socket, message, args, { prefix }) => {
     const text = args.join(" ").trim();
@@ -27,12 +23,6 @@ export default {
     await socket.sendMessage(remoteJid, {
       react: { text: "🎵", key: message.key },
     });
-
-    // Rutas temporales para el procesamiento con FFmpeg
-    const tmpDir = os.tmpdir();
-    const inputAudioPath = path.join(tmpDir, `input_${Date.now()}.mp3`);
-    const inputCoverPath = path.join(tmpDir, `cover_${Date.now()}.jpg`);
-    const outputPath = path.join(tmpDir, `output_${Date.now()}.mp3`);
 
     try {
       const apiKey = global.Apis?.apiAiya?.apikey || "oboe";
@@ -67,77 +57,27 @@ export default {
       caption += `┃ > ${fytBold("Duración")} › ${song.duration}\n`;
       caption += `┃ > ${fytBold("Tipo")} › Documento (MP3)\n`;
       caption += `╰━━━━━━━━━━━━⬣\n`;
-      caption += `┃ ⏳ Procesando metadatos con FFmpeg...\n`;
+      caption += `┃ ⏳ Descargando documento...\n`;
       caption += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;
 
-      const coverUrl = song.coverHd || song.cover;
-
-      if (coverUrl) {
+      if (song.cover || song.coverHd) {
         await socket.sendMessage(
           remoteJid,
           {
-            image: { url: coverUrl },
+            image: { url: song.coverHd || song.cover },
             caption,
           },
           { quoted: message }
         );
       }
 
-      // 1. Descargar audio y portada
-      const [audioRes, coverRes] = await Promise.all([
-        axios.get(downloadUrl, { responseType: "arraybuffer" }),
-        coverUrl ? axios.get(coverUrl, { responseType: "arraybuffer" }).catch(() => null) : Promise.resolve(null)
-      ]);
-
-      await fs.writeFile(inputAudioPath, Buffer.from(audioRes.data));
-
-      let hasCover = false;
-      if (coverRes) {
-        await fs.writeFile(inputCoverPath, Buffer.from(coverRes.data));
-        hasCover = true;
-      }
-
-      // 2. Procesar con FFmpeg para incrustar tags e imagen de portada
-      await new Promise((resolve, reject) => {
-        let command = ffmpeg().input(inputAudioPath);
-
-        if (hasCover) {
-          command = command.input(inputCoverPath);
-        }
-
-        const outputOptions = [
-          "-map 0:0",
-          "-c copy",
-          "-id3v2_version 3",
-          `-metadata title=${JSON.stringify(song.title || "")}`,
-          `-metadata artist=${JSON.stringify(song.artist || "")}`,
-          `-metadata album=${JSON.stringify(song.album || "Aura Reed Spotify")}`,
-        ];
-
-        if (hasCover) {
-          outputOptions.push(
-            "-map 1:0",
-            "-metadata:s:v title=\"Album cover\"",
-            "-metadata:s:v comment=\"Cover (front)\""
-          );
-        }
-
-        command
-          .outputOptions(outputOptions)
-          .save(outputPath)
-          .on("end", resolve)
-          .on("error", reject);
-      });
-
-      // 3. Leer el archivo procesado y enviarlo
-      const processedBuffer = await fs.readFile(outputPath);
-
+      // Envío del archivo como documento directamente vía URL
       await socket.sendMessage(
         remoteJid,
         {
-          document: processedBuffer,
+          document: { url: downloadUrl },
           mimetype: "audio/mpeg",
-          fileName: `${song.artist.replace(/[<>:"/\\|?*]/g, "")} - ${song.title.replace(/[<>:"/\\|?*]/g, "")}.mp3`,
+          fileName: `${song.artist} - ${song.title}.mp3`,
         },
         { quoted: message }
       );
@@ -146,7 +86,7 @@ export default {
         react: { text: "✅", key: message.key },
       });
     } catch (error) {
-      console.error("Error en spotifydoc:", error);
+      console.error(error);
       await socket.sendMessage(remoteJid, {
         react: { text: "❌", key: message.key },
       });
@@ -158,13 +98,6 @@ export default {
       textErr += `╰〔 ⚡ ${fytBold("SYSTEM ALERT")} 〕⬣`;
 
       await socket.sendMessage(remoteJid, { text: textErr }, { quoted: message });
-    } finally {
-      // Limpieza de archivos temporales
-      await Promise.all([
-        fs.unlink(inputAudioPath).catch(() => {}),
-        fs.unlink(inputCoverPath).catch(() => {}),
-        fs.unlink(outputPath).catch(() => {}),
-      ]);
     }
   },
 };
