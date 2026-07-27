@@ -5,7 +5,7 @@ import { downloadMediaMessage } from "@whiskeysockets/baileys";
 export default {
   name: ["hd", "remini", "upscale", "enhance"],
   category: "tools",
-  description: "Mejora la calidad de una imagen (escala del 1 al 20).",
+  description: "Mejora la calidad de una imagen (Escala: 2 o 4).",
   execute: async (socket, message, args) => {
     const remoteJid = message.key.remoteJid;
 
@@ -17,16 +17,17 @@ export default {
       return await socket.sendMessage(
         remoteJid,
         {
-          text: "╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐅𝐀𝐋𝐓𝐀 𝐈𝐌𝐀𝐆𝐄𝐍\n╰━━━━━━━━━━━━⬣\n\n┃ > Responde a una imagen o envía una\n┃ > imagen con el comando .hd [1-20]\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣",
+          text: "╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐅𝐀𝐋𝐓𝐀 𝐈𝐌𝐀𝐆𝐄𝐍\n╰━━━━━━━━━━━━⬣\n\n┃ > Responde a una imagen o envía una\n┃ > imagen con el comando .hd [2 o 4]\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣",
         },
         { quoted: message }
       );
     }
 
+    // Validar que la escala sea estrictamente 2 o 4 (por defecto 2)
     let scale = 2;
     const inputScale = parseInt(args[0]);
-    if (!isNaN(inputScale) && inputScale >= 1 && inputScale <= 20) {
-      scale = inputScale;
+    if (inputScale === 4) {
+      scale = 4;
     }
 
     await socket.sendMessage(remoteJid, {
