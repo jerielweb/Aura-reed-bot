@@ -9,7 +9,6 @@ export default {
   execute: async (socket, message, args) => {
     const remoteJid = message.key.remoteJid;
 
-    // Detectar si la imagen viene en el mensaje actual o en uno citado
     const quoted = message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
     const isImage = message.message?.imageMessage;
     const isQuotedImage = quoted?.imageMessage;
@@ -24,7 +23,6 @@ export default {
       );
     }
 
-    // Escala x2 por defecto, o la ingresada del 1 al 20
     let scale = 2;
     const inputScale = parseInt(args[0]);
     if (!isNaN(inputScale) && inputScale >= 1 && inputScale <= 20) {
@@ -46,8 +44,9 @@ export default {
         {}
       );
 
-      // Armar FormData con la clave correcta "image"
       const form = new FormData();
+      // 'method' requerido por el backend de AlyaCore para diferenciar URL de Archivo Local
+      form.append("method", "file"); 
       form.append("image", mediaBuffer, {
         filename: "image.jpg",
         contentType: "image/jpeg",
@@ -68,7 +67,6 @@ export default {
 
       const resultBuffer = Buffer.from(response.data);
 
-      // Validar si la API devolvió un JSON de error camuflado en el Buffer
       const contentType = response.headers["content-type"];
       if (contentType && contentType.includes("application/json")) {
         const errorJson = JSON.parse(resultBuffer.toString("utf-8"));
@@ -88,7 +86,7 @@ export default {
         react: { text: "✅", key: message.key },
       });
     } catch (error) {
-      console.error("Error en comando HD:", error.message);
+      console.error("Error en comando HD:", error?.response?.status || error.message);
       await socket.sendMessage(remoteJid, {
         react: { text: "❌", key: message.key },
       });
