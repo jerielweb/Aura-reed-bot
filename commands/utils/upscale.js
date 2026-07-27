@@ -45,13 +45,12 @@ export default {
       );
 
       const form = new FormData();
-      // 'method' requerido por el backend de AlyaCore para diferenciar URL de Archivo Local
-      form.append("method", "file"); 
-      form.append("image", mediaBuffer, {
+      form.append("method", "local");
+      form.append("scale", scale.toString());
+      form.append("file", mediaBuffer, {
         filename: "image.jpg",
         contentType: "image/jpeg",
       });
-      form.append("scale", scale.toString());
 
       const response = await axios.post(
         "https://api.alyacore.xyz/tools/upscale?key=oboe",
@@ -86,7 +85,7 @@ export default {
         react: { text: "✅", key: message.key },
       });
     } catch (error) {
-      console.error("Error en comando HD:", error?.response?.status || error.message);
+      console.error("Error en comando HD:", error?.response?.data ? Buffer.from(error.response.data).toString('utf-8') : error.message);
       await socket.sendMessage(remoteJid, {
         react: { text: "❌", key: message.key },
       });
