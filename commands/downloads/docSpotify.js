@@ -74,29 +74,20 @@ export default {
         );
       }
 
-      // 1. Descargar el buffer del audio MP3
-      const { data: audioBuffer } = await axios.get(downloadUrl, {
-        responseType: "arraybuffer",
-      });
+      // Descargar audio y portada en paralelo
+      const [audioResponse, coverResponse] = await Promise.all([
+        axios.get(downloadUrl, { responseType: "arraybuffer" }),
+        coverUrl ? axios.get(coverUrl, { responseType: "arraybuffer" }).catch(() => null) : Promise.resolve(null)
+      ]);
 
-      // 2. Descargar el buffer de la portada si existe
-      let coverBuffer = null;
-      if (coverUrl) {
-        try {
-          const { data: imgBuf } = await axios.get(coverUrl, {
-            responseType: "arraybuffer",
-          });
-          coverBuffer = Buffer.from(imgBuf);
-        } catch (e) {
-          console.error("Error al descargar la carátula para metadatos:", e.message);
-        }
-      }
+      const audioBuffer = Buffer.from(audioResponse.data);
+      const coverBuffer = coverResponse ? Buffer.from(coverResponse.data) : null;
 
-      // 3. Definir etiquetas ID3
+      // Definir metadatos
       const tags = {
-        title: song.title,
-        artist: song.artist,
-        album: song.album || "Spotify Single",
+        title: song.title || "Unknown Title",
+        artist: song.artist || "Unknown Artist",
+        album: song.album || "Aura Reed Spotify",
         ...(coverBuffer && {
           image: {
             mime: "image/jpeg",
@@ -107,16 +98,17 @@ export default {
         }),
       };
 
-      // 4. Inyectar metadatos directamente al buffer del MP3
-      const taggedAudioBuffer = NodeID3.write(tags, Buffer.from(audioBuffer));
+      // Limpiar y escribir etiquetas usando métodos compatibles de buffer
+      const cleanBuffer = NodeID3.removeTagsFromBuffer(audioBuffer) || audioBuffer;
+      const taggedAudioBuffer = NodeID3.write(tags, cleanBuffer);
 
-      // 5. Enviar el buffer procesado como documento
+      // Enviar documento con el buffer procesado
       await socket.sendMessage(
         remoteJid,
         {
           document: taggedAudioBuffer,
           mimetype: "audio/mpeg",
-          fileName: `${song.artist} - ${song.title}.mp3`,
+          fileName: `${song.artist.replace(/[<>:"/\\|?*]/g, "")} - ${song.title.replace(/[<>:"/\\|?*]/g, "")}.mp3`,
         },
         { quoted: message }
       );
@@ -125,7 +117,7 @@ export default {
         react: { text: "✅", key: message.key },
       });
     } catch (error) {
-      console.error(error);
+      console.error("Error en spotifydoc:", error);
       await socket.sendMessage(remoteJid, {
         react: { text: "❌", key: message.key },
       });
