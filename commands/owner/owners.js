@@ -1,5 +1,5 @@
 export default {
-  name: ["owners", "dueños", "propietarios"],
+  name: ["owners", "dueños", "propietarios", "owner"],
   category: "owner",
   description: "Muestra la información de los propietarios del bot como tarjetas de contacto.",
   ownerOnly: false,
@@ -26,15 +26,13 @@ export default {
           .join(" ")
           .trim() || "Propietario";
 
-      // Obtener el nombre registrado en la agenda del bot o usar el número como fallback
-      const contactName = socket.contacts?.[jid]?.name || socket.contacts?.[jid]?.notify || `Owner (+${numero})`;
+      const contactName = socket.contacts?.[jid]?.name || socket.contacts?.[jid]?.notify;
 
       const vcard = 
 `BEGIN:VCARD
 VERSION:3.0
 FN:${contactName}
-ORG:Aura Reed Bot;
-TITLE:${rol}
+ORG:${rol};
 TEL;type=CELL;type=VOICE;waid=${numero}:+${numero}
 END:VCARD`;
 
@@ -45,7 +43,7 @@ END:VCARD`;
       remoteJid,
       {
         contacts: {
-          displayName: `Propietarios de Aura Reed`,
+          displayName: `Información de los contactos`,
           contacts: contactsList,
         },
       },
