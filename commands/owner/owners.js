@@ -30,7 +30,7 @@ export default {
       const isSender = jid === senderJid;
 
       // Solo usa message.pushName si es tu JID, para los demás recurre a tu nombre o número
-      const pushName = isSender && message.pushName ? message.pushName : (socket.contacts?.[jid]?.name || `+${numero}`);
+      const pushName = message.pushName;
 
       const vcard = 
 `BEGIN:VCARD
