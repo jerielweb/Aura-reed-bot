@@ -26,11 +26,15 @@ export default {
           .join(" ")
           .trim() || "Propietario";
 
+      // Obtener el nombre registrado en la agenda del bot o usar el número como fallback
+      const contactName = socket.contacts?.[jid]?.name || socket.contacts?.[jid]?.notify || `Owner (+${numero})`;
+
       const vcard = 
 `BEGIN:VCARD
 VERSION:3.0
-FN:${rol} (+${numero})
+FN:${contactName}
 ORG:Aura Reed Bot;
+TITLE:${rol}
 TEL;type=CELL;type=VOICE;waid=${numero}:+${numero}
 END:VCARD`;
 
