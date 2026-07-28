@@ -35,7 +35,7 @@ export default {
       const vcard = 
 `BEGIN:VCARD
 VERSION:3.0
-FN:${pushName}
+FN:@${pushName}
 ORG:${rol};
 TEL;type=CELL;type=VOICE;waid=${numero}:+${numero}
 END:VCARD`;
