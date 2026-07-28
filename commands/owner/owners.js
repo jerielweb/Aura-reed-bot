@@ -1,7 +1,7 @@
 export default {
   name: ["owners", "dueños", "propietarios"],
   category: "owner",
-  description: "Muestra la información de los propietarios del bot.",
+  description: "Muestra la información de los propietarios del bot como tarjetas de contacto.",
   ownerOnly: false,
 
   execute: async (socket, message, args, { db }) => {
@@ -17,10 +17,7 @@ export default {
       return await socket.sendMessage(remoteJid, { text }, { quoted: message });
     }
 
-    let text = `╭〔 👑 𝐎𝐖𝐍𝐄𝐑𝐒 〕⬣\n\n`;
-
-    for (let i = 0; i < owners.length; i++) {
-      const jid = owners[i];
+    const contactsList = owners.map((jid) => {
       const numero = jid.split("@")[0];
       const rol =
         (ownerRoles[jid] || "Propietario")
@@ -29,35 +26,26 @@ export default {
           .join(" ")
           .trim() || "Propietario";
 
-      // Elegir ícono según el rol
-      let icon = "👑";
-      const rolLower = rol.toLowerCase();
-      if (rolLower.includes("colaborador")) icon = "🤝";
-      else if (rolLower.includes("diseñador") || rolLower.includes("disenador"))
-        icon = "🎨";
-      else if (rolLower.includes("moderador")) icon = "🛡️";
-      else if (rolLower.includes("admin")) icon = "⚙️";
-      else if (rolLower.includes("developer") || rolLower.includes("dev"))
-        icon = "💻";
+      const vcard = 
+`BEGIN:VCARD
+VERSION:3.0
+FN:${rol} (+${numero})
+ORG:Aura Reed Bot;
+TEL;type=CELL;type=VOICE;waid=${numero}:+${numero}
+END:VCARD`;
 
-      text += `┃ ${icon} *${rol}*\n`;
-      text += `┃ ➪ @${numero}\n`;
-      text += `┃ 📞 +${numero}\n`;
-
-      if (i < owners.length - 1) {
-        text += `┃\n┣━━━━━━━━━━━━⬣\n┃\n`;
-      }
-    }
-
-    text += `\n\n╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣`;
+      return { vcard };
+    });
 
     await socket.sendMessage(
       remoteJid,
       {
-        text,
-        mentions: owners,
+        contacts: {
+          displayName: `Propietarios de Aura Reed`,
+          contacts: contactsList,
+        },
       },
-      { quoted: message },
+      { quoted: message }
     );
   },
 };
