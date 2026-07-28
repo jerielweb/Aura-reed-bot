@@ -17,33 +17,22 @@ export default {
       return await socket.sendMessage(remoteJid, { text }, { quoted: message });
     }
 
-    const senderJid = message.key.participant || message.key.remoteJid;
+    const contactsList = owners.map((jid) => {
+      const numero = jid.split("@")[0];
+      const rol =
+        (ownerRoles[jid] || "Propietario")
+          .split(" ")
+          .filter((t) => !/^@?\d{5,}$/.test(t))
+          .join(" ")
+          .trim() || "Propietario";
 
-    const contactsList = await Promise.all(
-      owners.map(async (jid) => {
-        const numero = jid.split("@")[0];
-        const rol =
-          (ownerRoles[jid] || "Propietario")
-            .split(" ")
-            .filter((t) => !/^@?\d{5,}$/.test(t))
-            .join(" ")
-            .trim() || "Propietario";
+      const senderJid = message.key.participant || message.key.remoteJid;
+      const isSender = jid === senderJid;
 
-        // Búsqueda del pushName por prioridad: mensaje actual > función getName > caché de contactos > número de teléfono
-        let pushName = "";
-        if (jid === senderJid && message.pushName) {
-          pushName = message.pushName;
-        } else if (typeof socket.getName === "function") {
-          pushName = await socket.getName(jid);
-        } else {
-          pushName =
-            socket.contacts?.[jid]?.pushName ||
-            socket.contacts?.[jid]?.name ||
-            socket.contacts?.[jid]?.notify ||
-            `+${numero}`;
-        }
+      // Solo usa message.pushName si es tu JID, para los demás recurre a tu nombre o número
+      const pushName = isSender && message.pushName ? message.pushName : (socket.contacts?.[jid]?.name || `+${numero}`);
 
-        const vcard = 
+      const vcard = 
 `BEGIN:VCARD
 VERSION:3.0
 FN:${pushName}
@@ -51,9 +40,8 @@ ORG:${rol};
 TEL;type=CELL;type=VOICE;waid=${numero}:+${numero}
 END:VCARD`;
 
-        return { vcard };
-      })
-    );
+      return { vcard };
+    });
 
     await socket.sendMessage(
       remoteJid,
