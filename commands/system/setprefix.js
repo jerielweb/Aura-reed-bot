@@ -18,23 +18,41 @@ export default {
       );
     }
 
-    const newPrefix = args[0];
-    const currentPrefix = db.groups?.[remoteJid]?.prefix || db.prefix;
+    const input = args[0]?.toLowerCase();
+    const currentPrefix = db.groups?.[remoteJid]?.prefix || "Multiprefijo (. # / !)";
 
-    if (!newPrefix) {
+    // Lógica para restablecer (reset) a multiprefijo
+    if (["reset", "del", "delete", "off", "clear"].includes(input)) {
+      if (db.groups?.[remoteJid]?.prefix) {
+        delete db.groups[remoteJid].prefix;
+        saveDB(db);
+      }
+
+      let text = `╭〔 ✅ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
+      text += `┃ ⚙️ 𝐂𝐎𝐍𝐅𝐈𝐆𝐔𝐑𝐀𝐂𝐈𝐎́𝐍\n`;
+      text += `╰━━━━━━━━━━━━⬣\n\n`;
+      text += `┃ > Se ha restablecido el prefijo por defecto.\n\n`;
+      text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
+
+      return await sock.sendMessage(remoteJid, { text }, { quoted: m });
+    }
+
+    if (!input) {
       let text = `╭〔 ℹ️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
       text += `┃ ⚙️ 𝐂𝐎𝐍𝐅𝐈𝐆𝐔𝐑𝐀𝐂𝐈𝐎́𝐍\n`;
       text += `╰━━━━━━━━━━━━⬣\n\n`;
-      text += `┃ > Defina el prefijo que\n`;
-      text += `┃ > desea utilizar para este grupo.\n\n`;
+      text += `┃ > Defina el prefijo fijo que desea utilizar para este grupo.\n\n`;
       text += `┣━━━━━━━━━━━━⬣\n\n`;
-      text += `┃ ➪ Ejemplo: ${currentPrefix}setprefix #\n\n`;
-      text += `┃ > Si no se define prefijo de grupo,\n`;
-      text += `┃ > el bot usará el prefijo global actual.\n\n`;
+      text += `┃ ➪ Ejemplo: setprefix #\n`;
+      text += `┃ ➪ Restablecer: setprefix reset\n\n`;
+      text += `┃ > Prefijo actual en este grupo:\n`;
+      text += `┃ > ${currentPrefix}\n\n`;
+      text += `┃ > Si no hay prefijo de grupo, el bot usará los multiprefijos por defecto (. # / !).\n\n`;
       text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
       return sock.sendMessage(remoteJid, { text }, { quoted: m });
     }
 
+    const newPrefix = args[0];
     db.groups = db.groups || {};
     db.groups[remoteJid] = db.groups[remoteJid] || {};
     db.groups[remoteJid].prefix = newPrefix;
@@ -43,10 +61,7 @@ export default {
     let text = `╭〔 ✅ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
     text += `┃ ⚙️ 𝐂𝐎𝐍𝐅𝐈𝐆𝐔𝐑𝐀𝐂𝐈𝐎́𝐍\n`;
     text += `╰━━━━━━━━━━━━⬣\n\n`;
-    text += `┃ > El prefijo de este grupo ha sido\n`;
-    text += `┃ > actualizado a: ${newPrefix}\n\n`;
-    text += `┃ > En este grupo ahora funciona solo\n`;
-    text += `┃ > con el prefijo específico configurado.\n\n`;
+    text += `┃ > El prefijo de este grupo ha sido actualizado a: ${newPrefix}\n\n`;
     text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
 
     await sock.sendMessage(remoteJid, { text }, { quoted: m });

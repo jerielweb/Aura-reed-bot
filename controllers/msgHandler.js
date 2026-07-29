@@ -8,7 +8,7 @@ import { isCategoryEnabled, default as cmdManagerCmd } from "./cmdManager.js";
 import { botStatus } from "./../commands/group/bot.js";
 import { categories } from "./consts/cat.js";
 
-// Lista de prefijos múltiples permitidos por defecto (puedes agregar o quitar)
+// Lista de prefijos múltiples permitidos por defecto
 const DEFAULT_PREFIXES = [".", "#", "/", "!"];
 
 let middlewareCache = null;
@@ -159,18 +159,20 @@ export async function handleMessage(sock, m, db, saveDB) {
     m.message.videoMessage?.caption ||
     "";
 
-  // 🛠️ SOPORTE MULTI-PREFIJO
+  // 🛠️ SOPORTE PREFIJO FIJO EXCLUSIVO O MULTI-PREFIJO POR DEFECTO
   const groupPrefix = isGroup ? db.groups?.[remoteJid]?.prefix : null;
   const globalPrefix = db.prefix;
 
-  // Unimos los prefijos predeterminados, el global y el específico del grupo
-  const allowedPrefixes = Array.from(
-    new Set([...DEFAULT_PREFIXES, groupPrefix, globalPrefix].filter(Boolean))
-  );
+  // Si existe prefijo en el grupo o global, se evalúa solo ese. De lo contrario, se permite la lista por defecto.
+  const activePrefixes = groupPrefix
+    ? [groupPrefix]
+    : globalPrefix
+    ? [globalPrefix]
+    : DEFAULT_PREFIXES;
 
-  const usedPrefix = allowedPrefixes.find((p) => text.startsWith(p));
+  const usedPrefix = activePrefixes.find((p) => text.startsWith(p));
   const esComando = Boolean(usedPrefix);
-  const prefix = usedPrefix || globalPrefix || ".";
+  const prefix = usedPrefix || groupPrefix || globalPrefix || DEFAULT_PREFIXES[0];
 
   const argsForCheck = esComando
     ? text.slice(prefix.length).trim().split(/ +/)
@@ -193,7 +195,7 @@ export async function handleMessage(sock, m, db, saveDB) {
   }
 
   if (isGroup && db.groups?.[remoteJid]?.botOn === false) {
-    if (text === `${prefix}bot on` || commandNameForCheck === "bot") {
+    if (commandNameForCheck === "bot" && argsForCheck[1]?.toLowerCase() === "on") {
     } else if (esComando) {
       return await sock.sendMessage(
         remoteJid,
