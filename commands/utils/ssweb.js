@@ -1,4 +1,5 @@
 import axios from "axios";
+import { fytBold } from "../../models/TextStyle.js";
 
 export default {
   name: ["ssweb", "ss", "webss"],
@@ -21,18 +22,27 @@ export default {
     if (!url.startsWith("http://") && !url.startsWith("https://")) {
       url = "https://" + url;
     }
-
+    await socket.sendMessage(remoteJid, {
+      react: { text: "🌐", key: message.key },
+    });
     try {
       const apiUrl = `https://api.alyacore.xyz/tools/ssweb?url=${encodeURIComponent(url)}&device=pc&key=oboe`;
 
       const response = await axios.get(apiUrl, { responseType: "arraybuffer" });
       const imageBuffer = Buffer.from(response.data);
-
+      
+      let caption = `╭━━━━〔 ✨ ${fytBold("SCREENSHOT WEB")}〕━━━⬣\n\n`
+      caption += `┃ ➥ ${fytBold("URL")} › ${url}\n\n`
+      caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`
+      
+      await socket.sendMessage(remoteJid, {
+        react: { text: "✅", key: message.key },
+      });
       await socket.sendMessage(
         remoteJid,
         {
           image: imageBuffer,
-          caption: `🌐 *Captura realizada:* ${url}`
+          caption
         },
         { quoted: message }
       );
