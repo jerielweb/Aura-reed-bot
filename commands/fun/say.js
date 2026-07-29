@@ -4,7 +4,7 @@ import { fytBold } from "./../../models/TextStyle.js";
 export default {
   name: ["say", "decir"],
   category: "fun",
-  description: "Repite un mensaje o reenvía multimedia sin etiqueta de reenviado",
+  description: "Repite lo que dices",
   adminOnly: false,
   execute: async (socket, message, args) => {
     const remoteJid = message.key.remoteJid;

@@ -1,7 +1,8 @@
 import yts from "yt-search";
-import downloader from "../../controllers/ytDownloader.js";
+import axios from "axios";
 import formatter from "../../controllers/functions/formatNumbers.js";
 import { fytBold } from "../../models/TextStyle.js";
+import { getVideo, formatDuration, formatSize } from "./../../models/YouTubeScraper.js";
 
 const YT_REGEX = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
 
@@ -19,14 +20,17 @@ function extractVideoId(url) {
 }
 
 export default {
-  name: ["ytmp4", "video", "playvideo", "mp4", "ytv", "play2"],
+  name: ["ytmp4", "ytv", "video", "playvideo", "v"],
   category: "downloads",
-  description: "Busca y descarga video de YouTube.",
+  description: "Busca y descarga videos de YouTube.",
   execute: async (socket, message, args) => {
     const remoteJid = message.key.remoteJid;
     const text = args.join(" ").trim();
 
     if (!text) {
+      await socket.sendMessage(remoteJid, {
+        react: { text: "❓", key: message.key },
+      });
       return await socket.sendMessage(
         remoteJid,
         {
@@ -95,26 +99,26 @@ export default {
         }
       }
 
-      const title = videoData.title || "Video de YouTube";
-      const author =
-        videoData.author?.name || videoData.author || "Desconocido";
-      const duration = videoData.duration?.timestamp || "??";
+      // Obtener datos y enlace del video con el scraper de Ander
+      const scraperData = await getVideo(finalUrl, "1080");
+
+      const title = scraperData.title || videoData.title || "Video de YouTube";
+      const author = scraperData.author || videoData.author?.name || videoData.author || "Desconocido";
+      const duration = scraperData.duration ? formatDuration(scraperData.duration) : (videoData.duration?.timestamp || "??");
       const views = typeof videoData.views === "number" ? videoData.views : 0;
-      const thumbnail =
-        videoData.thumbnail ||
-        videoData.image ||
-        `https://i.ytimg.com/vi/${extractVideoId(finalUrl) || "default"}/hqdefault.jpg`;
+      const thumbnail = scraperData.thumbnail || videoData.thumbnail || videoData.image || `https://i.ytimg.com/vi/${extractVideoId(finalUrl) || "default"}/hqdefault.jpg`;
+      const sizeText = scraperData.size ? ` (${formatSize(scraperData.size)})` : "";
 
       let caption = `╭〔 🎬 ${fytBold("YT DOWNLOADER")} 〕━⬣\n\n`;
       caption += `┃ ➥ ${fytBold(title)}\n\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
-      caption += `┃ > ${fytBold("Artista")}› ${author}\n`;
+      caption += `┃ > ${fytBold("Canal")} › ${author}\n`;
       caption += `┃ > ${fytBold("Duración")} › ${duration}\n`;
       caption += `┃ > ${fytBold("Vistas")} › ${formatter(views)}\n`;
-      caption += `┃ > ${fytBold("Tipo")} > Video MP4\n`
+      caption += `┃ > ${fytBold("Tipo")} › Video MP4 (${scraperData.quality}p${sizeText})\n`;
       caption += `┃ > ${fytBold("Url")} › ${finalUrl}\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
-      caption += `┃ ⏳ Descargando video...\n`;
+      caption += `┃ > ⌛ Descargando video...\n`;
       caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
 
       await socket.sendMessage(
@@ -123,15 +127,16 @@ export default {
         { quoted: message },
       );
 
-      const videoPath = await downloader.getVideo(finalUrl);
+      // Descargar buffer del video desde el servidor tunnel
+      const response = await axios.get(scraperData.downloadUrl, { responseType: "arraybuffer" });
+      const videoBuffer = Buffer.from(response.data);
 
       await socket.sendMessage(
         remoteJid,
         {
-          video: { url: videoPath },
+          video: videoBuffer,
           mimetype: "video/mp4",
           fileName: `${title.replace(/[<>:"/\\|?*]/g, "")}.mp4`,
-          caption: `🎬 *𝐓𝐢𝐭𝐮𝐥𝐨:* ${title}\n⚡ *𝐀𝐮𝐫𝐚 𝐑𝐞𝐞𝐝 𝐃𝐨𝐰𝐧𝐥𝐨𝐚𝐝𝐞𝐫*`,
         },
         { quoted: message },
       );
