@@ -8,6 +8,9 @@ import { isCategoryEnabled, default as cmdManagerCmd } from "./cmdManager.js";
 import { botStatus } from "./../commands/group/bot.js";
 import { categories } from "./consts/cat.js";
 
+// Lista de prefijos múltiples permitidos por defecto (puedes agregar o quitar)
+const DEFAULT_PREFIXES = [".", "#", "/", "!"];
+
 let middlewareCache = null;
 let middlewareCacheTime = 0;
 let commandCache = null;
@@ -121,9 +124,7 @@ export async function handleMessage(sock, m, db, saveDB) {
   const isGroup = remoteJid.endsWith("@g.us");
   const senderRaw = m.key.participant || remoteJid;
 
-  // ════════════════════════════════════════════════════════════════
   // 🔇 DETECTOR Y BORRADO AUTOMÁTICO DE USUARIOS SILENCIADOS (MUTE)
-  // ════════════════════════════════════════════════════════════════
   if (isGroup && senderRaw) {
     try {
       const senderJid = await resolveLidToRealJid(senderRaw, sock, remoteJid);
@@ -138,14 +139,13 @@ export async function handleMessage(sock, m, db, saveDB) {
             participant: senderRaw,
           },
         });
-        return; // Detener ejecución inmediatamente
+        return;
       }
     } catch (e) {
       console.error("[handleMessage] Error al verificar/borrar usuario silenciado:", e);
     }
   }
 
-  // Resolve all LIDs in tags (mentionedJid) and replies (participant) to real phone numbers
   try {
     await resolveMessageLids(m, sock, remoteJid);
   } catch (e) {
@@ -159,9 +159,19 @@ export async function handleMessage(sock, m, db, saveDB) {
     m.message.videoMessage?.caption ||
     "";
 
+  // 🛠️ SOPORTE MULTI-PREFIJO
   const groupPrefix = isGroup ? db.groups?.[remoteJid]?.prefix : null;
-  const prefix = groupPrefix || db.prefix;
-  const esComando = text.startsWith(prefix);
+  const globalPrefix = db.prefix;
+
+  // Unimos los prefijos predeterminados, el global y el específico del grupo
+  const allowedPrefixes = Array.from(
+    new Set([...DEFAULT_PREFIXES, groupPrefix, globalPrefix].filter(Boolean))
+  );
+
+  const usedPrefix = allowedPrefixes.find((p) => text.startsWith(p));
+  const esComando = Boolean(usedPrefix);
+  const prefix = usedPrefix || globalPrefix || ".";
+
   const argsForCheck = esComando
     ? text.slice(prefix.length).trim().split(/ +/)
     : [];
@@ -219,7 +229,6 @@ export async function handleMessage(sock, m, db, saveDB) {
     try {
       groupMetadata = await sock.getMetadata(remoteJid);
       
-      // 🛠️ SOLUCIÓN: Conversión segura a String controlando valores nulos o indefinidos
       const clean = (id) => {
         if (!id) return null;
         return String(id).split("@")[0].split(":")[0];
