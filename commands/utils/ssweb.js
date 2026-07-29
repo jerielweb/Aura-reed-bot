@@ -14,7 +14,7 @@ export default {
     if (!url) {
       return await socket.sendMessage(
         remoteJid,
-        { text: "❌ Ingresa una URL válida. Ejemplo: .ssweb https://google.com" },
+        { text: "❌ Ingresa una URL válida. Ejemplo: .ssweb `enlace`" },
         { quoted: message }
       );
     }
@@ -31,9 +31,9 @@ export default {
       const response = await axios.get(apiUrl, { responseType: "arraybuffer" });
       const imageBuffer = Buffer.from(response.data);
       
-      let caption = `╭━〔 🌐 ${fytBold("SCREENSHOT WEB")} 〕━⬣\n`
+      let caption = `╭〔 🌐 ${fytBold("SCREENSHOT WEB")} 〕⬣\n`
       caption += `┃ ➥ ${fytBold("URL")} › ${url}\n`
-      caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`
+      caption += `╰〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕⬣`
       
       await socket.sendMessage(remoteJid, {
         react: { text: "✅", key: message.key },
