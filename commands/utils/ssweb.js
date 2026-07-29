@@ -3,8 +3,8 @@ import { fytBold } from "../../models/TextStyle.js";
 
 export default {
   name: ["ssweb", "ss", "webss"],
-  category: "tools",
-  description: "Captura de pantalla de una página web usando la API de AlyaCore.",
+  category: "utils",
+  description: "Toma una captura de la web",
   ownerOnly: false,
 
   execute: async (socket, message, args) => {
