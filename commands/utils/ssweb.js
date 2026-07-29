@@ -31,7 +31,7 @@ export default {
       const response = await axios.get(apiUrl, { responseType: "arraybuffer" });
       const imageBuffer = Buffer.from(response.data);
       
-      let caption = `╭━〔 ✨ ${fytBold("SCREENSHOT WEB")}〕━⬣\n`
+      let caption = `╭━〔 🌐 ${fytBold("SCREENSHOT WEB")} 〕━⬣\n`
       caption += `┃ ➥ ${fytBold("URL")} › ${url}\n`
       caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`
       
