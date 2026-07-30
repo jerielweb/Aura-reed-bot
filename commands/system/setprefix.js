@@ -19,25 +19,11 @@ export default {
         { quoted: m },
       );
     }
-        // 🛑 VALIDACIÓN DE SEGURIDAD
-    // 1 solo carácter, solo símbolos, pero PROHIBIDA la barra invertida (\)
-    const isValidPrefix = /^[^a-zA-Z0-9\s]{1}$/.test(newPrefix) && newPrefix !== "\\";
-
-    if (!isValidPrefix) {
-      let text = `╭〔 ⚠️  ${fytBold("AURA REED")} 〕⬣\n`;
-      text += `┃ ❌ ${fytBold("PREFIJO INVALIDO")}\n`;
-      text += `╰━━━━━━━━━━━━⬣\n\n`;
-      text += `┃ > Porfavor defina un prefijo valido para el grupo.\n`;
-      text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
-
-      return await sock.sendMessage(remoteJid, { text }, { quoted: m });
-    }
-
 
     const input = args[0]?.toLowerCase();
     const currentPrefix = db.groups?.[remoteJid]?.prefix || "Multiprefijo (. # / !)";
 
-    // Lógica para restablecer (reset) a multiprefijo
+    // 1. Restablecer (reset) a multiprefijo
     if (["reset", "del", "delete", "off", "clear"].includes(input)) {
       if (db.groups?.[remoteJid]?.prefix) {
         delete db.groups[remoteJid].prefix;
@@ -53,6 +39,7 @@ export default {
       return await sock.sendMessage(remoteJid, { text }, { quoted: m });
     }
 
+    // 2. Si no envió parámetros, mostrar menú de ayuda
     if (!input) {
       let text = `╭〔 ℹ️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
       text += `┃ ⚙️ 𝐂𝐎𝐍𝐅𝐈𝐆𝐔𝐑𝐀𝐂𝐈𝐎́𝐍\n`;
@@ -68,7 +55,24 @@ export default {
       return sock.sendMessage(remoteJid, { text }, { quoted: m });
     }
 
+    // 3. Declaramos el nuevo prefijo
     const newPrefix = args[0];
+
+    // 🛑 4. VALIDACIÓN DE SEGURIDAD
+    // 1 solo carácter, solo símbolos, pero PROHIBIDA la barra invertida (\)
+    const isValidPrefix = /^[^a-zA-Z0-9\s]{1}$/.test(newPrefix) && newPrefix !== "\\";
+
+    if (!isValidPrefix) {
+      let text = `╭〔 ⚠️  ${fytBold("AURA REED")} 〕⬣\n`;
+      text += `┃ ❌ ${fytBold("PREFIJO INVALIDO")}\n`;
+      text += `╰━━━━━━━━━━━━⬣\n\n`;
+      text += `┃ > Porfavor defina un prefijo valido para el grupo.\n`;
+      text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
+
+      return await sock.sendMessage(remoteJid, { text }, { quoted: m });
+    }
+
+    // 5. Guardado en la base de datos
     db.groups = db.groups || {};
     db.groups[remoteJid] = db.groups[remoteJid] || {};
     db.groups[remoteJid].prefix = newPrefix;
