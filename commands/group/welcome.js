@@ -1,7 +1,7 @@
 import { fytBold } from "./../../models/TextStyle.js";
 
 export default {
-  name: ["welcome", "bienvenida", "setwelcome"],
+  name: ["welcome", "bienvenida"],
   category: "group",
   description: "Activa o desactiva los mensajes de bienvenida.",
   adminOnly: true,
