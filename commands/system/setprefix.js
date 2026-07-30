@@ -1,3 +1,5 @@
+import { fytBold } from "../../models/TextStyle.js";
+
 export default {
   name: ["setprefix", "prefix"],
   description: "Modifica prefijo.",
@@ -17,6 +19,20 @@ export default {
         { quoted: m },
       );
     }
+        // 🛑 VALIDACIÓN DE SEGURIDAD
+    // 1 solo carácter, solo símbolos, pero PROHIBIDA la barra invertida (\)
+    const isValidPrefix = /^[^a-zA-Z0-9\s]{1}$/.test(newPrefix) && newPrefix !== "\\";
+
+    if (!isValidPrefix) {
+      let text = `╭〔 ⚠️  ${fytBold("AURA REED")} 〕⬣\n`;
+      text += `┃ ❌ ${fytBold("PREFIJO INVALIDO")}\n`;
+      text += `╰━━━━━━━━━━━━⬣\n\n`;
+      text += `┃ > Porfavor defina un prefijo valido para el grupo.\n`;
+      text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
+
+      return await sock.sendMessage(remoteJid, { text }, { quoted: m });
+    }
+
 
     const input = args[0]?.toLowerCase();
     const currentPrefix = db.groups?.[remoteJid]?.prefix || "Multiprefijo (. # / !)";
