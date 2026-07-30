@@ -24,7 +24,7 @@ export const groupsCache = new NodeCache({ stdTTL: 600, useClones: false });
 export const usersCache = new NodeCache({ stdTTL: 600, useClones: false });
 
 const DEFAULT_DB_CONFIG = {
-  prefix: ".",
+  prefix: [".", "!", "#", "/"],
   owners: [
     "50670375314@s.whatsapp.net",
     "50581253065@s.whatsapp.net",
@@ -33,6 +33,7 @@ const DEFAULT_DB_CONFIG = {
   ],
   maxSubBots: 20,
   ownerRoles: {
+    "50670375314@s.whatsapp.net": "DEV Principal"
     "50581253065@s.whatsapp.net": "Soporte",
     "5214183357841@s.whatsapp.net": "Colaborador",
     "50578391933@s.whatsapp.net": "Soporte",

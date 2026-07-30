@@ -161,18 +161,14 @@ export async function handleMessage(sock, m, db, saveDB) {
 
   // 🛠️ SOPORTE PREFIJO FIJO EXCLUSIVO O MULTI-PREFIJO POR DEFECTO
   const groupPrefix = isGroup ? db.groups?.[remoteJid]?.prefix : null;
-  const globalPrefix = db.prefix;
 
-  // Si existe prefijo en el grupo o global, se evalúa solo ese. De lo contrario, se permite la lista por defecto.
-  const activePrefixes = groupPrefix
-    ? [groupPrefix]
-    : globalPrefix
-    ? [globalPrefix]
-    : DEFAULT_PREFIXES;
+  // Si existe un prefijo específico en el grupo, se evalúa solo ese.
+  // De lo contrario, se usa la lista de multiprefijos por defecto (ignorando db.prefix global).
+  const activePrefixes = groupPrefix ? [groupPrefix] : DEFAULT_PREFIXES;
 
   const usedPrefix = activePrefixes.find((p) => text.startsWith(p));
   const esComando = Boolean(usedPrefix);
-  const prefix = usedPrefix || groupPrefix || globalPrefix || DEFAULT_PREFIXES[0];
+  const prefix = usedPrefix || groupPrefix || DEFAULT_PREFIXES[0];
 
   const argsForCheck = esComando
     ? text.slice(prefix.length).trim().split(/ +/)
