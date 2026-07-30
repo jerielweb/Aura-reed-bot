@@ -1,4 +1,5 @@
-import Database from "better-sqlite3";
+import sqlite3 from "sqlite3";
+import { open } from "sqlite";
 import NodeCache from "node-cache";
 import path from "path";
 import fs from "fs";
@@ -19,9 +20,9 @@ let saveTimer = null;
 let saving = false;
 let initialized = false;
 
-// Create node-cache instances with standard TTL of 10 minutes (600 seconds) and useClones: false
-export const groupsCache = new NodeCache({ stdTTL: 600, useClones: false });
-export const usersCache = new NodeCache({ stdTTL: 600, useClones: false });
+// Instancias de node-cache sin expiración automática estricta para mantener sync en RAM
+export const groupsCache = new NodeCache({ stdTTL: 0, useClones: false });
+export const usersCache = new NodeCache({ stdTTL: 0, useClones: false });
 
 const DEFAULT_DB_CONFIG = {
   prefix: [".", "!", "#", "/"],
@@ -40,73 +41,14 @@ const DEFAULT_DB_CONFIG = {
   },
 };
 
-// Expired cache hooks to write entries to SQLite before they are evicted from RAM
-groupsCache.on("expired", (key, value) => {
-  try {
-    dbConn
-      .prepare(
-        "INSERT INTO groups(jid, data) VALUES(?, ?) ON CONFLICT(jid) DO UPDATE SET data=excluded.data",
-      )
-      .run(key, JSON.stringify(value));
-    console.log(
-      chalk.gray(
-        `[DB] Grupo ${key} guardado en SQLite por expiración de caché`,
-      ),
-    );
-  } catch (err) {
-    console.error(
-      chalk.red(`[DB] Error al guardar grupo expirado ${key}:`),
-      err.message,
-    );
-  }
-});
-
-usersCache.on("expired", (key, value) => {
-  try {
-    dbConn
-      .prepare(
-        "INSERT INTO users(jid, data) VALUES(?, ?) ON CONFLICT(jid) DO UPDATE SET data=excluded.data",
-      )
-      .run(key, JSON.stringify(value));
-    console.log(
-      chalk.gray(
-        `[DB] Usuario ${key} guardado en SQLite por expiración de caché`,
-      ),
-    );
-  } catch (err) {
-    console.error(
-      chalk.red(`[DB] Error al guardar usuario expirado ${key}:`),
-      err.message,
-    );
-  }
-});
-
-// Proxies to intercept JS object reads and writes, loading/caching from SQLite synchronously
+// Proxies para interactuar directamente con la memoria síncrona
 const groupsProxy = new Proxy(
   {},
   {
     get(target, key) {
       if (typeof key !== "string" || key === "toJSON" || key === "then")
         return target[key];
-
-      let group = groupsCache.get(key);
-      if (!group) {
-        try {
-          const row = dbConn
-            .prepare("SELECT data FROM groups WHERE jid = ?")
-            .get(key);
-          if (row) {
-            group = JSON.parse(row.data);
-            groupsCache.set(key, group);
-          }
-        } catch (err) {
-          console.error(
-            chalk.red(`[DB] Error cargando grupo ${key} de SQLite:`),
-            err.message,
-          );
-        }
-      }
-      return group;
+      return groupsCache.get(key);
     },
     set(target, key, value) {
       if (typeof key === "string") {
@@ -117,45 +59,26 @@ const groupsProxy = new Proxy(
     deleteProperty(target, key) {
       if (typeof key === "string") {
         groupsCache.del(key);
-        try {
-          dbConn.prepare("DELETE FROM groups WHERE jid = ?").run(key);
-        } catch (err) {
-          console.error(
-            chalk.red(`[DB] Error eliminando grupo ${key} de SQLite:`),
-            err.message,
-          );
+        if (dbConn) {
+          dbConn.run("DELETE FROM groups WHERE jid = ?", [key]).catch((err) => {
+            console.error(
+              chalk.red(`[DB] Error eliminando grupo ${key} de SQLite:`),
+              err.message,
+            );
+          });
         }
       }
       return true;
     },
     has(target, key) {
       if (typeof key !== "string") return false;
-      if (groupsCache.has(key)) return true;
-      try {
-        const row = dbConn
-          .prepare("SELECT 1 FROM groups WHERE jid = ?")
-          .get(key);
-        return !!row;
-      } catch {
-        return false;
-      }
+      return groupsCache.has(key);
     },
-    ownKeys(target) {
-      try {
-        const rows = dbConn.prepare("SELECT jid FROM groups").all();
-        const keys = new Set(rows.map((r) => r.jid));
-        const cachedKeys = groupsCache.keys();
-        for (const k of cachedKeys) keys.add(k);
-        return Array.from(keys);
-      } catch {
-        return groupsCache.keys();
-      }
+    ownKeys() {
+      return groupsCache.keys();
     },
-    getOwnPropertyDescriptor(target, key) {
-      return {
-        enumerable: true,
-        configurable: true,
-      };
+    getOwnPropertyDescriptor() {
+      return { enumerable: true, configurable: true };
     },
   },
 );
@@ -166,25 +89,7 @@ const usersProxy = new Proxy(
     get(target, key) {
       if (typeof key !== "string" || key === "toJSON" || key === "then")
         return target[key];
-
-      let user = usersCache.get(key);
-      if (!user) {
-        try {
-          const row = dbConn
-            .prepare("SELECT data FROM users WHERE jid = ?")
-            .get(key);
-          if (row) {
-            user = JSON.parse(row.data);
-            usersCache.set(key, user);
-          }
-        } catch (err) {
-          console.error(
-            chalk.red(`[DB] Error cargando usuario ${key} de SQLite:`),
-            err.message,
-          );
-        }
-      }
-      return user;
+      return usersCache.get(key);
     },
     set(target, key, value) {
       if (typeof key === "string") {
@@ -195,57 +100,34 @@ const usersProxy = new Proxy(
     deleteProperty(target, key) {
       if (typeof key === "string") {
         usersCache.del(key);
-        try {
-          dbConn.prepare("DELETE FROM users WHERE jid = ?").run(key);
-        } catch (err) {
-          console.error(
-            chalk.red(`[DB] Error eliminando usuario ${key} de SQLite:`),
-            err.message,
-          );
+        if (dbConn) {
+          dbConn.run("DELETE FROM users WHERE jid = ?", [key]).catch((err) => {
+            console.error(
+              chalk.red(`[DB] Error eliminando usuario ${key} de SQLite:`),
+              err.message,
+            );
+          });
         }
       }
       return true;
     },
     has(target, key) {
       if (typeof key !== "string") return false;
-      if (usersCache.has(key)) return true;
-      try {
-        const row = dbConn
-          .prepare("SELECT 1 FROM users WHERE jid = ?")
-          .get(key);
-        return !!row;
-      } catch {
-        return false;
-      }
+      return usersCache.has(key);
     },
-    ownKeys(target) {
-      try {
-        const rows = dbConn.prepare("SELECT jid FROM users").all();
-        const keys = new Set(rows.map((r) => r.jid));
-        const cachedKeys = usersCache.keys();
-        for (const k of cachedKeys) keys.add(k);
-        return Array.from(keys);
-      } catch {
-        return usersCache.keys();
-      }
+    ownKeys() {
+      return usersCache.keys();
     },
-    getOwnPropertyDescriptor(target, key) {
-      return {
-        enumerable: true,
-        configurable: true,
-      };
+    getOwnPropertyDescriptor() {
+      return { enumerable: true, configurable: true };
     },
   },
 );
 
-function migrateFromJsonIfNeeded() {
+async function migrateFromJsonIfNeeded() {
   try {
-    const configCountRow = dbConn
-      .prepare("SELECT COUNT(*) as count FROM config")
-      .get();
-    if (configCountRow && configCountRow.count > 0) {
-      return;
-    }
+    const configCountRow = await dbConn.get("SELECT COUNT(*) as count FROM config");
+    if (configCountRow && configCountRow.count > 0) return;
   } catch (e) {}
 
   let hasJson = false;
@@ -255,89 +137,73 @@ function migrateFromJsonIfNeeded() {
 
   try {
     if (fs.existsSync(DB_FILE)) {
-      const raw = fs.readFileSync(DB_FILE, "utf-8");
-      oldConfig = JSON.parse(raw);
+      oldConfig = JSON.parse(fs.readFileSync(DB_FILE, "utf-8"));
       hasJson = true;
     }
   } catch {}
 
   try {
     if (fs.existsSync(USERS_FILE)) {
-      const raw = fs.readFileSync(USERS_FILE, "utf-8");
-      oldUsers = JSON.parse(raw);
+      oldUsers = JSON.parse(fs.readFileSync(USERS_FILE, "utf-8"));
       hasJson = true;
     }
   } catch {}
 
   try {
     if (fs.existsSync(GROUPS_FILE)) {
-      const raw = fs.readFileSync(GROUPS_FILE, "utf-8");
-      oldGroups = JSON.parse(raw);
+      oldGroups = JSON.parse(fs.readFileSync(GROUPS_FILE, "utf-8"));
       hasJson = true;
     }
   } catch {}
 
-  if (!hasJson) {
-    return;
-  }
+  if (!hasJson) return;
 
   console.log(chalk.cyan("[DB] Migrando datos desde JSON a SQLite3..."));
 
-  dbConn.transaction(() => {
-    if (oldConfig) {
-      const keysToMigrate = ["prefix", "owners", "maxSubBots", "ownerRoles"];
-      const stmt = dbConn.prepare(
-        "INSERT INTO config(key, value) VALUES(?, ?)",
-      );
-      for (const key of keysToMigrate) {
-        if (oldConfig[key] !== undefined) {
-          stmt.run(key, JSON.stringify(oldConfig[key]));
-        }
+  if (oldConfig) {
+    const keysToMigrate = ["prefix", "owners", "maxSubBots", "ownerRoles"];
+    for (const key of keysToMigrate) {
+      if (oldConfig[key] !== undefined) {
+        await dbConn.run("INSERT OR REPLACE INTO config(key, value) VALUES(?, ?)", [
+          key,
+          JSON.stringify(oldConfig[key]),
+        ]);
       }
     }
+  }
 
-    if (oldUsers && oldUsers.users) {
-      const stmt = dbConn.prepare("INSERT INTO users(jid, data) VALUES(?, ?)");
-      for (const [jid, data] of Object.entries(oldUsers.users)) {
-        stmt.run(jid, JSON.stringify(data));
-      }
+  if (oldUsers && oldUsers.users) {
+    for (const [jid, data] of Object.entries(oldUsers.users)) {
+      await dbConn.run("INSERT OR REPLACE INTO users(jid, data) VALUES(?, ?)", [
+        jid,
+        JSON.stringify(data),
+      ]);
     }
+  }
 
-    if (oldGroups && oldGroups.groups) {
-      const stmt = dbConn.prepare("INSERT INTO groups(jid, data) VALUES(?, ?)");
-      for (const [jid, data] of Object.entries(oldGroups.groups)) {
-        stmt.run(jid, JSON.stringify(data));
-      }
+  if (oldGroups && oldGroups.groups) {
+    for (const [jid, data] of Object.entries(oldGroups.groups)) {
+      await dbConn.run("INSERT OR REPLACE INTO groups(jid, data) VALUES(?, ?)", [
+        jid,
+        JSON.stringify(data),
+      ]);
     }
-  })();
+  }
 
-  console.log(
-    chalk.green(
-      "[DB] Migración completada con éxito. Renombrando archivos antiguos...",
-    ),
-  );
+  console.log(chalk.green("[DB] Migración completada con éxito."));
 
   const renameFile = (oldPath) => {
     try {
-      if (fs.existsSync(oldPath)) {
-        fs.renameSync(oldPath, oldPath + ".migrated.bak");
-      }
+      if (fs.existsSync(oldPath)) fs.renameSync(oldPath, oldPath + ".migrated.bak");
     } catch {}
   };
 
   renameFile(DB_FILE);
   renameFile(USERS_FILE);
   renameFile(GROUPS_FILE);
-
-  const DB_BACKUP_FILE = path.join(DATABASE_DIR, "database.backup.json");
-  const GROUPS_BACKUP_FILE = path.join(DATABASE_DIR, "groups.backup.json");
-  const USERS_BACKUP_FILE = path.join(DATABASE_DIR, "users.backup.json");
-  renameFile(DB_BACKUP_FILE);
-  renameFile(GROUPS_BACKUP_FILE);
-  renameFile(USERS_BACKUP_FILE);
 }
 
-function ensureDefaults() {
+async function ensureDefaults() {
   const defaults = [
     ["prefix", DEFAULT_DB_CONFIG.prefix],
     ["owners", DEFAULT_DB_CONFIG.owners],
@@ -345,15 +211,13 @@ function ensureDefaults() {
     ["ownerRoles", DEFAULT_DB_CONFIG.ownerRoles],
   ];
 
-  const stmtSelect = dbConn.prepare("SELECT key FROM config WHERE key = ?");
-  const stmtInsert = dbConn.prepare(
-    "INSERT INTO config(key, value) VALUES(?, ?)",
-  );
-
   for (const [key, defaultValue] of defaults) {
-    const row = stmtSelect.get(key);
+    const row = await dbConn.get("SELECT key FROM config WHERE key = ?", [key]);
     if (!row) {
-      stmtInsert.run(key, JSON.stringify(defaultValue));
+      await dbConn.run("INSERT INTO config(key, value) VALUES(?, ?)", [
+        key,
+        JSON.stringify(defaultValue),
+      ]);
     }
   }
 }
@@ -367,9 +231,12 @@ export async function initDB() {
     fs.mkdirSync(DATABASE_DIR, { recursive: true });
   }
 
-  dbConn = new Database(DB_SQLITE_FILE);
+  dbConn = await open({
+    filename: DB_SQLITE_FILE,
+    driver: sqlite3.Database,
+  });
 
-  dbConn.exec(`
+  await dbConn.exec(`
         CREATE TABLE IF NOT EXISTS config (
             key TEXT PRIMARY KEY,
             value TEXT
@@ -384,11 +251,11 @@ export async function initDB() {
         );
     `);
 
-  migrateFromJsonIfNeeded();
-  ensureDefaults();
+  await migrateFromJsonIfNeeded();
+  await ensureDefaults();
 
-  // Load config
-  const configRows = dbConn.prepare("SELECT key, value FROM config").all();
+  // Cargamos configuración
+  const configRows = await dbConn.all("SELECT key, value FROM config");
   const dbData = {};
   for (const row of configRows) {
     try {
@@ -396,6 +263,22 @@ export async function initDB() {
     } catch {
       dbData[row.key] = row.value;
     }
+  }
+
+  // Precargamos los Grupos en Memoria Caché
+  const groupRows = await dbConn.all("SELECT jid, data FROM groups");
+  for (const row of groupRows) {
+    try {
+      groupsCache.set(row.jid, JSON.parse(row.data));
+    } catch {}
+  }
+
+  // Precargamos los Usuarios en Memoria Caché
+  const userRows = await dbConn.all("SELECT jid, data FROM users");
+  for (const row of userRows) {
+    try {
+      usersCache.set(row.jid, JSON.parse(row.data));
+    } catch {}
   }
 
   dbCache = {
@@ -407,15 +290,9 @@ export async function initDB() {
 
   initialized = true;
 
-  const groupCount = dbConn
-    .prepare("SELECT COUNT(*) as count FROM groups")
-    .get().count;
-  const userCount = dbConn
-    .prepare("SELECT COUNT(*) as count FROM users")
-    .get().count;
   console.log(
     chalk.gray(
-      `[DB] SQLite3 & Node-Cache Inicializado: ${groupCount} grupos, ${userCount} usuarios en DB`,
+      `[DB] SQLite3 & Node-Cache Inicializado: ${groupRows.length} grupos, ${userRows.length} usuarios en memoria DB`,
     ),
   );
 
@@ -431,14 +308,14 @@ export async function getDB() {
 
 export function getDBSync() {
   if (!initialized) {
-    throw new Error("DB has not been initialized yet!");
+    throw new Error("DB no ha sido inicializada aún.");
   }
   return { ...dbCache, groups: groupsProxy, users: usersProxy };
 }
 
-function writeDbFiles(data) {
+async function writeDbFiles(data) {
   if (!data || typeof data !== "object") {
-    console.error(chalk.red("[DB] Datos invalidos recibidos en writeDbFiles"));
+    console.error(chalk.red("[DB] Datos inválidos recibidos en writeDbFiles"));
     return;
   }
 
@@ -451,55 +328,50 @@ function writeDbFiles(data) {
     const cachedGroups = groupsCache.keys();
     const cachedUsers = usersCache.keys();
 
-    dbConn.transaction(() => {
-      // Save config
-      const configUpdates = [
-        ["prefix", prefix],
-        ["owners", owners],
-        ["maxSubBots", maxSubBots],
-        ["ownerRoles", ownerRoles],
-      ];
-      const stmtConfig = dbConn.prepare(
+    // Guardar Configuración
+    const configUpdates = [
+      ["prefix", prefix],
+      ["owners", owners],
+      ["maxSubBots", maxSubBots],
+      ["ownerRoles", ownerRoles],
+    ];
+
+    for (const [key, value] of configUpdates) {
+      await dbConn.run(
         "INSERT INTO config(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        [key, JSON.stringify(value)],
       );
-      for (const [key, value] of configUpdates) {
-        stmtConfig.run(key, JSON.stringify(value));
-      }
+    }
 
-      // Save currently cached groups
-      const stmtGroup = dbConn.prepare(
-        "INSERT INTO groups(jid, data) VALUES(?, ?) ON CONFLICT(jid) DO UPDATE SET data=excluded.data",
-      );
-      for (const jid of cachedGroups) {
-        const groupData = groupsCache.get(jid);
-        if (groupData) {
-          stmtGroup.run(jid, JSON.stringify(groupData));
-        }
+    // Guardar Grupos
+    for (const jid of cachedGroups) {
+      const groupData = groupsCache.get(jid);
+      if (groupData) {
+        await dbConn.run(
+          "INSERT INTO groups(jid, data) VALUES(?, ?) ON CONFLICT(jid) DO UPDATE SET data=excluded.data",
+          [jid, JSON.stringify(groupData)],
+        );
       }
+    }
 
-      // Save currently cached users
-      const stmtUser = dbConn.prepare(
-        "INSERT INTO users(jid, data) VALUES(?, ?) ON CONFLICT(jid) DO UPDATE SET data=excluded.data",
-      );
-      for (const jid of cachedUsers) {
-        const userData = usersCache.get(jid);
-        if (userData) {
-          stmtUser.run(jid, JSON.stringify(userData));
-        }
+    // Guardar Usuarios
+    for (const jid of cachedUsers) {
+      const userData = usersCache.get(jid);
+      if (userData) {
+        await dbConn.run(
+          "INSERT INTO users(jid, data) VALUES(?, ?) ON CONFLICT(jid) DO UPDATE SET data=excluded.data",
+          [jid, JSON.stringify(userData)],
+        );
       }
-    })();
+    }
 
     console.log(
       chalk.gray(
-        `[DB] SQLite3 Guardado: DB config, ${cachedGroups.length} grupos en caché, ${cachedUsers.length} usuarios en caché`,
+        `[DB] SQLite3 Guardado: Config, ${cachedGroups.length} grupos, ${cachedUsers.length} usuarios`,
       ),
     );
   } catch (err) {
-    console.error(
-      chalk.red("[DB] Error CRITICO en writeDbFiles:"),
-      err.message,
-    );
-    throw err;
+    console.error(chalk.red("[DB] Error CRÍTICO en writeDbFiles:"), err.message);
   }
 }
 
@@ -531,25 +403,22 @@ export async function saveDB(data, options = {}) {
     saving = true;
     try {
       const toSave = { ...dbCache, groups: groupsProxy, users: usersProxy };
-      writeDbFiles(toSave);
+      await writeDbFiles(toSave);
     } finally {
       saving = false;
     }
     return;
   }
 
-  saveTimer = setTimeout(() => {
+  saveTimer = setTimeout(async () => {
     saveTimer = null;
     if (saving) return;
     saving = true;
     try {
       const toSave = { ...dbCache, groups: groupsProxy, users: usersProxy };
-      writeDbFiles(toSave);
+      await writeDbFiles(toSave);
     } catch (err) {
-      console.error(
-        chalk.red("[DB] Error guardando base de datos:"),
-        err.message,
-      );
+      console.error(chalk.red("[DB] Error guardando base de datos:"), err.message);
     } finally {
       saving = false;
     }
@@ -570,14 +439,10 @@ export async function flushDB() {
   }
 
   try {
-    const toSave = {
-      ...dbCache,
-      groups: groupsProxy,
-      users: usersProxy,
-    };
-    writeDbFiles(toSave);
+    const toSave = { ...dbCache, groups: groupsProxy, users: usersProxy };
+    await writeDbFiles(toSave);
     console.log(chalk.gray("[DB] Flush completado exitosamente"));
   } catch (err) {
-    console.error(chalk.red("[DB] ERROR CRITICO en flushDB:"), err.message);
+    console.error(chalk.red("[DB] ERROR CRÍTICO en flushDB:"), err.message);
   }
 }
