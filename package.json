@@ -5,9 +5,9 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "start": "pnpm install && node index.js",
-    "dev": "node --watch index.js",
-    "postinstall": "node -e \"const fs=require('fs'); if(!fs.existsSync('./database')) fs.mkdirSync('./database', { recursive: true }); if(!fs.existsSync('./database/database.json')) fs.writeFileSync('./database/database.json', JSON.stringify({ prefix: '.', owners: ['50670375314@s.whatsapp.net', '50672370958@s.whatsapp.net'] }, null, 2)); if(!fs.existsSync('./database/users.json')) fs.writeFileSync('./database/users.json', JSON.stringify({ users: {} }, null, 2)); if(!fs.existsSync('./database/groups.json')) fs.writeFileSync('./database/groups.json', JSON.stringify({ groups: {} }, null, 2)); if(!fs.existsSync('./sessions/subbots')) fs.mkdirSync('./sessions/subbots', { recursive: true }); if(!fs.existsSync('./tmp')) fs.mkdirSync('./tmp', { recursive: true });\""
+    "start": "node index.js",
+    "postinstall": "npm rebuild better-sqlite3 sharp && node -e \"import('fs').then(fs => { if(!fs.existsSync('./database')) fs.mkdirSync('./database', { recursive: true }); if(!fs.existsSync('./database/database.json')) fs.writeFileSync('./database/database.json', JSON.stringify({ prefix: '.', owners: ['50670375314@s.whatsapp.net', '50672370958@s.whatsapp.net'] }, null, 2)); if(!fs.existsSync('./database/users.json')) fs.writeFileSync('./database/users.json', JSON.stringify({ users: {} }, null, 2)); if(!fs.existsSync('./database/groups.json')) fs.writeFileSync('./database/groups.json', JSON.stringify({ groups: {} }, null, 2)); if(!fs.existsSync('./sessions/subbots')) fs.mkdirSync('./sessions/subbots', { recursive: true }); if(!fs.existsSync('./tmp')) fs.mkdirSync('./tmp', { recursive: true }); });\"",
+    "dev": "node --watch index.js"
   },
   "keywords": [
     "WhatsApp Bot",
