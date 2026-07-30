@@ -16,6 +16,13 @@ export const categories = [
 ];
 
 export const Aliases = {
+  // Aliases para AI
+  ia: "AI",
+  ai: "AI",
+  "inteligencia artificial": "AI",
+  inteligenciaartificial: "AI",
+
+  // Resto de Aliases
   descargas: "downloads",
   descarga: "downloads",
   sistema: "system",
@@ -39,12 +46,6 @@ export const Aliases = {
   interacion: "interaction",
   interacciones: "interaction",
   interacción: "interaction",
-  IA: "AI",
-  AI: "AI",
-  ai: "AI",
-  ia: "AI",
-  "inteligencia artificial": "AI",
-  inteligenciaartificial: "AI",
   stalk: "stalk",
   inspección: "stalk",
   gacha: "gacha",

@@ -1,4 +1,4 @@
-import { categories } from "./consts/cat.js";
+import { categories, Aliases } from "./consts/cat.js";
 
 export function isCategoryEnabled(remoteJid, category, db) {
   const protectedCategories = ["owner", "group", "system"];
@@ -17,7 +17,7 @@ export default {
   description: "Activa o desactiva comandos",
   adminOnly: true,
 
-  execute: async (socket, message, args, { db, saveDB }) => {
+  execute: async (socket, message, args, { prefix, db, saveDB }) => {
     const remoteJid = message.key.remoteJid;
     if (!remoteJid.endsWith("@g.us")) return;
 
@@ -39,22 +39,33 @@ export default {
     }
 
     const action = args[0]?.toLowerCase();
-    const category = args[1]?.toLowerCase();
+    const rawCategory = args[1]?.toLowerCase();
+
+    // 1. Busca en el objeto de Alias (convirtiendo las claves a minúsculas por seguridad)
+    const normalizedAliases = Object.fromEntries(
+      Object.entries(Aliases).map(([k, v]) => [k.toLowerCase(), v])
+    );
+
+    const targetCategory = normalizedAliases[rawCategory] || rawCategory;
+
+    // 2. Encuentra la coincidencia exacta dentro del array `categories`
+    const category = categories.find(
+      (c) => c.toLowerCase() === targetCategory?.toLowerCase()
+    );
 
     const protectedCategories = ["owner", "group", "system"];
-    const validCategories = categories;
 
-    if (!action || !category) {
+    if (!action || !rawCategory) {
       let text = `╭〔 ⚙️ 𝐂𝐌𝐃 𝐌𝐀𝐍𝐀𝐆𝐄𝐑 〕⬣\n`;
       text += `┃ 🛡️ 𝐆𝐄𝐒𝐓𝐈𝐎́𝐍 𝐃𝐄 𝐂𝐀𝐓𝐄𝐆𝐎𝐑𝐈́𝐀𝐒\n`;
       text += `╰━━━━━━━━━━━━⬣\n\n`;
-      text += `┃ ➪ ${db.prefix}cmds on [cat]\n`;
+      text += `┃ ➪ ${prefix}cmds on [cat]\n`;
       text += `┃ ✦ Habilitar comandos\n\n`;
-      text += `┃ ➪ ${db.prefix}cmds off [cat]\n`;
+      text += `┃ ➪ ${prefix}cmds off [cat]\n`;
       text += `┃ ✦ Deshabilitar comandos\n\n`;
       text += `╭━━━━━━━━━━━━⬣\n`;
-      text += `┃ 📂 Commandos y Estado:\n`;
-      validCategories.forEach((cat) => {
+      text += `┃ 📂 Categorías y Estado:\n`;
+      categories.forEach((cat) => {
         const isDisabled =
           db.groups[remoteJid].disabledCategories.includes(cat);
         text += `┃ > ${isDisabled ? "❌" : "✅"} ${cat}\n`;
@@ -64,7 +75,17 @@ export default {
       return await socket.sendMessage(remoteJid, { text }, { quoted: message });
     }
 
-    if (protectedCategories.includes(category)) {
+    if (!category) {
+      return await socket.sendMessage(
+        remoteJid,
+        {
+          text: `╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐂𝐀𝐓𝐄𝐆𝐎𝐑𝐈́𝐀 𝐈𝐍𝐕𝐀́𝐋𝐈𝐃𝐀\n╰━━━━━━━━━━━━⬣\n\n┃ > La categoría *${rawCategory}*\n┃ > no existe.\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`,
+        },
+        { quoted: message },
+      );
+    }
+
+    if (protectedCategories.includes(category.toLowerCase())) {
       return await socket.sendMessage(
         remoteJid,
         {
@@ -74,22 +95,8 @@ export default {
       );
     }
 
-    if (!validCategories.includes(category)) {
-      return await socket.sendMessage(
-        remoteJid,
-        {
-          text: `╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐂𝐀𝐓𝐄𝐆𝐎𝐑𝐈́𝐀 𝐈𝐍𝐕𝐀́𝐋𝐈𝐃𝐀\n╰━━━━━━━━━━━━⬣\n\n┃ > La categoría *${category}*\n┃ > no existe.\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`,
-        },
-        { quoted: message },
-      );
-    }
-
     if (
-      action === "on" ||
-      action === "1" ||
-      action === "true" ||
-      action === "activar" ||
-      action === "enable"
+      ["on", "1", "true", "activar", "enable"].includes(action)
     ) {
       db.groups[remoteJid].disabledCategories = db.groups[
         remoteJid
@@ -103,11 +110,7 @@ export default {
       text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
       await socket.sendMessage(remoteJid, { text }, { quoted: message });
     } else if (
-      action === "off" ||
-      action === "0" ||
-      action === "false" ||
-      action === "desactivar" ||
-      action === "disable"
+      ["off", "0", "false", "desactivar", "disable"].includes(action)
     ) {
       if (!db.groups[remoteJid].disabledCategories.includes(category)) {
         db.groups[remoteJid].disabledCategories.push(category);
