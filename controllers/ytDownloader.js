@@ -118,14 +118,14 @@ class YTDownloader {
     if (isUrl) {
       // API por URL
       const res = await axios.get(
-        `${this.baseUrl}/ytmp4?url=${encodeURIComponent(queryOrUrl)}&quality=auto&key=${this.apiKey}`,
+        `${this.baseUrl}/ytmp4?url=${encodeURIComponent(queryOrUrl)}&quality=720&key=${this.apiKey}`,
         { timeout: 30000 }
       );
       downloadUrl = res.data?.data?.dl;
     } else {
       // API por Query
       const res = await axios.get(
-        `${this.baseUrl}/youtubeplayv2?query=${encodeURIComponent(queryOrUrl)}&type=mp4&quality=auto&key=${this.apiKey}`,
+        `${this.baseUrl}/youtubeplayv2?query=${encodeURIComponent(queryOrUrl)}&type=mp4&quality=720&key=${this.apiKey}`,
         { timeout: 30000 }
       );
       downloadUrl = res.data?.data?.dl;
