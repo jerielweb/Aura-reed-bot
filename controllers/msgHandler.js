@@ -118,89 +118,11 @@ async function resolveMessageLids(m, sock, remoteJid) {
 }
 
 export async function handleMessage(sock, m, db, saveDB) {
-  if (!m || m.key.fromMe) return;
+  if (!m || !m.message || m.key.fromMe) return;
 
   const remoteJid = m.key.remoteJid;
   const isGroup = remoteJid.endsWith("@g.us");
   const senderRaw = m.key.participant || remoteJid;
-
-  const botId = sock.user?.id
-    ? sock.user.id.split("@")[0].split(":")[0] + "@s.whatsapp.net"
-    : null;
-
-  // 🚨 DETECTOR Y PROCESADOR DE EVENTOS DE SISTEMA DE GRUPO (STUBS)
-  if (isGroup && m.messageStubType) {
-    const stubType = m.messageStubType;
-    const dbGroup = db.groups?.[remoteJid];
-
-    // Respetar comando .alertas (db.groups[id].alerts)
-    if (dbGroup?.alerts) {
-      // Validar bot primario asignado
-      if (!dbGroup?.primaryBot || !botId || dbGroup.primaryBot === botId) {
-        try {
-          let alertText = "";
-
-          // 1. Cambio de Nombre del grupo
-          if (stubType === 21) {
-            const nuevoNombre = m.messageStubParameters?.[0] || "_Nombre actualizado_";
-            alertText = `╭〔 ✏️ 𝐍𝐎𝐌𝐁𝐑𝐄 𝐀𝐂𝐓𝐔𝐀𝐋𝐈𝐙𝐀𝐃𝐎 〕⬣\n\n┃ 📝 El nuevo nombre del grupo es:\n┃ > *${nuevoNombre}*\n\n╰━━〔 ⚡ AURA NEWS 〕━━⬣`;
-          }
-          // 2. Cambio de Descripción del grupo
-          else if (stubType === 22 || stubType === 23) {
-            let nuevaDesc = m.messageStubParameters?.[0] || "";
-            if (!nuevaDesc) {
-              try {
-                const meta = await sock.groupMetadata(remoteJid);
-                nuevaDesc = meta.desc || "_Sin descripción_";
-              } catch {
-                nuevaDesc = "_Descripción actualizada_";
-              }
-            }
-            alertText = `╭〔 📜 𝐃𝐄𝐒𝐂𝐑𝐈𝐏𝐂𝐈𝐎́𝐍 𝐂𝐀𝐌𝐁𝐈𝐀𝐃𝐀 〕⬣\n\n┃ 📋 Nueva descripción:\n┃ ${nuevaDesc}\n\n╰━━〔 ⚡ AURA NEWS 〕━━⬣`;
-          }
-          // 3. Abrir / Cerrar grupo (announce)
-          else if (stubType === 26) {
-            const param = m.messageStubParameters?.[0];
-            const cerrado = param === "on" || param === "true" || param === "1";
-            const estado = cerrado
-              ? "🔒 *CERRADO*\n┃ > (Solo administradores pueden enviar mensajes)"
-              : "🔓 *ABIERTO*\n┃ > (Todos los miembros pueden enviar mensajes)";
-            alertText = `╭〔 ⚙️ 𝐀𝐉𝐔𝐒𝐓𝐄 𝐃𝐄 𝐂𝐇𝐀𝐓 〕⬣\n\n┃ El grupo ahora está:\n┃ > ${estado}\n\n╰━━〔 ⚡ AURA NEWS 〕━━⬣`;
-          }
-          // 4. Edición de info del grupo (restrict)
-          else if (stubType === 25) {
-            const param = m.messageStubParameters?.[0];
-            const restringido = param === "on" || param === "true" || param === "1";
-            const permiso = restringido ? "🔒 Solo Administradores" : "🔓 Todos los miembros";
-            alertText = `╭〔 ⚙️ 𝐄𝐃𝐈𝐂𝐈𝐎́𝐍 𝐃𝐄 𝐆𝐑𝐔𝐏𝐎 〕⬣\n\n┃ ¿Quién puede editar la información?: \n┃ > *${permiso}*\n\n╰━━〔 ⚡ AURA NEWS 〕━━⬣`;
-          }
-          // 5. Aprobación de administradores para unirse
-          else if (stubType === 150) {
-            const param = m.messageStubParameters?.[0];
-            const activado = param === "on" || param === "true" || param === "1";
-            const estado = activado ? "✅ Activada (Admins deben aprobar)" : "❌ Desactivada (Entrada libre)";
-            alertText = `╭〔 🛡️ 𝐀𝐏𝐑𝐎𝐁𝐀𝐂𝐈𝐎́𝐍 𝐃𝐄 𝐌𝐈𝐄𝐌𝐁𝐑𝐎𝐒 〕⬣\n\n┃ Aprobación para unirse:\n┃ > *${estado}*\n\n╰━━〔 ⚡ AURA NEWS 〕━━⬣`;
-          }
-          // 6. Historial de mensajes para nuevos miembros
-          else if (stubType === 171) {
-            const param = m.messageStubParameters?.[0];
-            const activado = param === "on" || param === "true" || param === "1";
-            const estado = activado ? "📜 Permitido ver historial" : "🚫 Historial oculto";
-            alertText = `╭〔 💬 𝐇𝐈𝐒𝐓𝐎𝐑𝐈𝐀𝐋 𝐃𝐄 𝐌𝐄𝐍𝐒𝐀𝐉𝐄𝐒 〕⬣\n\n┃ Historial para nuevos integrantes:\n┃ > *${estado}*\n\n╰━━〔 ⚡ AURA NEWS 〕━━⬣`;
-          }
-
-          if (alertText) {
-            await sock.sendMessage(remoteJid, { text: alertText });
-            return;
-          }
-        } catch (e) {
-          console.error("[STUB DETECTOR] Error:", e);
-        }
-      }
-    }
-  }
-
-  if (!m.message) return;
 
   // 🔇 DETECTOR Y BORRADO AUTOMÁTICO DE USUARIOS SILENCIADOS (MUTE)
   if (isGroup && senderRaw) {
@@ -253,6 +175,9 @@ export async function handleMessage(sock, m, db, saveDB) {
     : [];
   const commandNameForCheck = esComando ? argsForCheck[0]?.toLowerCase() : null;
 
+  const botId = sock.user?.id
+    ? sock.user.id.split("@")[0].split(":")[0] + "@s.whatsapp.net"
+    : null;
   const groupPrimaryBot = isGroup ? db.groups?.[remoteJid]?.primaryBot : null;
   if (isGroup && groupPrimaryBot && botId && groupPrimaryBot !== botId) {
     if (
