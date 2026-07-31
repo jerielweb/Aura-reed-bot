@@ -15,6 +15,7 @@ import makeWASocket, {
   useMultiFileAuthState,
   DisconnectReason,
   fetchLatestWaWebVersion,
+  handleGroupMetadataUpdate
 } from "@whiskeysockets/baileys";
 import { loadAllSubBots } from "./models/subbotManager.js";
 import { Boom } from "@hapi/boom";
@@ -227,6 +228,10 @@ async function connectToWhatsApp() {
 
   sock.ev.on("group-participants.update", async (update) => {
     await handleGroupUpdate(sock, update, getDB);
+  });
+  
+  sock.ev.on("groups.update", async (updates) => {
+    await handleGroupMetadataUpdate(sock, updates, getDB);
   });
 
   sock.ev.on("connection.update", async (u) => {

@@ -2,6 +2,7 @@ import chalk from "chalk";
 import fs from "fs";
 import { fytBold } from "../models/TextStyle.js";
 
+// 1. EVENTOS DE PARTICIPANTES (Add, Remove, Promote, Demote)
 export async function handleGroupUpdate(
   sock,
   { id, participants, action },
@@ -205,6 +206,99 @@ export async function handleGroupUpdate(
       }
     } catch (e) {
       console.error(chalk.red("[GROUP UPDATE] Error en demote:"), e);
+    }
+  }
+}
+
+// 2. NUEVO EVENTO: CAMBIOS DE CONFIGURACIÓN Y METADATOS DEL GRUPO
+export async function handleGroupMetadataUpdate(sock, updates, getDB) {
+  const db = await getDB();
+
+  for (const update of updates) {
+    const { id, subject, desc, announce, restrict, ephemeral, revive } = update;
+    const groupData = db.groups[id];
+
+    // Verificar bot primario
+    const botId = sock.user?.id
+      ? sock.user.id.split("@")[0].split(":")[0] + "@s.whatsapp.net"
+      : null;
+    const groupPrimaryBot = groupData?.primaryBot;
+    if (groupPrimaryBot && botId && groupPrimaryBot !== botId) continue;
+
+    // Verificar si el grupo tiene activadas las alertas
+    if (!groupData?.alerts) continue;
+
+    try {
+      // 1. Cambio de Nombre / Nombre del grupo
+      if (subject) {
+        let text = `╭〔 ✏️ 𝐍𝐎𝐌𝐁𝐑𝐄 𝐀𝐂𝐓𝐔𝐀𝐋𝐈𝐙𝐀𝐃𝐎 〕⬣\n\n`;
+        text += `┃ 📝 El nuevo nombre del grupo es:\n`;
+        text += `┃ > *${subject}*\n\n`;
+        text += `╰━━〔 ⚡ ${fytBold("AURA NEWS")} 〕━━⬣`;
+        await sock.sendMessage(id, { text });
+      }
+
+      // 2. Cambio de Descripción (Detecta la nueva versión completa)
+      if (desc !== undefined) {
+        let nuevaDesc = desc;
+        if (!nuevaDesc) {
+          try {
+            const meta = await sock.groupMetadata(id);
+            nuevaDesc = meta.desc || "_Sin descripción_";
+          } catch {
+            nuevaDesc = "_Descripción actualizada_";
+          }
+        }
+
+        let text = `╭〔 📜 𝐃𝐄𝐒𝐂𝐑𝐈𝐏𝐂𝐈𝐎́𝐍 𝐂𝐀𝐌𝐁𝐈𝐀𝐃𝐀 〕⬣\n\n`;
+        text += `┃ 📋 Nueva descripción:\n`;
+        text += `┃ ${nuevaDesc}\n\n`;
+        text += `╰━━〔 ⚡ ${fytBold("AURA NEWS")} 〕━━⬣`;
+        await sock.sendMessage(id, { text });
+      }
+
+      // 3. Abrir o Cerrar Grupo (announce)
+      if (announce !== undefined) {
+        const estado = announce
+          ? "🔒 *CERRADO*\n┃ > (Solo administradores pueden enviar mensajes)"
+          : "🔓 *ABIERTO*\n┃ > (Todos los miembros pueden enviar mensajes)";
+        let text = `╭〔 ⚙️ 𝐀𝐉𝐔𝐒𝐓𝐄 𝐃𝐄 𝐂𝐇𝐀𝐓 〕⬣\n\n`;
+        text += `┃ El grupo ahora está:\n`;
+        text += `┃ > ${estado}\n\n`;
+        text += `╰━━〔 ⚡ ${fytBold("AURA NEWS")} 〕━━⬣`;
+        await sock.sendMessage(id, { text });
+      }
+
+      // 4. Editar información del grupo (restrict)
+      if (restrict !== undefined) {
+        const permiso = restrict ? "🔒 Solo Administradores" : "🔓 Todos los miembros";
+        let text = `╭〔 ⚙️ 𝐄𝐃𝐈𝐂𝐈𝐎́𝐍 𝐃𝐄 𝐆𝐑𝐔𝐏𝐎 〕⬣\n\n`;
+        text += `┃ ¿Quién puede editar la información del grupo?: \n`;
+        text += `┃ > *${permiso}*\n\n`;
+        text += `╰━━〔 ⚡ ${fytBold("AURA NEWS")} 〕━━⬣`;
+        await sock.sendMessage(id, { text });
+      }
+
+      // 5. Mensajes Temporales (ephemeral)
+      if (ephemeral !== undefined) {
+        const duracion = ephemeral ? `${ephemeral / 86400} días` : "Desactivados";
+        let text = `╭〔 ⏳ 𝐌𝐄𝐍𝐒𝐀𝐉𝐄𝐒 𝐓𝐄𝐌𝐏𝐎𝐑𝐀𝐋𝐄𝐒 〕⬣\n\n`;
+        text += `┃ Los mensajes temporales ahora están en:\n`;
+        text += `┃ > *${duracion}*\n\n`;
+        text += `╰━━〔 ⚡ ${fytBold("AURA NEWS")} 〕━━⬣`;
+        await sock.sendMessage(id, { text });
+      }
+
+      // 6. Restablecer / Revocar enlace del grupo
+      if (revive) {
+        let text = `╭〔 🔗 𝐄𝐍𝐋𝐀𝐂𝐄 𝐑𝐄𝐒𝐓𝐀𝐁𝐋𝐄𝐂𝐈𝐃𝐎 〕⬣\n\n`;
+        text += `┃ ⚠️ Un administrador restableció el enlace del grupo.\n`;
+        text += `┃ > El enlace anterior dejó de funcionar.\n\n`;
+        text += `╰━━〔 ⚡ ${fytBold("AURA NEWS")} 〕━━⬣`;
+        await sock.sendMessage(id, { text });
+      }
+    } catch (e) {
+      console.error(chalk.red("[GROUP METADATA UPDATE] Error:"), e);
     }
   }
 }
