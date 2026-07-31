@@ -1,11 +1,14 @@
-import { execSync } from "child_process";
+import axios from "axios";
 import fs from "fs";
 import path from "path";
-import { ensureDirectory } from "./downloadUtils.js";
+import yts from "yt-search";
+import { ensureDirectory, downloadStreamToFile } from "./downloadUtils.js";
 
 class YTDownloader {
   constructor() {
     this.tempDir = path.resolve("./tmp");
+    this.apiKey = "oboe";
+    this.baseUrl = "https://api.alyacore.xyz/dl";
     ensureDirectory(this.tempDir);
   }
 
@@ -14,14 +17,56 @@ class YTDownloader {
     const regex =
       /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
     const match = url.match(regex);
-    return match ? match[1] : `yt_${Date.now()}`;
+    return match ? match[1] : null;
   }
 
   /**
-   * Descarga el audio de YouTube usando yt-dlp local
+   * Obtiene la metadata completa usando yt-search
    */
-  async getAudio(url) {
-    const videoId = this.getVideoId(url);
+  async getMetadata(queryOrUrl) {
+    try {
+      const videoId = this.getVideoId(queryOrUrl);
+      let searchResult;
+
+      if (videoId) {
+        searchResult = await yts({ videoId });
+      } else {
+        const search = await yts(queryOrUrl);
+        searchResult = search.videos?.[0];
+      }
+
+      if (searchResult) {
+        return {
+          title: searchResult.title || "Video de YouTube",
+          author: searchResult.author?.name || searchResult.author || "Desconocido",
+          duration: searchResult.duration?.timestamp || "??",
+          views: typeof searchResult.views === "number" ? searchResult.views : 0,
+          thumbnail: searchResult.thumbnail || searchResult.image || `https://i.ytimg.com/vi/${searchResult.videoId}/hqdefault.jpg`,
+          url: searchResult.url || `https://youtu.be/${searchResult.videoId}`,
+          videoId: searchResult.videoId,
+        };
+      }
+    } catch (e) {
+      console.error("[ytDownloader] Error al obtener metadata:", e.message);
+    }
+
+    return {
+      title: "Video de YouTube",
+      author: "Desconocido",
+      duration: "??",
+      views: 0,
+      thumbnail: "https://i.ytimg.com/vi/default/hqdefault.jpg",
+      url: queryOrUrl,
+      videoId: this.getVideoId(queryOrUrl) || `yt_${Date.now()}`,
+    };
+  }
+
+  /**
+   * Descarga el audio (MP3) por Query o por URL
+   */
+  async getAudio(queryOrUrl) {
+    const isUrl = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/.test(queryOrUrl);
+    const videoId = this.getVideoId(queryOrUrl) || `yt_${Date.now()}`;
     const cachePath = path.join(this.tempDir, `${videoId}.mp3`);
 
     if (fs.existsSync(cachePath)) {
@@ -29,26 +74,38 @@ class YTDownloader {
       return cachePath;
     }
 
-    try {
-      const command = `export PATH="/home/container/bin:$PATH" && /home/container/yt-dlp --cookies /home/container/cookies.txt --extractor-args "youtube:client=android_vr" -f "ba" -x --audio-format mp3 --audio-quality 128K -o "${cachePath}" "${url}"`;
-      
-      execSync(command, { stdio: "pipe" });
+    let downloadUrl = null;
 
-      if (fs.existsSync(cachePath)) {
-        return cachePath;
-      }
-      throw new Error("No se pudo generar el archivo de audio.");
-    } catch (error) {
-      console.error("[yt-dlp Audio Error]:", error.stderr ? error.stderr.toString() : error.message);
-      throw new Error("Error al procesar el audio con yt-dlp.");
+    if (isUrl) {
+      // API por URL
+      const res = await axios.get(
+        `${this.baseUrl}/ytmp3v3?url=${encodeURIComponent(queryOrUrl)}&key=${this.apiKey}`,
+        { timeout: 30000 }
+      );
+      downloadUrl = res.data?.data?.dl;
+    } else {
+      // API por Query
+      const res = await axios.get(
+        `${this.baseUrl}/youtubeplay?query=${encodeURIComponent(queryOrUrl)}&key=${this.apiKey}`,
+        { timeout: 30000 }
+      );
+      downloadUrl = res.data?.data?.dl;
     }
+
+    if (!downloadUrl) {
+      throw new Error("No se pudo obtener el enlace de descarga del audio.");
+    }
+
+    await downloadStreamToFile(downloadUrl, cachePath, { timeout: 60000 });
+    return cachePath;
   }
 
   /**
-   * Descarga el video de YouTube usando yt-dlp local
+   * Descarga el video (MP4) por Query o por URL
    */
-  async getVideo(url) {
-    const videoId = this.getVideoId(url);
+  async getVideo(queryOrUrl) {
+    const isUrl = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/.test(queryOrUrl);
+    const videoId = this.getVideoId(queryOrUrl) || `yt_${Date.now()}`;
     const cachePath = path.join(this.tempDir, `${videoId}.mp4`);
 
     if (fs.existsSync(cachePath)) {
@@ -56,23 +113,34 @@ class YTDownloader {
       return cachePath;
     }
 
-    try {
-      const command = `export PATH="/home/container/bin:$PATH" && /home/container/yt-dlp --cookies /home/container/cookies.txt --extractor-args "youtube:client=android_vr" -f "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/b" -o "${cachePath}" "${url}"`;
-      
-      execSync(command, { stdio: "pipe" });
+    let downloadUrl = null;
 
-      if (fs.existsSync(cachePath)) {
-        return cachePath;
-      }
-      throw new Error("No se pudo generar el archivo de video.");
-    } catch (error) {
-      console.error("[yt-dlp Video Error]:", error.stderr ? error.stderr.toString() : error.message);
-      throw new Error("Error al procesar el video con yt-dlp.");
+    if (isUrl) {
+      // API por URL
+      const res = await axios.get(
+        `${this.baseUrl}/ytmp4?url=${encodeURIComponent(queryOrUrl)}&quality=auto&key=${this.apiKey}`,
+        { timeout: 30000 }
+      );
+      downloadUrl = res.data?.data?.dl;
+    } else {
+      // API por Query
+      const res = await axios.get(
+        `${this.baseUrl}/youtubeplayv2?query=${encodeURIComponent(queryOrUrl)}&type=mp4&quality=auto&key=${this.apiKey}`,
+        { timeout: 30000 }
+      );
+      downloadUrl = res.data?.data?.dl;
     }
+
+    if (!downloadUrl) {
+      throw new Error("No se pudo obtener el enlace de descarga del video.");
+    }
+
+    await downloadStreamToFile(downloadUrl, cachePath, { timeout: 60000 });
+    return cachePath;
   }
 
   /**
-   * Elimina un archivo temporal de la carpeta tmp
+   * Limpia un archivo temporal
    */
   cleanup(filePath) {
     try {
@@ -80,7 +148,7 @@ class YTDownloader {
         fs.unlinkSync(filePath);
       }
     } catch (e) {
-      console.error("[YTDownloader] Error eliminando archivo:", e.message);
+      console.error("[YTDownloader] Error limpiando archivo:", e.message);
     }
   }
 }

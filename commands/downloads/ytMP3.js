@@ -1,4 +1,3 @@
-import fs from "fs";
 import yts from "yt-search";
 import downloader from "../../controllers/ytDownloader.js";
 import formatter from "../../controllers/functions/formatNumbers.js";
@@ -28,9 +27,6 @@ export default {
     const text = args.join(" ").trim();
 
     if (!text) {
-      await socket.sendMessage(remoteJid, {
-        react: { text: "❓", key: message.key },
-      });
       return await socket.sendMessage(
         remoteJid,
         {
@@ -38,13 +34,14 @@ export default {
         },
         { quoted: message },
       );
+      await socket.sendMessage(remoteJid, {
+        react: { text: "❓", key: message.key },
+      });
     }
 
     await socket.sendMessage(remoteJid, {
       react: { text: "⏳", key: message.key },
     });
-
-    let audioPath = null;
 
     try {
       let finalUrl = text;
@@ -117,7 +114,7 @@ export default {
       caption += `┃ > ${fytBold("Canal")} › ${author}\n`;
       caption += `┃ > ${fytBold("Duración")} › ${duration}\n`;
       caption += `┃ > ${fytBold("Vistas")} › ${formatter(views)}\n`;
-      caption += `┃ > ${fytBold("Tipo")} › Audio MP3\n`;
+      caption += `┃ > ${fytBold("Tipo")} › Audio MP3\n`
       caption += `┃ > ${fytBold("Url")} › ${finalUrl}\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ > ⌛ Descargando audio...\n`;
@@ -129,14 +126,12 @@ export default {
         { quoted: message },
       );
 
-      // Obtener ruta del archivo descargado con el nuevo controlador
-      audioPath = await downloader.getAudio(finalUrl);
+      const audioPath = await downloader.getAudio(finalUrl);
 
-      // Enviar audio
       await socket.sendMessage(
         remoteJid,
         {
-          audio: fs.readFileSync(audioPath),
+          audio: { url: audioPath },
           mimetype: "audio/mpeg",
           fileName: `${title.replace(/[<>:"/\\|?*]/g, "")}.mp3`,
         },
@@ -158,9 +153,6 @@ export default {
         },
         { quoted: message },
       );
-    } finally {
-      // Limpiar archivo del servidor local en cualquier escenario
-      if (audioPath) downloader.cleanup(audioPath);
     }
   },
 };
