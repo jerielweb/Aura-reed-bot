@@ -229,9 +229,6 @@ async function connectToWhatsApp() {
     await handleGroupUpdate(sock, update, getDB);
   });
   
-  sock.ev.on("groups.update", async (updates) => {
-    await handleGroupMetadataUpdate(sock, updates, getDB);
-  });
 
   sock.ev.on("connection.update", async (u) => {
     if (u.qr && !chosenPairingCode) {
