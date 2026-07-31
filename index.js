@@ -25,7 +25,7 @@ import readline from "readline";
 import fs from "fs";
 import "./models/settings.js";
 import { handleMessage } from "./controllers/msgHandler.js";
-import { handleGroupUpdate, handleGroupMetadataUpdate } from "./controllers/groupEvents.js";
+import { handleGroupUpdate } from "./controllers/groupEvents.js";
 import { getDB, saveDB, initDB, flushDB } from "./models/db.js";
 import {
   runCleanCacheIfNeeded,
