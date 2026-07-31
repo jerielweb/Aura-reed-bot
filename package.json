@@ -31,7 +31,7 @@
     "@google/genai": "^2.8.0",
     "@hapi/boom": "^10.0.1",
     "@tobyg74/tiktok-api-dl": "^1.3.7",
-    "@whiskeysockets/baileys": "github:this-xys/bails",
+    "@whiskeysockets/baileys": "github:this-xys/baileys",
     "axios": "^1.16.0",
     "better-sqlite3": "^11.10.0",
     "canvas": "^3.2.3",
