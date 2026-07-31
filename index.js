@@ -1,3 +1,16 @@
+import { execSync } from 'child_process';
+
+try {
+    console.log("⚙️ Forzando compilación directa automática...");
+    
+    execSync('cd node_modules/better-sqlite3 && npx --yes prebuild-install || npx --yes node-gyp rebuild', { stdio: 'inherit' });
+    
+    console.log("✅ Compilación exitosa. Arrancando el sistema principal...");
+} catch (error) {
+    console.error("❌ Falló la compilación directa:", error.message);
+}
+
+
 import makeWASocket, {
   useMultiFileAuthState,
   DisconnectReason,
