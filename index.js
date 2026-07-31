@@ -14,8 +14,7 @@ try {
 import makeWASocket, {
   useMultiFileAuthState,
   DisconnectReason,
-  fetchLatestWaWebVersion,
-  handleGroupMetadataUpdate
+  fetchLatestWaWebVersion
 } from "@whiskeysockets/baileys";
 import { loadAllSubBots } from "./models/subbotManager.js";
 import { Boom } from "@hapi/boom";
@@ -26,7 +25,7 @@ import readline from "readline";
 import fs from "fs";
 import "./models/settings.js";
 import { handleMessage } from "./controllers/msgHandler.js";
-import { handleGroupUpdate } from "./controllers/groupEvents.js";
+import { handleGroupUpdate, handleGroupMetadataUpdate } from "./controllers/groupEvents.js";
 import { getDB, saveDB, initDB, flushDB } from "./models/db.js";
 import {
   runCleanCacheIfNeeded,
