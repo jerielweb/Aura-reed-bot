@@ -10,11 +10,9 @@ try {
     console.error("❌ Falló la compilación directa:", error.message);
 }
 
-
 import makeWASocket, {
   useMultiFileAuthState,
-  DisconnectReason,
-  fetchLatestWaWebVersion
+  DisconnectReason
 } from "@whiskeysockets/baileys";
 import { loadAllSubBots } from "./models/subbotManager.js";
 import { Boom } from "@hapi/boom";
@@ -143,25 +141,15 @@ async function connectToWhatsApp() {
     }
   }
 
-  let version;
-  try {
-    const fetched = await fetchLatestWaWebVersion();
-    version = fetched.version;
-    console.log(
-      chalk.blue(
-        `[Aura Reed] Usando la versión de WhatsApp Web v${version.join(".")}`,
-      ),
-    );
-  } catch (err) {
-    console.log(
-      chalk.yellow(
-        `[Aura Reed] No se pudo obtener la última versión de WhatsApp Web (posible bloqueo de IP en el host). Se usará la versión interna de Baileys.`,
-      ),
-    );
-  }
+  const customVersion = [2, 3000, 1043716065];
+  console.log(
+    chalk.blue(
+      `[Aura Reed] Usando versión fija de WhatsApp Web v${customVersion.join(".")}`,
+    ),
+  );
 
   const sock = makeWASocket({
-    ...(version ? { version } : {}),
+    version: customVersion,
     auth: {
       creds: state.creds,
       keys: state.keys,
@@ -176,7 +164,7 @@ async function connectToWhatsApp() {
           `[Aura Reed] Metadata cache check for ${jid}: ${meta ? "HIT" : "MISS"}`,
         ),
       );
-      return fetch;
+      return meta;
     },
   });
 
@@ -228,7 +216,6 @@ async function connectToWhatsApp() {
   sock.ev.on("group-participants.update", async (update) => {
     await handleGroupUpdate(sock, update, getDB);
   });
-  
 
   sock.ev.on("connection.update", async (u) => {
     if (u.qr && !chosenPairingCode) {
