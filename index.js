@@ -12,7 +12,8 @@ try {
 
 import makeWASocket, {
   useMultiFileAuthState,
-  DisconnectReason
+  DisconnectReason,
+  fetchLatestWaWebVersion
 } from "@whiskeysockets/baileys";
 import { loadAllSubBots } from "./models/subbotManager.js";
 import { Boom } from "@hapi/boom";
@@ -141,15 +142,25 @@ async function connectToWhatsApp() {
     }
   }
 
-  const customVersion = [2, 3000, 1043716065];
-  console.log(
-    chalk.blue(
-      `[Aura Reed] Usando versión fija de WhatsApp Web v${customVersion.join(".")}`,
-    ),
-  );
+  let version;
+  try {
+    const fetched = await fetchLatestWaWebVersion();
+    version = fetched.version;
+    console.log(
+      chalk.blue(
+        `[Aura Reed] Usando la última versión de WhatsApp Web v${version.join(".")}`,
+      ),
+    );
+  } catch (err) {
+    console.log(
+      chalk.yellow(
+        `[Aura Reed] No se pudo consultar la última versión Web. Se omitirá el parámetro para usar el fallback de Baileys.`,
+      ),
+    );
+  }
 
   const sock = makeWASocket({
-    version: customVersion,
+    ...(version ? { version } : {}),
     auth: {
       creds: state.creds,
       keys: state.keys,
