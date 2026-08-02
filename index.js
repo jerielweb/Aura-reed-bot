@@ -168,6 +168,22 @@ async function connectToWhatsApp() {
     printQRInTerminal: false,
     browser: ["Ubuntu", "Chrome", "20.0.04"],
     logger: pino({ level: "silent" }),
+    
+    getMessage: async (key) => {
+      try {
+        const dbInstance = await getDB();
+        if (dbInstance && typeof dbInstance.get === "function") {
+          const row = await dbInstance.get("SELECT message FROM messages WHERE id = ?", [key.id]);
+          if (row && row.message) {
+            return typeof row.message === "string" ? JSON.parse(row.message) : row.message;
+          }
+        }
+      } catch (e) {
+        console.error(chalk.gray(`[getMessage Error] ${e.message}`));
+      }
+      return undefined;
+    },
+
     cachedGroupMetadata: async (jid) => {
       const meta = groupMetadataCache.get(jid);
       console.log(
