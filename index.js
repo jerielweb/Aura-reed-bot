@@ -169,13 +169,19 @@ async function connectToWhatsApp() {
     browser: ["Ubuntu", "Chrome", "20.0.04"],
     logger: pino({ level: "silent" }),
     
-    getMessage: async (key) => {
+        getMessage: async (key) => {
       try {
         const dbInstance = await getDB();
         if (dbInstance && typeof dbInstance.get === "function") {
-          const row = await dbInstance.get("SELECT message FROM messages WHERE id = ?", [key.id]);
+          // Buscamos por ID y remoteJid para asegurar que sea el mensaje exacto del grupo
+          const row = await dbInstance.get(
+            "SELECT message FROM messages WHERE id = ? AND jid = ?", 
+            [key.id, key.remoteJid]
+          );
+
           if (row && row.message) {
-            return typeof row.message === "string" ? JSON.parse(row.message) : row.message;
+            const parsed = typeof row.message === "string" ? JSON.parse(row.message) : row.message;
+            return parsed;
           }
         }
       } catch (e) {
@@ -183,6 +189,7 @@ async function connectToWhatsApp() {
       }
       return undefined;
     },
+
 
     cachedGroupMetadata: async (jid) => {
       const meta = groupMetadataCache.get(jid);
