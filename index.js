@@ -152,13 +152,14 @@ async function connectToWhatsApp() {
     ...(version ? { version } : {}),
     auth: {
       creds: state.creds,
-      keys: makeCacheableSignalKeyStore,
+      // 🛠️ CORREGIDO: Debe invocarse pasando 'state.keys'
+      keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "silent" })),
     },
     printQRInTerminal: false,
     browser: ["Ubuntu", "Chrome", "20.0.04"],
     logger: pino({ level: "silent" }),
     
-    // 🛠️ MENEJADOR DE REINTENTOS PARA DESCRIPTAR "ESPERANDO MENSAJE"
+    // 🛠️ MANEJADOR DE REINTENTOS PARA DESCRIPTAR "ESPERANDO MENSAJE"
     getMessage: async (key) => {
       try {
         const dbInstance = await getDB();
@@ -177,7 +178,6 @@ async function connectToWhatsApp() {
       return undefined;
     },
 
-    // 🛠️ CORREGIDO: Retornar 'meta' en lugar de 'fetch'
     cachedGroupMetadata: async (jid) => {
       const meta = groupMetadataCache.get(jid);
       console.log(
@@ -228,10 +228,15 @@ async function connectToWhatsApp() {
   }
 
   sock.ev.on("messages.upsert", async ({ messages, type }) => {
-    if (type !== "notify") return;
+    // 🛠️ CORREGIDO: No descartar 'append' para permitir que procese llaves de grupos
     const m = messages[0];
-    const db = await getDB();
-    await handleMessage(sock, m, db, saveDB);
+    if (!m) return;
+    
+    // Solo responde en tiempo real a mensajes nuevos ('notify')
+    if (type === "notify") {
+      const db = await getDB();
+      await handleMessage(sock, m, db, saveDB);
+    }
   });
 
   sock.ev.on("group-participants.update", async (update) => {
