@@ -1,19 +1,7 @@
-import { execSync } from 'child_process';
-
-try {
-    console.log("⚙️ Forzando compilación directa automática...");
-    
-    execSync('cd node_modules/better-sqlite3 && npx --yes prebuild-install || npx --yes node-gyp rebuild', { stdio: 'inherit' });
-    
-    console.log("✅ Compilación exitosa. Arrancando el sistema principal...");
-} catch (error) {
-    console.error("❌ Falló la compilación directa:", error.message);
-}
-
 import makeWASocket, {
   useMultiFileAuthState,
   DisconnectReason,
-  fetchLatestWaWebVersion
+  fetchLatestWaWebVersion,
 } from "@whiskeysockets/baileys";
 import { loadAllSubBots } from "./models/subbotManager.js";
 import { Boom } from "@hapi/boom";
@@ -148,13 +136,13 @@ async function connectToWhatsApp() {
     version = fetched.version;
     console.log(
       chalk.blue(
-        `[Aura Reed] Usando la última versión de WhatsApp Web v${version.join(".")}`,
+        `[Aura Reed] Usando la versión de WhatsApp Web v${version.join(".")}`,
       ),
     );
   } catch (err) {
     console.log(
       chalk.yellow(
-        `[Aura Reed] No se pudo consultar la última versión Web. Se omitirá el parámetro para usar el fallback de Baileys.`,
+        `[Aura Reed] No se pudo obtener la última versión de WhatsApp Web (posible bloqueo de IP en el host). Se usará la versión interna de Baileys.`,
       ),
     );
   }
@@ -168,29 +156,6 @@ async function connectToWhatsApp() {
     printQRInTerminal: false,
     browser: ["Ubuntu", "Chrome", "20.0.04"],
     logger: pino({ level: "silent" }),
-    
-        getMessage: async (key) => {
-      try {
-        const dbInstance = await getDB();
-        if (dbInstance && typeof dbInstance.get === "function") {
-          // Buscamos por ID y remoteJid para asegurar que sea el mensaje exacto del grupo
-          const row = await dbInstance.get(
-            "SELECT message FROM messages WHERE id = ? AND jid = ?", 
-            [key.id, key.remoteJid]
-          );
-
-          if (row && row.message) {
-            const parsed = typeof row.message === "string" ? JSON.parse(row.message) : row.message;
-            return parsed;
-          }
-        }
-      } catch (e) {
-        console.error(chalk.gray(`[getMessage Error] ${e.message}`));
-      }
-      return undefined;
-    },
-
-
     cachedGroupMetadata: async (jid) => {
       const meta = groupMetadataCache.get(jid);
       console.log(
@@ -198,7 +163,7 @@ async function connectToWhatsApp() {
           `[Aura Reed] Metadata cache check for ${jid}: ${meta ? "HIT" : "MISS"}`,
         ),
       );
-      return meta;
+      return fetch;
     },
   });
 
