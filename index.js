@@ -2,7 +2,7 @@ import makeWASocket, {
   useMultiFileAuthState,
   DisconnectReason,
   fetchLatestWaWebVersion,
-  makeCacheableSignalKeyStore:
+  makeCacheableSignalKeyStore
 } from "@whiskeysockets/baileys";
 import { loadAllSubBots } from "./models/subbotManager.js";
 import { Boom } from "@hapi/boom";
@@ -152,13 +152,7 @@ async function connectToWhatsApp() {
     ...(version ? { version } : {}),
     auth: {
       creds: state.creds,
-      keys: makeCacheableSignalKeyStore,sock.ev.on("messages.upsert", async ({ messages, type }) => {
-  // 🛠️ Permitir 'append' para que procese claves de cifrado pendientes en grupos
-  const m = messages[0];
-  if (!m) return;
-  const db = await getDB();
-  await handleMessage(sock, m, db, saveDB);
-});
+      keys: makeCacheableSignalKeyStore,
     },
     printQRInTerminal: false,
     browser: ["Ubuntu", "Chrome", "20.0.04"],
@@ -232,10 +226,10 @@ async function connectToWhatsApp() {
       }
     })();
   }
+
   sock.ev.on("messages.upsert", async ({ messages, type }) => {
-    // 🛠️ Permitir 'append' para que procese claves de cifrado pendientes en grupos
+    if (type !== "notify") return;
     const m = messages[0];
-    if (!m) return;
     const db = await getDB();
     await handleMessage(sock, m, db, saveDB);
   });
