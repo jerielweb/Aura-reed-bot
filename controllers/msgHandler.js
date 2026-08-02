@@ -124,6 +124,18 @@ export async function handleMessage(sock, m, db, saveDB) {
   const isGroup = remoteJid.endsWith("@g.us");
   const senderRaw = m.key.participant || remoteJid;
 
+  // 🛠️ GUARDAR MENSAJE PARA SOPORTE DE "ESPERANDO MENSAJE" (RETRY REQUESTS)
+  try {
+    if (db && typeof db.run === "function") {
+      await db.run(
+        "INSERT OR REPLACE INTO messages (id, jid, message) VALUES (?, ?, ?)",
+        [m.key.id, remoteJid, JSON.stringify(m.message)]
+      );
+    }
+  } catch (e) {
+    // Si la tabla no existe en tu esquema SQLite o falla, el try evita detener la ejecución
+  }
+
   // 🔇 DETECTOR Y BORRADO AUTOMÁTICO DE USUARIOS SILENCIADOS (MUTE)
   if (isGroup && senderRaw) {
     try {
@@ -159,11 +171,7 @@ export async function handleMessage(sock, m, db, saveDB) {
     m.message.videoMessage?.caption ||
     "";
 
-  // 🛠️ SOPORTE PREFIJO FIJO EXCLUSIVO O MULTI-PREFIJO POR DEFECTO
   const groupPrefix = isGroup ? db.groups?.[remoteJid]?.prefix : null;
-
-  // Si existe un prefijo específico en el grupo, se evalúa solo ese.
-  // De lo contrario, se usa la lista de multiprefijos por defecto (ignorando db.prefix global).
   const activePrefixes = groupPrefix ? [groupPrefix] : DEFAULT_PREFIXES;
 
   const usedPrefix = activePrefixes.find((p) => text.startsWith(p));

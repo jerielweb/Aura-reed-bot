@@ -142,7 +142,7 @@ async function connectToWhatsApp() {
   } catch (err) {
     console.log(
       chalk.yellow(
-        `[Aura Reed] No se pudo obtener la última versión de WhatsApp Web (posible bloqueo de IP en el host). Se usará la versión interna de Baileys.`,
+        `[Aura Reed] No se pudo obtener la última versión de WhatsApp Web. Se usará la versión interna de Baileys.`,
       ),
     );
   }
@@ -156,6 +156,27 @@ async function connectToWhatsApp() {
     printQRInTerminal: false,
     browser: ["Ubuntu", "Chrome", "20.0.04"],
     logger: pino({ level: "silent" }),
+    
+    // 🛠️ MENEJADOR DE REINTENTOS PARA DESCRIPTAR "ESPERANDO MENSAJE"
+    getMessage: async (key) => {
+      try {
+        const dbInstance = await getDB();
+        if (dbInstance && typeof dbInstance.get === "function") {
+          const row = await dbInstance.get(
+            "SELECT message FROM messages WHERE id = ? AND jid = ?",
+            [key.id, key.remoteJid]
+          );
+          if (row && row.message) {
+            return typeof row.message === "string" ? JSON.parse(row.message) : row.message;
+          }
+        }
+      } catch (e) {
+        console.error(chalk.gray(`[getMessage Error] ${e.message}`));
+      }
+      return undefined;
+    },
+
+    // 🛠️ CORREGIDO: Retornar 'meta' en lugar de 'fetch'
     cachedGroupMetadata: async (jid) => {
       const meta = groupMetadataCache.get(jid);
       console.log(
@@ -163,7 +184,7 @@ async function connectToWhatsApp() {
           `[Aura Reed] Metadata cache check for ${jid}: ${meta ? "HIT" : "MISS"}`,
         ),
       );
-      return fetch;
+      return meta;
     },
   });
 
