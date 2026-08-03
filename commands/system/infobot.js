@@ -144,7 +144,7 @@ export default {
     textoInfo += `┃ ➪ ${fytBold("RAM Servidor:")} ${ramTotal}GB (${ramPercent}%)\n`;
     textoInfo += `┃ ➪ ${fytBold("RAM Bot:")} ${ramBot} GB\n`;
     textoInfo += `┃ ➪ ${fytBold("Total Comandos:")} ${totalCmds}\n`;
-    textoInfo += `┃ ➪ ${fytBold("Estado de Instancia:")} ${botType} - Operativo 🟢\n`;
+    textoInfo += `┃ ➪ ${fytBold("Instancia:")} ${botType}\n`;
     textoInfo += `╰〔 ⚡ ${fytBold("REED SYSTEM")} 〕⬣`;
 
     // ── MANEJO DEL BANNER ──
