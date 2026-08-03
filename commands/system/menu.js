@@ -13,7 +13,6 @@ export default {
   description: "Muestra el menú completo.",
   async execute(sock, m, args, { prefix, db }) {
     const BannerBot = "./assets/img/BotBanner.jpg";
-    const BannerBotMp3 = "./assets/audio/menu_music.opus";
     const remoteJid = m.key.remoteJid;
     const pushName = m.pushName || "Usuario";
     const botName = db.botName || "Aura Reed";
@@ -171,17 +170,5 @@ export default {
     await sock.relayMessage(remoteJid, waMsg.message, {
       messageId: waMsg.key.id,
     });
-
-    if (!requestedCategory && fs.existsSync(BannerBotMp3)) {
-      await sock.sendMessage(
-        remoteJid,
-        {
-          audio: fs.readFileSync(BannerBotMp3),
-          ptt: true,
-          mimetype: "audio/mp4",
-        },
-        { quoted: m },
-      );
-    }
   },
 };
