@@ -3,7 +3,7 @@ import chalk from "chalk";
 import { resolveLidToRealJid } from "./../models/utils.js";
 import { trackGroupActivity } from "./../models/groupDb.js";
 import { cmdLog } from "./cmdLog.js";
-import { Rstr } from "./textBots.js";
+import { Rstr, catOff } from "./textBots.js";
 import { isCategoryEnabled, default as cmdManagerCmd } from "./cmdManager.js";
 import { botStatus } from "./../commands/group/bot.js";
 import { categories } from "./consts/cat.js";
@@ -358,7 +358,7 @@ export async function handleMessage(sock, m, db, saveDB) {
         if (isGroup && !isCategoryEnabled(remoteJid, cmd.category, db))
           return await sock.sendMessage(
             remoteJid,
-            { text: "Categoría desactivada." },
+            { text: catOff({ CAT_CMD: cmd.category }) },
             { quoted: m },
           );
         if (cmd.adminOnly && !isAdmin)

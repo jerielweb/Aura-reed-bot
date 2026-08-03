@@ -1,14 +1,21 @@
 import { categories, Aliases } from "./consts/cat.js";
 
 export function isCategoryEnabled(remoteJid, category, db) {
-  const protectedCategories = ["owner", "group", "system"];
-  if (!remoteJid.endsWith("@g.us") || protectedCategories.includes(category))
+  if (!category) return true;
+  
+  const groupConfig = db?.groups?.[remoteJid]?.categories;
+  
+  // Si la categoría es NSFW y no se ha activado explícitamente, está APAGADA por defecto
+  if (category.toLowerCase() === "nsfw") {
+    return groupConfig?.nsfw === true;
+  }
+  
+  // Para el resto de categorías, si no existe la config o no se ha cambiado, están ENCENDIDAS por defecto
+  if (!groupConfig || groupConfig[category] === undefined) {
     return true;
-
-  const groupData = db.groups[remoteJid];
-  if (!groupData || !groupData.disabledCategories) return true;
-
-  return !groupData.disabledCategories.includes(category);
+  }
+  
+  return Boolean(groupConfig[category]);
 }
 
 export default {
@@ -29,7 +36,9 @@ export default {
         activity: {},
         onlyAdmin: false,
         antitoxic: false,
-        disabledCategories: [],
+        disabledCategories: [
+          "nsfw"
+        ],
         botOn: true,
       };
     }

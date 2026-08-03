@@ -15,3 +15,8 @@ export const Err = {
   notAdmin:
     "╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ⚠️ 𝐀𝐂𝐂𝐄𝐒𝐎 𝐃𝐄𝐍𝐄𝐆𝐀𝐃𝐎\n╰━━━━━━━━━━━━⬣\n\n┃ > Este comando es exclusivo\n┃ > para administradores del grupo.\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣",
 };
+
+
+export const catOff = ({ CAT_CMD }) => {
+  return `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ${fytBold("CATEGORIA DESACTIVADA")} \n╰━━━━━━━━━━━━⬣\n\n┃ > Los comandos de la categoría ${fytBold(CAT_CMD)}\n┃ > están desactivados en este grupo.\n\n╰〔 ⚡ ${fytBold("SYSTEM ALERT")} 〕⬣`;
+};

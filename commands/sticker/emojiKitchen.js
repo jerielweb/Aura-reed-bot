@@ -9,40 +9,10 @@ import { ffmpegSemaphore } from "../../controllers/downloadUtils.js";
 ffmpeg.setFfmpegPath(ffmpegPath);
 
 function extractEmojis(text) {
-  // Eliminamos letras, números, espacios y el signo '+'
-  const cleanedText = text.replace(/[a-zA-Z0-9\s+]/g, "");
-
-  // Convertimos la cadena limpia en un array real (soporta cualquier versión de Node)
-  // SIN usar 'Set' para permitir que combinen el mismo emoji (ej: 🤣 + 🤣)
-  return Array.from(cleanedText);
-}
-
-async function raceEmojiApis(apis) {
-  const runners = apis.map((api) =>
-    api.request().then((res) => {
-      const buffer = Buffer.from(res.data);
-      if (!buffer || buffer.length < 100) {
-        throw new Error(`[${api.name}] no devolvió imagen válida`);
-      }
-      return buffer;
-    }),
-  );
-
-  if (typeof Promise.any === "function") {
-    return Promise.any(runners);
-  }
-
-  const results = await Promise.allSettled(runners);
-  for (const result of results) {
-    if (result.status === "fulfilled") return result.value;
-  }
-  throw new Error(
-    results
-      .map((r) =>
-        r.status === "rejected" ? r.reason?.message || String(r.reason) : "ok",
-      )
-      .join(", "),
-  );
+  // Expresión regular que detecta exactamente emojis Unicode válidos
+  const emojiRegex = /\p{Extended_Pictographic}/gu;
+  const matches = text.match(emojiRegex);
+  return matches || [];
 }
 
 export default {
@@ -77,37 +47,21 @@ export default {
       react: { text: "⏳", key: message.key },
     });
 
-    const apis = [
-      {
-        name: "AlyaCore tools/emojimix",
-        request: () =>
-          axios.get("https://api.alyacore.xyz/tools/emojimix", {
-            params: {
-              emoji1,
-              emoji2,
-              key: global.Apis?.apiAiya?.apikey || "oboe",
-            },
-            responseType: "arraybuffer",
-            timeout: 60000,
-          }),
-      },
-      {
-        name: "StellarWA tools/emojimix",
-        request: () =>
-          axios.get("https://api.stellarwa.xyz/tools/emojimix", {
-            params: {
-              emoji1,
-              emoji2,
-              key: "api-7C3jf",
-            },
-            responseType: "arraybuffer",
-            timeout: 60000,
-          }),
-      },
-    ];
-
     try {
-      const rawBuffer = await raceEmojiApis(apis);
+      const response = await axios.get("https://api.alyacore.xyz/tools/emojimix", {
+        params: {
+          emoji1,
+          emoji2,
+          key: global.Apis?.apiAiya?.apikey || "oboe",
+        },
+        responseType: "arraybuffer",
+        timeout: 60000,
+      });
+
+      const rawBuffer = Buffer.from(response.data);
+      if (!rawBuffer || rawBuffer.length < 100) {
+        throw new Error("No se recibió una imagen válida de AlyaCore");
+      }
 
       const tempId = Date.now();
       const inputPath = path.join(os.tmpdir(), `aura-emojimix-input-${tempId}`);

@@ -39,8 +39,8 @@ async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
   return new Promise((resolve, reject) => {
     let fps = 60;
     let quality = 50;
-    let duration = 20;
-    let scale = 512;
+    let duration = 30;
+    let scale = 1080;
 
     if (attempt === 2) {
       fps = 30;
@@ -51,7 +51,7 @@ async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
       fps = 15;
       quality = 20;
       duration = 8;
-      scale = 384;
+      scale = 480;
     } else if (attempt >= 4) {
       fps = 10;
       quality = 10;

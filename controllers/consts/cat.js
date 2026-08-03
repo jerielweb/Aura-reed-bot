@@ -13,6 +13,7 @@ export const categories = [
   "AI",
   "stalk",
   "gacha",
+  "nsfw"
 ];
 
 export const Aliases = {
@@ -52,4 +53,7 @@ export const Aliases = {
   waifu: "gacha",
   waifus: "gacha",
   harem: "gacha",
+  nsfw: "nsfw",
+  18: "nsfw",
+  NSFW: "nsfw"
 };
