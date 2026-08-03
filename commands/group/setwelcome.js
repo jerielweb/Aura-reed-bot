@@ -1,65 +1,85 @@
 import { fytBold } from "../../models/TextStyle.js";
 
 export default {
-  name: ["setwelcome", "setbienvenida"],
+  name: ["setwelcome", "welcome", "setbienvenida"],
   category: "group",
-  description: "Personalizar el mensaje de bienvenida del grupo",
-  async execute(sock, m, args, { prefix, isGroup, isAdmin, db }) {
-    const remoteJid = m.key.remoteJid;
+  description: "Configura o personaliza el mensaje de bienvenida del grupo",
+  adminOnly: true,
+  execute: async (socket, message, args, { prefix, db, saveDB }) => {
+    const remoteJid = message.key.remoteJid;
 
-    if (!isGroup) {
-      return await sock.sendMessage(
-        remoteJid,
-        { text: "❌ Este comando solo se puede usar en grupos." },
-        { quoted: m }
-      );
+    if (!remoteJid.endsWith("@g.us")) {
+      let text = `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n`;
+      text += `┃ ${fytBold("ACCION INCOMPATIBLE")} \n`;
+      text += `╰━━━━━━━━━━━━⬣\n\n`;
+      text += `┃ > Este comando solo funciona en grupos.\n\n`;
+      text += `╰〔 ⚡ ${fytBold("SYSTEM ALERT")} 〕⬣`;
+
+      return socket.sendMessage(remoteJid, { text }, { quoted: message });
     }
 
-    if (!isAdmin) {
-      return await sock.sendMessage(
-        remoteJid,
-        { text: "❌ Solo los administradores pueden cambiar la bienvenida." },
-        { quoted: m }
-      );
-    }
-
-    const text = args.join(" ").trim();
-
-    // Estructura en BD
     if (!db.groups) db.groups = {};
     if (!db.groups[remoteJid]) db.groups[remoteJid] = {};
 
-    if (!text) {
-      const currentMsg =
-        db.groups[remoteJid].welcomeMessage || "No configurado (usando por defecto)";
+    const customText = args.join(" ").trim();
 
-      return await sock.sendMessage(
-        remoteJid,
-        {
-          text: `📝 ${fytBold("PERSONALIZAR BIENVENIDA")}\n\n` +
-            `📌 ${fytBold("Mensaje actual:")}\n${currentMsg}\n\n` +
-            `💡 ${fytBold("Uso:")} ${prefix}setwelcome <tu mensaje>\n\n` +
-            `🏷️ ${fytBold("Etiquetas que puedes usar:")}\n` +
-            `• @user - Menciona al usuario que entra\n` +
-            `• @group - Nombre del grupo\n` +
-            `• @desc - Descripción del grupo\n` +
-            `• @count - Número total de miembros`,
-        },
-        { quoted: m }
-      );
+    if (!customText) {
+      const currentMsg =
+        db.groups[remoteJid].welcomeMessage || "Mensaje por defecto";
+      const status = db.groups[remoteJid].welcome ? "Activado 🟢" : "Desactivado 🔴";
+
+      let text = `╭〔 ⚙️ ${fytBold("SETWELCOME - AURA REED")} 〕⬣\n`;
+      text += `┃ 📌 ${fytBold("Estado:")} ${status}\n`;
+      text += `┃ 💬 ${fytBold("Mensaje actual:")}\n`;
+      text += `┃ > ${currentMsg}\n`;
+      text += `╰━━━━━━━━━━━━⬣\n\n`;
+      text += `💡 ${fytBold("Uso del comando:")}\n`;
+      text += `┃ • ${prefix}welcome on/off - Activa o desactiva\n`;
+      text += `┃ • ${prefix}setwelcome [texto] - Define la plantilla\n\n`;
+      text += `🏷️ ${fytBold("Etiquetas disponibles:")}\n`;
+      text += `┃ • @user - Menciona al nuevo usuario\n`;
+      text += `┃ • @group - Nombre del grupo\n`;
+      text += `┃ • @desc - Descripción del grupo\n`;
+      text += `┃ • @count - Total de integrantes\n\n`;
+      text += `╰〔 ⚡ ${fytBold("SYSTEM INFO")} 〕⬣`;
+
+      return socket.sendMessage(remoteJid, { text }, { quoted: message });
     }
 
-    // Guardar plantilla y activar automáticamente
-    db.groups[remoteJid].welcomeMessage = text;
-    db.groups[remoteJid].welcomeEnabled = true;
+    // 1. Activar / Desactivar si pasa on u off
+    if (customText.toLowerCase() === "on") {
+      db.groups[remoteJid].welcome = true;
+      if (typeof saveDB === "function") await saveDB();
 
-    await sock.sendMessage(
-      remoteJid,
-      {
-        text: `✅ ${fytBold("¡Mensaje de bienvenida personalizado con éxito!")}\n\n` +
-          `📌 ${fytBold("Vista previa:")}\n${text}`,
-      },
-      { quoted: m }
-    );
+      let text = `╭〔 ✅ ${fytBold("AURA REED")} 〕⬣\n`;
+      text += `┃ > Bienvenida ${fytBold("ACTIVADA")} para este grupo.\n`;
+      text += `╰━━━━━━━━━━━━⬣`;
+      return socket.sendMessage(remoteJid, { text }, { quoted: message });
+    }
+
+    if (customText.toLowerCase() === "off") {
+      db.groups[remoteJid].welcome = false;
+      if (typeof saveDB === "function") await saveDB();
+
+      let text = `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n`;
+      text += `┃ > Bienvenida ${fytBold("DESACTIVADA")} para este grupo.\n`;
+      text += `╰━━━━━━━━━━━━⬣`;
+      return socket.sendMessage(remoteJid, { text }, { quoted: message });
+    }
+
+    // 2. Guardar plantilla personalizada
+    db.groups[remoteJid].welcomeMessage = customText;
+    db.groups[remoteJid].welcome = true;
+
+    if (typeof saveDB === "function") await saveDB();
+
+    let text = `╭〔 ✅ ${fytBold("AURA REED")} 〕⬣\n`;
+    text += `┃ ${fytBold("BIENVENIDA GUARDADA")} \n`;
+    text += `╰━━━━━━━━━━━━⬣\n\n`;
+    text += `┃ 📌 ${fytBold("Nueva plantilla:")}\n`;
+    text += `${customText}\n\n`;
+    text += `╰〔 ⚡ ${fytBold("SYSTEM INFO")} 〕⬣`;
+
+    return socket.sendMessage(remoteJid, { text }, { quoted: message });
   },
 };
