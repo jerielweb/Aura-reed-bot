@@ -15,25 +15,23 @@ async function fetchJson(url) {
 }
 
 function normalize(apiResult, motorName) {
-  // Verificamos la estructura real: apiResult.resultados debe ser un array con datos
   if (
     !apiResult ||
     !apiResult.status ||
-    !Array.isArray(apiResult.resultados) ||
-    apiResult.resultados.length === 0
+    !apiResult.data
   ) {
     throw new Error(
       `[${motorName}] No se encontraron resultados para esta aplicación`,
     );
   }
 
-  const data = apiResult.resultados[0]; // Tomamos el primer juego o app encontrado
+  const data = apiResult.data;
 
-  const name = data.titulo || "Aplicación Desconocida";
-  const packageId = data.appId || "com.unknown";
-  const size = data.tamaño || "N/A";
-  const lastUpdated = data.version || "N/A"; // Usamos la versión ya que no trae fecha directa
-  const banner = data.miniatura || null;
+  const name = data.name || "Aplicación Desconocida";
+  const packageId = data.package || "com.unknown";
+  const size = data.size || "N/A";
+  const lastUpdated = data.lastUpdated || "N/A"; 
+  const banner = data.banner || null;
   const dl = data.dl;
 
   if (!dl) {
@@ -54,7 +52,7 @@ function normalize(apiResult, motorName) {
 export default {
   name: ["apk", "apkdl", "apkd", "apks", "apkdownload", "androidapp", "app"],
   category: "downloads",
-  description: "Descarga archivos APK de Android desde Uptodown.",
+  description: "Descarga archivos APK de Android.",
   execute: async (socket, message, args) => {
     const remoteJid = message.key.remoteJid;
     const query = args.join(" ").trim();
@@ -78,11 +76,10 @@ export default {
     let isCacheHit = false;
 
     try {
-      // Petición al endpoint real que enviaste
       const resData = await fetchJson(
-        `https://fare.ink/search/uptodown?q=${encodeURIComponent(query)}&limit=1`,
+        `https://api.alyacore.xyz/search/apk?query=${encodeURIComponent(query)}&key=oboe`,
       );
-      const metadata = normalize(resData, "Uptodown");
+      const metadata = normalize(resData, "AlyaCore");
 
       const { name, packageId, size, lastUpdated, banner, dl, motor } =
         metadata;
