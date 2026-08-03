@@ -9,7 +9,7 @@ import { categories, Aliases } from "./../../controllers/consts/cat.js";
 const mediaCacheMap = new Map();
 
 export default {
-  name: ["menu", "help", "h"],
+  name: ["menu", "help", "h", "menú"],
   description: "Muestra el menú completo.",
   async execute(sock, m, args, { prefix, db }) {
     const BannerBot = "./assets/img/BotBanner.jpg";
