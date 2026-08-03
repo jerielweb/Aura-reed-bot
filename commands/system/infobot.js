@@ -22,20 +22,6 @@ function getServerName() {
   return host;
 }
 
-// Detecta el Sistema Operativo real (Ej: Ubuntu 22.04 LTS / Linux arm64)
-function getOperatingSystem() {
-  try {
-    if (fs.existsSync("/etc/os-release")) {
-      const releaseData = fs.readFileSync("/etc/os-release", "utf8");
-      const match = releaseData.match(/PRETTY_NAME="?([^"\n]+)"?/);
-      if (match && match[1]) {
-        return `${match[1]} (${os.arch()})`;
-      }
-    }
-  } catch (e) {}
-  return `${os.type()} ${os.release()} (${os.arch()})`;
-}
-
 // Helper para formatear bytes a GB
 function formatBytes(bytes) {
   if (!bytes || isNaN(bytes) || bytes === Infinity) return "0.00";
@@ -121,7 +107,7 @@ export default {
 
     // ── DATOS DEL SISTEMA Y HOST ──
     const serverHost = getServerName();
-    const osSystem = getOperatingSystem();
+    const osSystem = `${os.platform()} (${os.arch()})`;
     const botUp = process.uptime();
     const totalCmds = getTotalCommands();
 
@@ -151,14 +137,14 @@ export default {
     textoInfo += `┃ > ${fytBold("Url:")} ${chanellink}\n`;
     textoInfo += `╰━━━━━━━━━━━━━━━━━━⬣\n\n`;
 
-    textoInfo += `┏━━〔 ${fytBold("DETALLES DEL SISTEMA")} 〕━━⬣\n`;
-    textoInfo += `┃ ➪ ${fytBold("Servidor / Host:")}\n┃ ✦ ${serverHost}\n\n`;
-    textoInfo += `┃ ➪ ${fytBold("Sistema Operativo:")}\n┃ ✦ ${osSystem}\n\n`;
-    textoInfo += `┃ ➪ ${fytBold("Tiempo Activo (Bot):")}\n┃ ✦ ${formatTime(botUp)}\n\n`;
-    textoInfo += `┃ ➪ ${fytBold("RAM Servidor:")}\n┃ ✦ ${ramUsed} GB / ${ramTotal} GB (${ramPercent}%)\n\n`;
-    textoInfo += `┃ ➪ ${fytBold("RAM Bot:")}\n┃ ✦ ${ramBot} GB\n\n`;
-    textoInfo += `┃ ➪ ${fytBold("Total Comandos:")}\n┃ ✦ ${totalCmds} comandos cargados\n\n`;
-    textoInfo += `┃ ➪ ${fytBold("Estado de Instancia:")}\n┃ ✦ ${botType} - Operativo 🟢\n\n`;
+    textoInfo += `┏━━〔 ${fytBold("INFO DEL SISTEMA")} 〕━━⬣\n`;
+    textoInfo += `┃ ➪ ${fytBold("Servidor / Host:")} ${serverHost}\n\n`;
+    textoInfo += `┃ ➪ ${fytBold("Sistema Operativo:")} ${osSystem}\n\n`;
+    textoInfo += `┃ ➪ ${fytBold("Tiempo Activo (Bot):")} ${formatTime(botUp)}\n\n`;
+    textoInfo += `┃ ➪ ${fytBold("RAM Servidor:")} ${ramTotal}GB (${ramPercent}%)\n\n`;
+    textoInfo += `┃ ➪ ${fytBold("RAM Bot:")} ${ramBot} GB\n\n`;
+    textoInfo += `┃ ➪ ${fytBold("Total Comandos:")} ${totalCmds} comandos cargados\n\n`;
+    textoInfo += `┃ ➪ ${fytBold("Estado de Instancia:")} ${botType} - Operativo 🟢\n\n`;
     textoInfo += `╰〔 ⚡ ${fytBold("REED SYSTEM")} 〕⬣`;
 
     // ── MANEJO DEL BANNER ──
