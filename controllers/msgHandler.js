@@ -231,67 +231,56 @@ export async function handleMessage(sock, m, db, saveDB) {
   let isBotAdmin = false;
   let groupMetadata = null;
 
-  if (isGroup) {
+    if (isGroup) {
     try {
-      // Método correcto en Baileys
       groupMetadata = await sock.groupMetadata(remoteJid);
 
-      const clean = (id) => {
-        if (!id) return null;
-        return String(id).split("@")[0].split(":")[0];
-      };
+      const clean = (id) => (id ? String(id).split("@")[0].split(":")[0] : null);
 
       const senderBase = clean(senderRaw);
       const jidRemitenteBase = clean(jidRemitente);
       const botBase = clean(sock.user?.id);
 
+      // Buscar al participante en la lista
       const userParticipant = groupMetadata.participants?.find((p) => {
         const pIdClean = clean(p.id);
-        const pJidClean = clean(p.jid); // SE AÑADIÓ P.JID
-        const pLidClean = clean(p.lid);
+        const pJidClean = clean(p.jid);
         const pPhoneClean = clean(p.phoneNumber);
 
         return (
-          (senderBase &&
-            (pIdClean === senderBase ||
-              pJidClean === senderBase ||
-              pLidClean === senderBase ||
-              pPhoneClean === senderBase)) ||
-          (jidRemitenteBase &&
-            (pIdClean === jidRemitenteBase ||
-              pJidClean === jidRemitenteBase ||
-              pLidClean === jidRemitenteBase ||
-              pPhoneClean === jidRemitenteBase))
+          (senderBase && (pIdClean === senderBase || pJidClean === senderBase || pPhoneClean === senderBase)) ||
+          (jidRemitenteBase && (pIdClean === jidRemitenteBase || pJidClean === jidRemitenteBase || pPhoneClean === jidRemitenteBase))
         );
       });
 
       const botParticipant = groupMetadata.participants?.find((p) => {
         const pIdClean = clean(p.id);
-        const pJidClean = clean(p.jid); // SE AÑADIÓ P.JID
-        const pLidClean = clean(p.lid);
+        const pJidClean = clean(p.jid);
         const pPhoneClean = clean(p.phoneNumber);
 
-        return (
-          botBase &&
-          (pIdClean === botBase ||
-            pJidClean === botBase ||
-            pLidClean === botBase ||
-            pPhoneClean === botBase)
-        );
+        return botBase && (pIdClean === botBase || pJidClean === botBase || pPhoneClean === botBase);
       });
 
+      // 1. Extraer el JID/Número real del usuario si viene en los metadatos
+      // Si p.jid tiene número, lo usa; de lo contrario usa el LID original
+      const realUserJid = userParticipant?.jid || userParticipant?.phoneNumber || senderRaw;
+      const userNumber = clean(realUserJid); // Solo los dígitos (ej: 50670375314)
+
+      // 2. Definir permisos
       isAdmin =
         userParticipant?.admin === "admin" ||
         userParticipant?.admin === "superadmin";
       isBotAdmin =
         botParticipant?.admin === "admin" ||
         botParticipant?.admin === "superadmin";
+
     } catch (e) {
       console.error("[msgHandler] Error al validar administradores:", e);
       isAdmin = false;
       isBotAdmin = false;
     }
   }
+
 
 
   try {
