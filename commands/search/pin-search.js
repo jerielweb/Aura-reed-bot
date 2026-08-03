@@ -1,4 +1,10 @@
 import fetch from "node-fetch";
+import {
+  generateWAMessageFromContent,
+  generateWAMessage,
+  jidNormalizedUser,
+} from "@whiskeysockets/baileys";
+import crypto from "crypto";
 import { fytBold } from "../../models/TextStyle.js";
 
 async function fetchJson(url) {
@@ -12,10 +18,51 @@ async function fetchJson(url) {
   return await res.json();
 }
 
+async function sendAlbumMessage(socket, jid, array, quoted) {
+  const userJid = jidNormalizedUser(
+    socket.user?.id || socket.authState?.creds?.me?.id || "",
+  );
+  const album = await generateWAMessageFromContent(
+    jid,
+    {
+      messageContextInfo: {
+        messageSecret: crypto.randomBytes(32),
+      },
+      albumMessage: {
+        expectedImageCount: array.filter((a) => "image" in a).length,
+        expectedVideoCount: array.filter((a) => "video" in a).length,
+      },
+    },
+    { quoted, userJid },
+  );
+
+  await socket.relayMessage(jid, album.message, {
+    messageId: album.key.id,
+  });
+
+  for (let item of array) {
+    const img = await generateWAMessage(jid, item, {
+      upload: socket.waUploadToServer,
+      userJid,
+    });
+    img.message.messageContextInfo = {
+      messageSecret: crypto.randomBytes(32),
+      messageAssociation: {
+        associationType: 1,
+        parentMessageKey: album.key,
+      },
+    };
+    await socket.relayMessage(jid, img.message, {
+      messageId: img.key.id,
+    });
+  }
+  return album;
+}
+
 export default {
   name: ["pin", "pinterest"],
   category: "search",
-  description: "Busca una imagen en Pinterest.",
+  description: "Busca imágenes en Pinterest.",
   execute: async (socket, message, args) => {
     const remoteJid = message.key.remoteJid;
     const query = args.join(" ").trim();
@@ -42,26 +89,37 @@ export default {
         throw new Error("Sin resultados");
       }
 
-      const item = res.data[0];
-      const imageUrl = item.hd || item.mini || item.image;
-
-      if (!imageUrl) {
-        throw new Error("Imagen no disponible");
-      }
-
+      const items = res.data.slice(0, 10);
+      
       let captionText = `╭━━〔 ${fytBold("PINTEREST SEARCH")} 〕━━⬣\n`;
       captionText += `┃ 🔍 Pin: ${query}\n`;
       captionText += `┃ ⚙️ Motor: › Alya Core\n`;
       captionText += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;
 
-      await socket.sendMessage(
-        remoteJid,
-        {
-          image: { url: imageUrl },
-          caption: captionText,
-        },
-        { quoted: message }
-      );
+      const mediaArray = items
+        .map((item) => {
+          const url = item.hd || item.mini || item.image || (typeof item === 'string' ? item : "");
+          return { url };
+        })
+        .filter((m) => m.url && m.url.startsWith("http"));
+
+      if (mediaArray.length === 0) {
+        throw new Error("Sin imágenes válidas");
+      }
+
+      const album = mediaArray.map((m, i) => ({
+        image: { url: m.url },
+        caption: i === 0 ? captionText : "",
+      }));
+
+      if (album.length < 2) {
+        await socket.sendMessage(remoteJid, {
+          image: { url: album[0].image.url },
+          caption: captionText
+        }, { quoted: message });
+      } else {
+        await sendAlbumMessage(socket, remoteJid, album, message);
+      }
 
       await socket.sendMessage(remoteJid, {
         react: { text: "✅", key: message.key },
