@@ -74,7 +74,7 @@ export async function getNsfwReactionUrl(type) {
     },
   );
 
-  const url = res.data?.url;
+  const url = res.data?.result;
   if (!url || res.data?.status !== true) {
     throw new Error(res.data?.message || "AlyaCore no devolvió una URL válida");
   }
