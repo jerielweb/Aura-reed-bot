@@ -233,40 +233,48 @@ export async function handleMessage(sock, m, db, saveDB) {
 
   if (isGroup) {
     try {
-      groupMetadata = await sock.getMetadata(remoteJid);
-      
+      // Método correcto en Baileys
+      groupMetadata = await sock.groupMetadata(remoteJid);
+
       const clean = (id) => {
         if (!id) return null;
         return String(id).split("@")[0].split(":")[0];
       };
-      
+
       const senderBase = clean(senderRaw);
       const jidRemitenteBase = clean(jidRemitente);
       const botBase = clean(sock.user?.id);
 
-      const userParticipant = groupMetadata.participants.find((p) => {
+      const userParticipant = groupMetadata.participants?.find((p) => {
         const pIdClean = clean(p.id);
+        const pJidClean = clean(p.jid); // SE AÑADIÓ P.JID
         const pLidClean = clean(p.lid);
         const pPhoneClean = clean(p.phoneNumber);
+
         return (
           (senderBase &&
             (pIdClean === senderBase ||
+              pJidClean === senderBase ||
               pLidClean === senderBase ||
               pPhoneClean === senderBase)) ||
           (jidRemitenteBase &&
             (pIdClean === jidRemitenteBase ||
+              pJidClean === jidRemitenteBase ||
               pLidClean === jidRemitenteBase ||
               pPhoneClean === jidRemitenteBase))
         );
       });
 
-      const botParticipant = groupMetadata.participants.find((p) => {
+      const botParticipant = groupMetadata.participants?.find((p) => {
         const pIdClean = clean(p.id);
+        const pJidClean = clean(p.jid); // SE AÑADIÓ P.JID
         const pLidClean = clean(p.lid);
         const pPhoneClean = clean(p.phoneNumber);
+
         return (
           botBase &&
           (pIdClean === botBase ||
+            pJidClean === botBase ||
             pLidClean === botBase ||
             pPhoneClean === botBase)
         );
@@ -281,8 +289,10 @@ export async function handleMessage(sock, m, db, saveDB) {
     } catch (e) {
       console.error("[msgHandler] Error al validar administradores:", e);
       isAdmin = false;
+      isBotAdmin = false;
     }
   }
+
 
   try {
     const middlewares = await loadMiddlewares();
