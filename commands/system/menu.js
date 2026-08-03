@@ -178,7 +178,6 @@ export default {
         {
           audio: fs.readFileSync(BannerBotMp3),
           ptt: true,
-          seconds: 999999,
           mimetype: "audio/ogg; codecs=opus",
         },
         { quoted: m },
