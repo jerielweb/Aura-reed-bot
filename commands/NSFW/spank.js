@@ -4,7 +4,7 @@ import { fytBold } from "../../models/TextStyle.js";
 
 export default {
   name: ["spank", "nalgada", "nalgadas", "azotar"],
-  category: "nsfw",
+  category: "NSFW",
   description: "Dar una nalgada a un usuario",
   async execute(sock, m, args, { prefix, jidRemitente }) {
     const remoteJid = m.key.remoteJid;
