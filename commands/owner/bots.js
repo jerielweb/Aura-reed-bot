@@ -41,8 +41,7 @@ export default {
           return jid ? String(jid).split("@")[0].split(":")[0] : null;
         }).filter(Boolean);
 
-        // Filtra los bots que coinciden con los participantes del grupo
-        botsInGroup = files.filter((file) => participantJids.includes(file));
+        botsInGroup = files.filter((file) => participantJids.includes(file.replace(/[^0-9]/g, '')));
       } catch (e) {
         console.error("Error al obtener metadata del grupo:", e);
       }
@@ -56,8 +55,9 @@ export default {
         text += `┃ > No hay sub-bots aquí.\n`;
       } else {
         botsInGroup.forEach((file, index) => {
-          text += `┃ ${index + 1}. @${file}\n`;
-          mentions.push(`${file}`);
+          const num = file.replace(/[^0-9]/g, '');
+          text += `┃ ${index + 1}. @${num}\n`;
+          mentions.push(`${num}@s.whatsapp.net`);
         });
       }
     } else {
@@ -69,8 +69,9 @@ export default {
         text += `┃ > No hay sesiones activas.\n`;
       } else {
         files.forEach((file, index) => {
-          text += `┃ ${index + 1}. @${file}\n`;
-          mentions.push(`${file}`);
+          const num = file.replace(/[^0-9]/g, '');
+          text += `┃ ${index + 1}. @${num}\n`;
+          mentions.push(`${num}@s.whatsapp.net`);
         });
       }
     }
