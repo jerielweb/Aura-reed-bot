@@ -2,13 +2,30 @@ import { categories, Aliases } from "./consts/cat.js";
 
 export function isCategoryEnabled(remoteJid, category, db) {
   const protectedCategories = ["owner", "group", "system"];
-  if (!remoteJid.endsWith("@g.us") || protectedCategories.includes(category))
+  if (
+    !remoteJid.endsWith("@g.us") ||
+    protectedCategories.includes(category?.toLowerCase())
+  )
     return true;
 
-  const groupData = db.groups[remoteJid];
-  if (!groupData || !groupData.disabledCategories) return true;
+  const groupData = db.groups?.[remoteJid];
 
-  return !groupData.disabledCategories.includes(category);
+  // Si el grupo aún no existe en DB, "nsfw" inicia desactivada por defecto
+  if (!groupData) {
+    return category?.toLowerCase() !== "nsfw";
+  }
+
+  // Si el grupo existe pero no tiene el array inicializado, se le asigna "nsfw" por defecto
+  if (!groupData.disabledCategories) {
+    groupData.disabledCategories = ["nsfw"];
+  }
+
+  // Verificación insensible a mayúsculas/minúsculas
+  const isDisabled = groupData.disabledCategories.some(
+    (c) => c.toLowerCase() === category?.toLowerCase(),
+  );
+
+  return !isDisabled;
 }
 
 export default {
@@ -29,30 +46,28 @@ export default {
         activity: {},
         onlyAdmin: false,
         antitoxic: false,
-        disabledCategories: [
-          "NSFW"
-        ],
+        disabledCategories: ["nsfw"],
         botOn: true,
       };
     }
 
     if (!db.groups[remoteJid].disabledCategories) {
-      db.groups[remoteJid].disabledCategories = [];
+      db.groups[remoteJid].disabledCategories = ["nsfw"];
     }
 
     const action = args[0]?.toLowerCase();
     const rawCategory = args[1]?.toLowerCase();
 
-    // 1. Busca en el objeto de Alias (convirtiendo las claves a minúsculas por seguridad)
+    // 1. Busca en el objeto de Alias (convirtiendo las claves a minúsculas)
     const normalizedAliases = Object.fromEntries(
-      Object.entries(Aliases).map(([k, v]) => [k.toLowerCase(), v])
+      Object.entries(Aliases).map(([k, v]) => [k.toLowerCase(), v]),
     );
 
     const targetCategory = normalizedAliases[rawCategory] || rawCategory;
 
     // 2. Encuentra la coincidencia exacta dentro del array `categories`
     const category = categories.find(
-      (c) => c.toLowerCase() === targetCategory?.toLowerCase()
+      (c) => c.toLowerCase() === targetCategory?.toLowerCase(),
     );
 
     const protectedCategories = ["owner", "group", "system"];
@@ -68,8 +83,9 @@ export default {
       text += `╭━━━━━━━━━━━━⬣\n`;
       text += `┃ 📂 Categorías y Estado:\n`;
       categories.forEach((cat) => {
-        const isDisabled =
-          db.groups[remoteJid].disabledCategories.includes(cat);
+        const isDisabled = db.groups[remoteJid].disabledCategories.some(
+          (c) => c.toLowerCase() === cat.toLowerCase(),
+        );
         text += `┃ > ${isDisabled ? "❌" : "✅"} ${cat}\n`;
       });
       text += `╰━━━━━━━━━━━━⬣\n`;
@@ -97,12 +113,12 @@ export default {
       );
     }
 
-    if (
-      ["on", "1", "true", "activar", "enable"].includes(action)
-    ) {
+    if (["on", "1", "true", "activar", "enable"].includes(action)) {
       db.groups[remoteJid].disabledCategories = db.groups[
         remoteJid
-      ].disabledCategories.filter((c) => c !== category);
+      ].disabledCategories.filter(
+        (c) => c.toLowerCase() !== category.toLowerCase(),
+      );
       saveDB(db);
       let text = `╭〔 ✅ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
       text += `┃ 🛡️ 𝐂𝐀𝐓𝐄𝐆𝐎𝐑𝐈́𝐀 𝐇𝐀𝐁𝐈𝐋𝐈𝐓𝐀𝐃𝐀\n`;
@@ -114,7 +130,10 @@ export default {
     } else if (
       ["off", "0", "false", "desactivar", "disable"].includes(action)
     ) {
-      if (!db.groups[remoteJid].disabledCategories.includes(category)) {
+      const alreadyDisabled = db.groups[remoteJid].disabledCategories.some(
+        (c) => c.toLowerCase() === category.toLowerCase(),
+      );
+      if (!alreadyDisabled) {
         db.groups[remoteJid].disabledCategories.push(category);
       }
       saveDB(db);

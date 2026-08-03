@@ -79,7 +79,7 @@ class YTDownloader {
     if (isUrl) {
       // API por URL
       const res = await axios.get(
-        `${this.baseUrl}/ytmp3v3?url=${encodeURIComponent(queryOrUrl)}&key=${this.apiKey}`,
+        `${this.baseUrl}/ytmp3v2?url=${encodeURIComponent(queryOrUrl)}&key=${this.apiKey}`,
         { timeout: 30000 }
       );
       downloadUrl = res.data?.data?.dl;
