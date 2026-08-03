@@ -3,9 +3,9 @@ import { resolveLidToRealJid } from "../../models/utils.js";
 import { fytBold } from "../../models/TextStyle.js";
 
 export default {
-  name: ["spank", "nalgada", "nalgadas", "azotar"],
+  name: ["sixnine", "69"],
   category: "nsfw",
-  description: "Dar una nalgada a un usuario",
+  description: "Hacer un 69 con un usuario",
   async execute(sock, m, args, { prefix, jidRemitente }) {
     const remoteJid = m.key.remoteJid;
     const ctx = m.message?.extendedTextMessage?.contextInfo;
@@ -21,7 +21,7 @@ export default {
     }
 
     try {
-      const gifData = await getNsfwReactionGif("spank");
+      const gifData = await getNsfwReactionGif("sixnine");
 
       const senderTag = "@" + jidRemitente.split("@")[0];
       const mentions = [jidRemitente];
@@ -32,29 +32,23 @@ export default {
         caption =
           senderTag +
           " " +
-          fytBold("le dio una nalgada a") +
+          fytBold("hizo un 69 con") +
           " @" +
-          targetJid.split("@")[0]
+          targetJid.split("@")[0];
       } else {
-        caption = senderTag + " " + fytBold("se dio una nalgada");
+        caption = senderTag + " " + fytBold("quiere hacer un 69 🔞");
       }
 
       await sock.sendMessage(
         remoteJid,
-        {
-          ...gifData,
-          caption,
-          mentions,
-        },
+        { ...gifData, caption, mentions },
         { quoted: m },
       );
     } catch (e) {
       console.error("[NSFW Interacciones Error]:", e.message);
       await sock.sendMessage(
         remoteJid,
-        {
-          text: "❌ Hubo un error al intentar enviar la reacción NSFW.",
-        },
+        { text: "❌ Hubo un error al intentar enviar la reacción NSFW." },
         { quoted: m },
       );
     }
