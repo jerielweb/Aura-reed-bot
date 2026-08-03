@@ -143,7 +143,7 @@ export default {
     textoInfo += `┃ ➪ ${fytBold("Tiempo Activo (Bot):")} ${formatTime(botUp)}\n`;
     textoInfo += `┃ ➪ ${fytBold("RAM Servidor:")} ${ramTotal}GB (${ramPercent}%)\n`;
     textoInfo += `┃ ➪ ${fytBold("RAM Bot:")} ${ramBot} GB\n`;
-    textoInfo += `┃ ➪ ${fytBold("Total Comandos:")} ${totalCmds} comandos cargados\n`;
+    textoInfo += `┃ ➪ ${fytBold("Total Comandos:")} ${totalCmds}\n`;
     textoInfo += `┃ ➪ ${fytBold("Estado de Instancia:")} ${botType} - Operativo 🟢\n`;
     textoInfo += `╰〔 ⚡ ${fytBold("REED SYSTEM")} 〕⬣`;
 
