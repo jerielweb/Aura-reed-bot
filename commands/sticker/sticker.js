@@ -40,17 +40,17 @@ async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
     let fps = 60;
     let quality = 50;
     let duration = 30;
-    let scale = 1080;
+    let scale = 600;
 
     if (attempt === 2) {
-      fps = 30;
-      quality = 30;
-      duration = 10;
+      fps = 60;
+      quality = 50;
+      duration = 20;
       scale = 512;
     } else if (attempt === 3) {
       fps = 15;
       quality = 20;
-      duration = 8;
+      duration = 10;
       scale = 480;
     } else if (attempt >= 4) {
       fps = 10;
