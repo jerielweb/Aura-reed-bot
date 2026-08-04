@@ -7,8 +7,10 @@ import { Rstr, catOff } from "./textBots.js";
 import { isCategoryEnabled, default as cmdManagerCmd } from "./cmdManager.js";
 import { botStatus } from "./../commands/group/bot.js";
 import { categories } from "./consts/cat.js";
-import { activeHangmanGames } from "../models/gameState.js";
+import { activeHangmanGames, gameKey } from "../models/gameState.js";
 import { processHangmanGuess } from "../commands/games/ahorcado.js";
+
+// Lista de prefijos múltiples permitidos por defecto
 const DEFAULT_PREFIXES = [".", "#", "/", "!"];
 
 let middlewareCache = null;
@@ -182,22 +184,24 @@ export async function handleMessage(sock, m, db, saveDB) {
   const usedPrefix = activePrefixes.find((p) => text.startsWith(p));
   const esComando = Boolean(usedPrefix);
   const prefix = usedPrefix || groupPrefix || DEFAULT_PREFIXES[0];
-  
-// Interceptor del juego ahorcado
-  if (activeHangmanGames && activeHangmanGames.has(remoteJid) && !esComando) {
-    const game = activeHangmanGames.get(remoteJid);
+
+  // Interceptor del juego ahorcado
+  const hangmanKey = gameKey(sock, remoteJid);
+  if (activeHangmanGames.has(hangmanKey) && !esComando) {
+    const game = activeHangmanGames.get(hangmanKey);
     const quotedId = m.message?.extendedTextMessage?.contextInfo?.stanzaId;
     const isReplyToGame = game.lastMessage?.key?.id && quotedId === game.lastMessage.key.id;
-  
+
     // En grupos, solo intercepta si es reply directo a la imagen del juego.
     // En privado, cualquier mensaje suelto cuenta como intento.
     const shouldIntercept = isReplyToGame || !isGroup;
-  
+
     if (shouldIntercept) {
       const wasGameMove = await processHangmanGuess(sock, m, text, prefix, db, saveDB);
       if (wasGameMove) return;
     }
   }
+
   const argsForCheck = esComando
     ? text.slice(prefix.length).trim().split(/ +/)
     : [];
