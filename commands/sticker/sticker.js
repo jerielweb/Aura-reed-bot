@@ -38,23 +38,23 @@ function unwrapMessage(msg) {
 async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
   return new Promise((resolve, reject) => {
     let fps = 60;
-    let quality = 50;
+    let quality = 90;
     let duration = 20;
     let scale = 512;
 
     if (attempt === 2) {
       fps = 30;
-      quality = 30;
+      quality = 60;
       duration = 10;
       scale = 512;
     } else if (attempt === 3) {
       fps = 15;
-      quality = 20;
+      quality = 40;
       duration = 8;
       scale = 384;
     } else if (attempt >= 4) {
       fps = 10;
-      quality = 10;
+      quality = 30;
       duration = 5;
       scale = 320;
     }
