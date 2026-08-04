@@ -185,10 +185,19 @@ export async function handleMessage(sock, m, db, saveDB) {
   
 // Interceptor del juego ahorcado
   if (activeHangmanGames && activeHangmanGames.has(remoteJid) && !esComando) {
-    const wasGameMove = await processHangmanGuess(sock, m, text, prefix, db, saveDB);
-    if (wasGameMove) return;
-  } 
-
+    const game = activeHangmanGames.get(remoteJid);
+    const quotedId = m.message?.extendedTextMessage?.contextInfo?.stanzaId;
+    const isReplyToGame = game.lastMessage?.key?.id && quotedId === game.lastMessage.key.id;
+  
+    // En grupos, solo intercepta si es reply directo a la imagen del juego.
+    // En privado, cualquier mensaje suelto cuenta como intento.
+    const shouldIntercept = isReplyToGame || !isGroup;
+  
+    if (shouldIntercept) {
+      const wasGameMove = await processHangmanGuess(sock, m, text, prefix, db, saveDB);
+      if (wasGameMove) return;
+    }
+  }
   const argsForCheck = esComando
     ? text.slice(prefix.length).trim().split(/ +/)
     : [];
