@@ -85,6 +85,21 @@ async function generateHangmanImage(game) {
   return canvas.toBuffer("image/png");
 }
 
+// Función auxiliar para reiniciar o configurar el temporizador de inactividad (5 minutos)
+function resetGameTimeout(socket, remoteJid, game) {
+  if (game.timeoutTimer) clearTimeout(game.timeoutTimer);
+
+  // 5 minutos = 300,000 milisegundos
+  game.timeoutTimer = setTimeout(async () => {
+    if (activeHangmanGames.has(remoteJid)) {
+      activeHangmanGames.delete(remoteJid);
+      await socket.sendMessage(remoteJid, {
+        text: `╭〔 ⏰ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ > El juego ha expirado por inactividad (5 minutos).\n┃ > La palabra era: *${game.word.toUpperCase()}*\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`,
+      });
+    }
+  }, 300000);
+}
+
 // Función auxiliar para enviar o actualizar la imagen del juego
 async function sendGameState(socket, jid, game, statusMsg, quotedMsg, prefix, isOver = false) {
   const triesLeft = game.maxMistakes - game.mistakes;
@@ -104,7 +119,7 @@ async function sendGameState(socket, jid, game, statusMsg, quotedMsg, prefix, is
   text += `\n┣━━━━━━━━━━━━⬣\n\n`;
 
   if (!isOver) {
-    text += `┃ > Responde a este mensaje con una letra para jugar.\n`;
+    text += `┃ > Responde a este mensaje con una letra o usa *${prefix}hangman [letra]*.\n`;
     text += `┃ > Usa *salir* para rendirte.\n\n`;
   }
 
@@ -112,7 +127,6 @@ async function sendGameState(socket, jid, game, statusMsg, quotedMsg, prefix, is
 
   const imageBuffer = await generateHangmanImage(game);
 
-  // Se cita la última respuesta enviada por el bot si existe
   const targetQuoted = game.lastMessage || quotedMsg;
 
   const sentMessage = await socket.sendMessage(
@@ -121,37 +135,29 @@ async function sendGameState(socket, jid, game, statusMsg, quotedMsg, prefix, is
     { quoted: targetQuoted }
   );
 
-  // Guardamos el mensaje que envió el bot para que las siguientes jugadas puedan citarlo
   if (sentMessage && !isOver) {
     game.lastMessage = sentMessage;
+    resetGameTimeout(socket, jid, game); // Reinicia el contador de 5 minutos en cada movimiento
+  } else if (isOver && game.timeoutTimer) {
+    clearTimeout(game.timeoutTimer);
   }
 }
 
-// Interceptor de jugadas mejorado con detección de mensaje citado (estilo claim)
+// Procesador de jugadas (por mensaje directo citado o por comando con prefijo)
 export async function processHangmanGuess(socket, message, rawInput, prefix) {
   const remoteJid = message.key.remoteJid;
   const game = activeHangmanGames.get(remoteJid);
 
   if (!game) return false;
 
-  // Validar si está citando el mensaje del juego mediante el stanzaId (igual que el comando claim)
-  const quotedId = message.message?.extendedTextMessage?.contextInfo?.stanzaId;
-  
-  if (game.lastMessage && quotedId && quotedId !== game.lastMessage.key.id) {
-    // Si el usuario está citando otro mensaje que no corresponde al juego actual, lo ignoramos
-    return false;
-  }
-
-  // Convertimos la entrada a minúsculas para aceptar mayúsculas y minúsculas por igual
   const input = rawInput.toLowerCase().trim();
 
-  // Si no hay texto o es un mensaje largo con espacios (conversación normal), lo ignoramos
   if (!input || (input.length > 1 && input.includes(" ") && input !== "rendirse" && input !== "salir")) {
     return false;
   }
 
-  // Opción para rendirse
   if (input === "salir" || input === "rendirse") {
+    if (game.timeoutTimer) clearTimeout(game.timeoutTimer);
     const wordWas = game.word;
     activeHangmanGames.delete(remoteJid);
     await socket.sendMessage(
@@ -162,12 +168,8 @@ export async function processHangmanGuess(socket, message, rawInput, prefix) {
     return true;
   }
 
-  // Evaluar si es letra individual o palabra completa
   if (input.length === 1) {
-    // Si no es una letra válida (a-z, ñ)
-    if (!/^[a-zñ]$/.test(input)) {
-      return false;
-    }
+    if (!/^[a-zñ]$/.test(input)) return false;
 
     if (game.guessedLetters.has(input)) {
       await socket.sendMessage(
@@ -184,7 +186,6 @@ export async function processHangmanGuess(socket, message, rawInput, prefix) {
       game.mistakes++;
     }
   } else {
-    // Intenta adivinar la palabra completa
     if (input === game.word.toLowerCase()) {
       game.guessedLetters = new Set(game.word.split(""));
     } else {
@@ -192,14 +193,15 @@ export async function processHangmanGuess(socket, message, rawInput, prefix) {
     }
   }
 
-  // Verificar estado del juego (Victoria / Derrota)
   const isWin = game.word.split("").every((letter) => game.guessedLetters.has(letter));
   const isLose = game.mistakes >= game.maxMistakes;
 
   if (isWin) {
+    if (game.timeoutTimer) clearTimeout(game.timeoutTimer);
     activeHangmanGames.delete(remoteJid);
     await sendGameState(socket, remoteJid, game, "¡Felicidades! Has ganado el juego. 🎉", message, prefix, true);
   } else if (isLose) {
+    if (game.timeoutTimer) clearTimeout(game.timeoutTimer);
     activeHangmanGames.delete(remoteJid);
     await sendGameState(socket, remoteJid, game, `¡Perdiste! 💀 La palabra era: ${fytBold(game.word.toUpperCase())}`, message, prefix, true);
   } else {
@@ -236,6 +238,7 @@ export default {
         mistakes: 0,
         maxMistakes: 6,
         lastMessage: null,
+        timeoutTimer: null,
       };
 
       activeHangmanGames.set(remoteJid, game);
@@ -243,10 +246,10 @@ export default {
     }
 
     if (!input) {
-      return sendGameState(socket, remoteJid, game, "Ya hay un juego en curso. Responde con una letra sin usar comandos.", message, prefix);
+      return sendGameState(socket, remoteJid, game, "Ya hay un juego en curso. Responde a la imagen o usa el comando con una letra.", message, prefix);
     }
 
-    // Si escriben p. ej. ".ahorcado a"
+    // Permite usar tanto respondiendo como escribiendo .hangman a
     await processHangmanGuess(socket, message, input, prefix);
   },
 };
