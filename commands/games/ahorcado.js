@@ -1,5 +1,6 @@
 import { fytBold } from "../../models/TextStyle.js";
 import { createCanvas } from "canvas";
+import { getGroupUser } from "../../models/groupDb.js";
 
 export const activeHangmanGames = new Map();
 
@@ -168,19 +169,17 @@ export async function processHangmanGuess(socket, message, rawInput, prefix, db,
     if (game.timeoutTimer) clearTimeout(game.timeoutTimer);
     activeHangmanGames.delete(remoteJid);
 
-    const sender = message.key.participant || message.key.remoteJid;
+    // Obtener al usuario con getGroupUser asegurando que tenga XP reflejado en la DB
+    const user = getGroupUser(
+      db,
+      remoteJid,
+      message.key.participant || message.key.remoteJid,
+      { xp: 0 }
+    );
+    
     let earnedXp = 200;
-
-    try {
-      if (db) {
-        db.users ??= {};
-        db.users[sender] ??= { xp: 0, level: 1 };
-        db.users[sender].xp += earnedXp;
-        if (typeof saveDB === "function") saveDB(db);
-      }
-    } catch (e) {
-      console.error("[Hangman] Error al guardar XP:", e);
-    }
+    user.xp = (user.xp || 0) + earnedXp;
+    saveDB(db);
 
     await sendGameState(socket, remoteJid, game, `¡Felicidades! Has ganado el juego. 🎉\n┃ 🎁 Recompensa: +${earnedXp} XP`, message, prefix, true);
   } else if (isLose) {
@@ -198,39 +197,36 @@ export default {
   name: ["ahorcado", "juego-ahorcado", "hangman"],
   category: "games",
   description: "Juega al juego del ahorcado con tablero interactivo.",
-    execute: async (socket, message, args, { prefix, db, saveDB }) => {
+  execute: async (socket, message, args, { prefix, db, saveDB }) => {
     const remoteJid = message.key.remoteJid;
     const input = args.join(" ").toLowerCase().trim();
 
     let game = activeHangmanGames.get(remoteJid);
 
-    // Si NO hay juego activo
-    if (!game) {
-      const secretWord = words[Math.floor(Math.random() * words.length)];
-      game = {
-        word: secretWord,
-        guessedLetters: new Set(),
-        mistakes: 0,
-        maxMistakes: 6,
-        lastMessage: null,
-        timeoutTimer: null,
-      };
-      activeHangmanGames.set(remoteJid, game);
-
-      // Si mandó una letra junto al comando de iniciar, la procesamos de una vez
-      if (input && input !== "iniciar") {
-        return await processHangmanGuess(socket, message, input, prefix, db, saveDB);
+    // Si YA hay un juego activo
+    if (game) {
+      if (!input) {
+        return sendGameState(socket, remoteJid, game, "⚠️ Ya hay un juego en curso. Responde a la imagen o usa el comando con una letra.", message, prefix);
       }
-
-      return sendGameState(socket, remoteJid, game, "¡Juego iniciado! Escribe una letra o responde a la imagen.", message, prefix);
-    }
-
-    // Si SÍ hay juego activo y mandó una letra con el comando (ej: .hangman o)
-    if (input) {
       return await processHangmanGuess(socket, message, input, prefix, db, saveDB);
     }
 
-    // Si mandó el comando solo sin letra
-    return sendGameState(socket, remoteJid, game, "Ya hay un juego en curso. Responde a la imagen o usa el comando con una letra.", message, prefix);
+    // Si NO hay juego activo, creamos uno nuevo
+    const secretWord = words[Math.floor(Math.random() * words.length)];
+    game = {
+      word: secretWord,
+      guessedLetters: new Set(),
+      mistakes: 0,
+      maxMistakes: 6,
+      lastMessage: null,
+      timeoutTimer: null,
+    };
+    activeHangmanGames.set(remoteJid, game);
+
+    if (input && input !== "iniciar") {
+      return await processHangmanGuess(socket, message, input, prefix, db, saveDB);
+    }
+
+    return sendGameState(socket, remoteJid, game, "¡Juego iniciado! Escribe una letra o responde a la imagen.", message, prefix);
   },
-}
+};
