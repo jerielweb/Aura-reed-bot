@@ -1,14 +1,59 @@
 import { fytBold } from "../../models/TextStyle.js";
 import { createCanvas } from "canvas";
 import { getGroupUser } from "../../models/groupDb.js";
-
-export const activeHangmanGames = new Map();
+import { activeHangmanGames } from "../../models/gameState.js";
 
 const words = [
   "javascript", "programacion", "teclado", "servidor", "codigo",
   "computadora", "desarrollo", "internet", "aplicacion", "tecnologia",
   "whatsapp", "bot", "inteligencia", "sistema", "variable"
 ];
+
+// ---------- Persistencia en DB ----------
+
+function serializeGame(game) {
+  return {
+    word: game.word,
+    guessedLetters: Array.from(game.guessedLetters),
+    mistakes: game.mistakes,
+    maxMistakes: game.maxMistakes,
+  };
+}
+
+function deserializeGame(data) {
+  return {
+    word: data.word,
+    guessedLetters: new Set(data.guessedLetters),
+    mistakes: data.mistakes,
+    maxMistakes: data.maxMistakes,
+    lastMessage: null,
+    timeoutTimer: null,
+  };
+}
+
+export function persistGame(db, saveDB, remoteJid, game) {
+  if (!db) return;
+  db.hangmanGames = db.hangmanGames || {};
+  db.hangmanGames[remoteJid] = serializeGame(game);
+  if (saveDB) saveDB(db);
+}
+
+export function removePersistedGame(db, saveDB, remoteJid) {
+  if (!db || !db.hangmanGames?.[remoteJid]) return;
+  delete db.hangmanGames[remoteJid];
+  if (saveDB) saveDB(db);
+}
+
+export function restoreGamesFromDB(db) {
+  if (!db?.hangmanGames) return;
+  for (const [jid, data] of Object.entries(db.hangmanGames)) {
+    if (!activeHangmanGames.has(jid)) {
+      activeHangmanGames.set(jid, deserializeGame(data));
+    }
+  }
+}
+
+// ---------- Render del tablero ----------
 
 async function generateHangmanImage(game) {
   const canvas = createCanvas(800, 800);
@@ -33,7 +78,7 @@ async function generateHangmanImage(game) {
 
   const mistakes = game.mistakes;
 
-  if (mistakes >= 1) { 
+  if (mistakes >= 1) {
     ctx.beginPath(); ctx.arc(350, 220, 70, 0, Math.PI * 2); ctx.stroke();
     ctx.fillStyle = "#000000";
     ctx.beginPath(); ctx.arc(325, 200, 10, 0, Math.PI * 2); ctx.fill();
@@ -59,12 +104,13 @@ async function generateHangmanImage(game) {
   return canvas.toBuffer("image/png");
 }
 
-function resetGameTimeout(socket, remoteJid, game) {
+function resetGameTimeout(socket, remoteJid, game, db, saveDB) {
   if (game.timeoutTimer) clearTimeout(game.timeoutTimer);
 
   game.timeoutTimer = setTimeout(async () => {
     if (activeHangmanGames.has(remoteJid)) {
       activeHangmanGames.delete(remoteJid);
+      removePersistedGame(db, saveDB, remoteJid);
       await socket.sendMessage(remoteJid, {
         text: `╭〔 ⏰ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ > El juego ha expirado por inactividad (5 minutos).\n┃ > La palabra era: *${game.word.toUpperCase()}*\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`,
       });
@@ -107,11 +153,12 @@ async function sendGameState(socket, jid, game, statusMsg, quotedMsg, prefix, is
 
   if (sentMessage && !isOver) {
     game.lastMessage = sentMessage;
-    resetGameTimeout(socket, jid, game);
   } else if (isOver && game.timeoutTimer) {
     clearTimeout(game.timeoutTimer);
   }
 }
+
+// ---------- Lógica de intentos ----------
 
 export async function processHangmanGuess(socket, message, rawInput, prefix, db, saveDB) {
   const remoteJid = message.key.remoteJid;
@@ -129,6 +176,7 @@ export async function processHangmanGuess(socket, message, rawInput, prefix, db,
     if (game.timeoutTimer) clearTimeout(game.timeoutTimer);
     const wordWas = game.word;
     activeHangmanGames.delete(remoteJid);
+    removePersistedGame(db, saveDB, remoteJid);
     await socket.sendMessage(
       remoteJid,
       { text: `╭〔 🏳️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ > Te has rendido.\n┃ > La palabra era: *${wordWas.toUpperCase()}*\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣` },
@@ -168,15 +216,15 @@ export async function processHangmanGuess(socket, message, rawInput, prefix, db,
   if (isWin) {
     if (game.timeoutTimer) clearTimeout(game.timeoutTimer);
     activeHangmanGames.delete(remoteJid);
+    removePersistedGame(db, saveDB, remoteJid);
 
-    // Obtener al usuario con getGroupUser asegurando que tenga XP reflejado en la DB
     const user = getGroupUser(
       db,
       remoteJid,
       message.key.participant || message.key.remoteJid,
       { xp: 0 }
     );
-    
+
     let earnedXp = 200;
     user.xp = (user.xp || 0) + earnedXp;
     saveDB(db);
@@ -185,13 +233,18 @@ export async function processHangmanGuess(socket, message, rawInput, prefix, db,
   } else if (isLose) {
     if (game.timeoutTimer) clearTimeout(game.timeoutTimer);
     activeHangmanGames.delete(remoteJid);
+    removePersistedGame(db, saveDB, remoteJid);
     await sendGameState(socket, remoteJid, game, `¡Perdiste! 💀 La palabra era: ${fytBold(game.word.toUpperCase())}`, message, prefix, true);
   } else {
+    persistGame(db, saveDB, remoteJid, game);
+    resetGameTimeout(socket, remoteJid, game, db, saveDB);
     await sendGameState(socket, remoteJid, game, "¡Sigue adivinando!", message, prefix);
   }
 
   return true;
 }
+
+// ---------- Comando ----------
 
 export default {
   name: ["ahorcado", "juego-ahorcado", "hangman"],
@@ -203,7 +256,6 @@ export default {
 
     let game = activeHangmanGames.get(remoteJid);
 
-    // Si YA hay un juego activo
     if (game) {
       if (!input) {
         return sendGameState(socket, remoteJid, game, "⚠️ Ya hay un juego en curso. Responde a la imagen o usa el comando con una letra.", message, prefix);
@@ -211,7 +263,6 @@ export default {
       return await processHangmanGuess(socket, message, input, prefix, db, saveDB);
     }
 
-    // Si NO hay juego activo, creamos uno nuevo
     const secretWord = words[Math.floor(Math.random() * words.length)];
     game = {
       word: secretWord,
@@ -222,6 +273,8 @@ export default {
       timeoutTimer: null,
     };
     activeHangmanGames.set(remoteJid, game);
+    persistGame(db, saveDB, remoteJid, game);
+    resetGameTimeout(socket, remoteJid, game, db, saveDB);
 
     if (input && input !== "iniciar") {
       return await processHangmanGuess(socket, message, input, prefix, db, saveDB);

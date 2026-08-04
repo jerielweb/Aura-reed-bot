@@ -15,6 +15,7 @@ import "./models/settings.js";
 import { handleMessage } from "./controllers/msgHandler.js";
 import { handleGroupUpdate } from "./controllers/groupEvents.js";
 import { getDB, saveDB, initDB, flushDB } from "./models/db.js";
+import { restoreGamesFromDB } from "./commands/games/ahorcado.js";
 import {
   runCleanCacheIfNeeded,
   startCleanCacheTimer,
@@ -27,6 +28,7 @@ import {
 
 await initDB();
 const db = await getDB();
+restoreGamesFromDB(db);
 await runCleanCacheIfNeeded(db, saveDB);
 startCleanCacheTimer(db, saveDB);
 

@@ -7,8 +7,7 @@ import { Rstr, catOff } from "./textBots.js";
 import { isCategoryEnabled, default as cmdManagerCmd } from "./cmdManager.js";
 import { botStatus } from "./../commands/group/bot.js";
 import { categories } from "./consts/cat.js";
-import { activeHangmanGames, processHangmanGuess } from "../commands/games/ahorcado.js"; // 👈 IMPORTACIÓN DEL AHORCADO
-
+import { activeHangmanGames, processHangmanGuess } from "../commands/games/ahorcado.js";
 // Lista de prefijos múltiples permitidos por defecto
 const DEFAULT_PREFIXES = [".", "#", "/", "!"];
 
@@ -184,9 +183,9 @@ export async function handleMessage(sock, m, db, saveDB) {
   const esComando = Boolean(usedPrefix);
   const prefix = usedPrefix || groupPrefix || DEFAULT_PREFIXES[0];
   
-    // Interceptor del juego ahorcado
+// Interceptor del juego ahorcado
   if (activeHangmanGames && activeHangmanGames.has(remoteJid) && !esComando) {
-    const wasGameMove = await processHangmanGuess(sock, m, text, prefix);
+    const wasGameMove = await processHangmanGuess(sock, m, text, prefix, db, saveDB);
     if (wasGameMove) return;
   } 
 
