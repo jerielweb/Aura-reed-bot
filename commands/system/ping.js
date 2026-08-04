@@ -91,10 +91,10 @@ export default {
 
     let status = "";
     let system = "";
-    if (latency < 100) {
+    if (latency < 500) {
       status = "🟢 Excelente";
       system = "Estable";
-    } else if (latency < 500) {
+    } else if (latency < 1000) {
       status = "🟠 Aceptable";
       system = "Normal";
     } else {
