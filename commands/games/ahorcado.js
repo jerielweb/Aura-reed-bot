@@ -198,28 +198,14 @@ export default {
   name: ["ahorcado", "juego-ahorcado", "hangman"],
   category: "games",
   description: "Juega al juego del ahorcado con tablero interactivo.",
-  execute: async (socket, message, args, { prefix, db, saveDB }) => {
+    execute: async (socket, message, args, { prefix, db, saveDB }) => {
     const remoteJid = message.key.remoteJid;
     const input = args.join(" ").toLowerCase().trim();
 
     let game = activeHangmanGames.get(remoteJid);
 
+    // Si NO hay juego activo
     if (!game) {
-      if (input && input !== "iniciar") {
-        // Si hay texto pero no hay juego activo, iniciamos uno nuevo automáticamente con la letra o palabra que mandó
-        const secretWord = words[Math.floor(Math.random() * words.length)];
-        game = {
-          word: secretWord,
-          guessedLetters: new Set(),
-          mistakes: 0,
-          maxMistakes: 6,
-          lastMessage: null,
-          timeoutTimer: null,
-        };
-        activeHangmanGames.set(remoteJid, game);
-        return processHangmanGuess(socket, message, input, prefix, db, saveDB);
-      }
-
       const secretWord = words[Math.floor(Math.random() * words.length)];
       game = {
         word: secretWord,
@@ -229,15 +215,22 @@ export default {
         lastMessage: null,
         timeoutTimer: null,
       };
-
       activeHangmanGames.set(remoteJid, game);
+
+      // Si mandó una letra junto al comando de iniciar, la procesamos de una vez
+      if (input && input !== "iniciar") {
+        return await processHangmanGuess(socket, message, input, prefix, db, saveDB);
+      }
+
       return sendGameState(socket, remoteJid, game, "¡Juego iniciado! Escribe una letra o responde a la imagen.", message, prefix);
     }
 
-    if (!input) {
-      return sendGameState(socket, remoteJid, game, "Ya hay un juego en curso. Responde a la imagen o usa el comando con una letra.", message, prefix);
+    // Si SÍ hay juego activo y mandó una letra con el comando (ej: .hangman o)
+    if (input) {
+      return await processHangmanGuess(socket, message, input, prefix, db, saveDB);
     }
 
-    await processHangmanGuess(socket, message, input, prefix, db, saveDB);
+    // Si mandó el comando solo sin letra
+    return sendGameState(socket, remoteJid, game, "Ya hay un juego en curso. Responde a la imagen o usa el comando con una letra.", message, prefix);
   },
-};
+}
