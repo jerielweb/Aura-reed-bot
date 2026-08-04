@@ -2,12 +2,10 @@ import { fytBold } from "../../models/TextStyle.js";
 import { createCanvas } from "canvas";
 import { getGroupUser } from "../../models/groupDb.js";
 import { activeHangmanGames } from "../../models/gameState.js";
+import { hangmanWords } from "../../controllers/gameConfig.js";
 
-const words = [
-  "javascript", "programacion", "teclado", "servidor", "codigo",
-  "computadora", "desarrollo", "internet", "aplicacion", "tecnologia",
-  "whatsapp", "bot", "inteligencia", "sistema", "variable"
-];
+
+const words = hangmanWords;
 
 // ---------- Persistencia en DB ----------
 
