@@ -98,7 +98,7 @@ async function generateHangmanImage(game) {
     .map((letter) => (game.guessedLetters.has(letter) ? letter.toUpperCase() : "_"))
     .join(" ");
 
-  ctx.font = "90px Arial";
+  ctx.font = "90px 'DejaVu Sans'";
   ctx.fillStyle = "#000000";
   ctx.textAlign = "center";
   ctx.fillText(displayWord, SIZE / 2, 1320);
