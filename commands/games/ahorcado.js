@@ -138,7 +138,7 @@ async function sendGameState(socket, jid, game, statusMsg, quotedMsg, prefix, is
   text += `\n┣━━━━━━━━━━━━⬣\n\n`;
 
   if (!isOver) {
-    text += `┃ > Responde a este mensaje con una letra o usa *${prefix}ahorcado [letra]*.\n`;
+    text += `┃ > Responde a este mensaje con una letra o.\n`;
     text += `┃ > Usa *salir* para rendirte.\n\n`;
   }
 
