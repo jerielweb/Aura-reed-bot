@@ -98,10 +98,10 @@ async function generateHangmanImage(game) {
     .map((letter) => (game.guessedLetters.has(letter) ? letter.toUpperCase() : "_"))
     .join(" ");
 
-  ctx.font = "bold 100px Arial";
+  ctx.font = "regular 90px Arial";
   ctx.fillStyle = "#000000";
   ctx.textAlign = "center";
-  ctx.fillText(displayWord, SIZE / 2, 1320);
+  ctx.fillText(displayWord, SIZE / 2, 1200);
 
   return canvas.toBuffer("image/png");
 }
