@@ -7,8 +7,8 @@ import { Rstr, catOff } from "./textBots.js";
 import { isCategoryEnabled, default as cmdManagerCmd } from "./cmdManager.js";
 import { botStatus } from "./../commands/group/bot.js";
 import { categories } from "./consts/cat.js";
-import { activeHangmanGames, processHangmanGuess } from "../commands/games/ahorcado.js";
-// Lista de prefijos múltiples permitidos por defecto
+import { activeHangmanGames } from "../models/gameState.js";
+import { processHangmanGuess } from "../commands/games/ahorcado.js";
 const DEFAULT_PREFIXES = [".", "#", "/", "!"];
 
 let middlewareCache = null;
