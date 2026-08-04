@@ -134,6 +134,7 @@ export async function processHangmanGuess(socket, message, rawInput, prefix) {
 
   if (!game) return false;
 
+  // Convertimos la entrada a minúsculas para que acepte tanto mayúsculas como minúsculas
   const input = rawInput.toLowerCase().trim();
 
   // Si no hay texto o es un mensaje largo con espacios (conversación normal), lo ignoramos
@@ -175,8 +176,8 @@ export async function processHangmanGuess(socket, message, rawInput, prefix) {
       game.mistakes++;
     }
   } else {
-    // Intenta adivinar la palabra completa
-    if (input === game.word) {
+    // Intenta adivinar la palabra completa (también soportando mayúsculas/minúsculas)
+    if (input === game.word.toLowerCase()) {
       game.guessedLetters = new Set(game.word.split(""));
     } else {
       game.mistakes++;

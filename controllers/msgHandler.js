@@ -168,6 +168,7 @@ export async function handleMessage(sock, m, db, saveDB) {
   const text =
     m.message.conversation ||
     m.message.extendedTextMessage?.text ||
+    m.message.extendedTextMessage?.contextInfo?.quotedMessage?.conversation ||
     m.message.imageMessage?.caption ||
     m.message.videoMessage?.caption ||
     "";
@@ -178,13 +179,12 @@ export async function handleMessage(sock, m, db, saveDB) {
   const usedPrefix = activePrefixes.find((p) => text.startsWith(p));
   const esComando = Boolean(usedPrefix);
   const prefix = usedPrefix || groupPrefix || DEFAULT_PREFIXES[0];
-
-  // 🎮 👇 INTERCEPTOR DEL JUEGO AHORCADO 👇 🎮
+  
+    // Interceptor del juego ahorcado
   if (activeHangmanGames && activeHangmanGames.has(remoteJid) && !esComando) {
     const wasGameMove = await processHangmanGuess(sock, m, text, prefix);
-    if (wasGameMove) return; // Detiene la ejecución para no lanzar "Comando no existe" ni ejecutar otras acciones
-  }
-  // 🎮 👆 FIN DEL INTERCEPTOR 👆 🎮
+    if (wasGameMove) return;
+  } 
 
   const argsForCheck = esComando
     ? text.slice(prefix.length).trim().split(/ +/)
