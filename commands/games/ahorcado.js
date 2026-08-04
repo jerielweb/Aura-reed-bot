@@ -85,11 +85,10 @@ async function generateHangmanImage(game) {
   return canvas.toBuffer("image/png");
 }
 
-// Función auxiliar para reiniciar o configurar el temporizador de inactividad (5 minutos)
+// Temporizador de inactividad de 5 minutos (300,000 ms)
 function resetGameTimeout(socket, remoteJid, game) {
   if (game.timeoutTimer) clearTimeout(game.timeoutTimer);
 
-  // 5 minutos = 300,000 milisegundos
   game.timeoutTimer = setTimeout(async () => {
     if (activeHangmanGames.has(remoteJid)) {
       activeHangmanGames.delete(remoteJid);
@@ -126,7 +125,6 @@ async function sendGameState(socket, jid, game, statusMsg, quotedMsg, prefix, is
   text += `╰━━〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐀𝐂𝐓𝐈𝐕𝐄 〕━━⬣`;
 
   const imageBuffer = await generateHangmanImage(game);
-
   const targetQuoted = game.lastMessage || quotedMsg;
 
   const sentMessage = await socket.sendMessage(
@@ -137,14 +135,14 @@ async function sendGameState(socket, jid, game, statusMsg, quotedMsg, prefix, is
 
   if (sentMessage && !isOver) {
     game.lastMessage = sentMessage;
-    resetGameTimeout(socket, jid, game); // Reinicia el contador de 5 minutos en cada movimiento
+    resetGameTimeout(socket, jid, game);
   } else if (isOver && game.timeoutTimer) {
     clearTimeout(game.timeoutTimer);
   }
 }
 
-// Procesador de jugadas (por mensaje directo citado o por comando con prefijo)
-export async function processHangmanGuess(socket, message, rawInput, prefix) {
+// Procesador de jugadas principal (interceptado o por comando)
+export async function processHangmanGuess(socket, message, rawInput, prefix, db, saveDB) {
   const remoteJid = message.key.remoteJid;
   const game = activeHangmanGames.get(remoteJid);
 
@@ -168,6 +166,7 @@ export async function processHangmanGuess(socket, message, rawInput, prefix) {
     return true;
   }
 
+  // Evaluar si es letra individual o palabra completa
   if (input.length === 1) {
     if (!/^[a-zñ]$/.test(input)) return false;
 
@@ -186,20 +185,38 @@ export async function processHangmanGuess(socket, message, rawInput, prefix) {
       game.mistakes++;
     }
   } else {
+    // Si escribe la palabra completa
     if (input === game.word.toLowerCase()) {
-      game.guessedLetters = new Set(game.word.split(""));
+      game.word.split("").forEach((l) => game.guessedLetters.add(l));
     } else {
       game.mistakes++;
     }
   }
 
+  // Verificar estado del juego (Victoria / Derrota) antes de borrar el map
   const isWin = game.word.split("").every((letter) => game.guessedLetters.has(letter));
   const isLose = game.mistakes >= game.maxMistakes;
 
   if (isWin) {
     if (game.timeoutTimer) clearTimeout(game.timeoutTimer);
     activeHangmanGames.delete(remoteJid);
-    await sendGameState(socket, remoteJid, game, "¡Felicidades! Has ganado el juego. 🎉", message, prefix, true);
+
+    // 🎁 RECOMPENSA DE XP EN LA BASE DE DATOS
+    const sender = message.key.participant || message.key.remoteJid;
+    let earnedXp = 150; // Cantidad de XP de recompensa por ganar
+
+    try {
+      if (db) {
+        db.users ??= {};
+        db.users[sender] ??= { xp: 0, level: 1 };
+        db.users[sender].xp += earnedXp;
+        if (typeof saveDB === "function") saveDB(db);
+      }
+    } catch (e) {
+      console.error("[Hangman] Error al otorgar XP:", e);
+    }
+
+    await sendGameState(socket, remoteJid, game, `¡Felicidades! Has ganado el juego. 🎉\n┃ 🎁 Recompensa: +${earnedXp} XP`, message, prefix, true);
   } else if (isLose) {
     if (game.timeoutTimer) clearTimeout(game.timeoutTimer);
     activeHangmanGames.delete(remoteJid);
@@ -215,7 +232,7 @@ export default {
   name: ["ahorcado", "juego-ahorcado", "hangman"],
   category: "games",
   description: "Juega al juego del ahorcado con tablero interactivo.",
-  execute: async (socket, message, args, { prefix }) => {
+  execute: async (socket, message, args, { prefix, db, saveDB }) => {
     const remoteJid = message.key.remoteJid;
     const input = args.join(" ").toLowerCase().trim();
 
@@ -249,7 +266,7 @@ export default {
       return sendGameState(socket, remoteJid, game, "Ya hay un juego en curso. Responde a la imagen o usa el comando con una letra.", message, prefix);
     }
 
-    // Permite usar tanto respondiendo como escribiendo .hangman a
-    await processHangmanGuess(socket, message, input, prefix);
+    // Procesar la letra enviada mediante comando (ej. .hangman b)
+    await processHangmanGuess(socket, message, input, prefix, db, saveDB);
   },
 };
