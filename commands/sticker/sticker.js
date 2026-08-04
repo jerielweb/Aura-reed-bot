@@ -34,29 +34,25 @@ function unwrapMessage(msg) {
   return null;
 }
 
-// Convertidor con parámetros para FFmpeg (solo imágenes, videos o GIFs)
 async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
   return new Promise((resolve, reject) => {
-    let fps = 30;
-    let quality = 40;
-    let duration = 15;
-    let scale = 512;
+    let fps = 15;
+    let quality = 70; // Mayor calidad
+    let duration = 6;  // Duración más corta para controlar el peso
+    const scale = 512; // Siempre 512 para máxima nitidez
 
     if (attempt === 2) {
-      fps = 20;
-      quality = 30;
-      duration = 8;
-      scale = 480;
+      fps = 12;
+      quality = 55;
+      duration = 4;
     } else if (attempt === 3) {
       fps = 10;
-      quality = 20;
-      duration = 5;
-      scale = 320;
+      quality = 40;
+      duration = 3;
     } else if (attempt >= 4) {
       fps = 8;
-      quality = 15;
-      duration = 4;
-      scale = 256;
+      quality = 25;
+      duration = 2;
     }
 
     const options = ["-an", "-c:v", "libwebp"];
@@ -69,13 +65,13 @@ async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
         "-compression_level", "6"
       );
     } else {
-      options.push("-q:v", "80");
+      options.push("-q:v", "85");
     }
 
-    // Tu filtro original intacto
+    // Se agrega flags=lanczos para reescalado de alta calidad
     const filtroVideo = isVideo
-      ? `fps=${fps},scale=${scale}:${scale}:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0,format=yuva420p`
-      : `scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0,format=yuva420p`;
+      ? `fps=${fps},scale=${scale}:${scale}:force_original_aspect_ratio=decrease:flags=lanczos,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0,format=yuva420p`
+      : `scale=512:512:force_original_aspect_ratio=decrease:flags=lanczos,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0,format=yuva420p`;
 
     ffmpeg(inputPath)
       .outputOptions(options)
@@ -83,10 +79,7 @@ async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
       .toFormat("webp")
       .save(outputPath)
       .on("end", resolve)
-      .on("error", (err) => {
-        console.error("[FFmpeg Error Details]:", err);
-        reject(err);
-      });
+      .on("error", (err) => reject(err));
   });
 }
 
@@ -117,19 +110,8 @@ export default {
       react: { text: "⏳", key: message.key },
     });
 
-    // SOLUCIÓN AL ERROR 69: Detección de extensión para el archivo temporal
-    let ext = ".tmp";
-    if (targetMessage.imageMessage) ext = ".jpg";
-    else if (targetMessage.videoMessage) ext = ".mp4";
-    else if (targetMessage.stickerMessage) ext = ".webp";
-    else if (targetMessage.documentMessage) {
-      const mime = targetMessage.documentMessage.mimetype || "";
-      if (mime.includes("image")) ext = ".jpg";
-      else if (mime.includes("video")) ext = ".mp4";
-    }
-
     const tempId = Date.now();
-    const tempInPath = path.join(os.tmpdir(), `aura-sticker-in-${tempId}${ext}`);
+    const tempInPath = path.join(os.tmpdir(), `aura-sticker-in-${tempId}`);
     const tempOutPath = path.join(
       os.tmpdir(),
       `aura-sticker-out-${tempId}.webp`,
