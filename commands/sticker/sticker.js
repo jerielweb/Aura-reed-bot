@@ -34,44 +34,48 @@ function unwrapMessage(msg) {
   return null;
 }
 
+// Convertidor con parámetros para FFmpeg (solo imágenes, videos o GIFs)
 async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
   return new Promise((resolve, reject) => {
-    let fps = 15;
-    let quality = 70; // Mayor calidad
-    let duration = 6;  // Duración más corta para controlar el peso
-    const scale = 512; // Siempre 512 para máxima nitidez
+    let fps = 60;
+    let quality = 50;
+    let duration = 20;
+    let scale = 512;
 
     if (attempt === 2) {
-      fps = 12;
-      quality = 55;
-      duration = 4;
+      fps = 30;
+      quality = 30;
+      duration = 10;
+      scale = 512;
     } else if (attempt === 3) {
-      fps = 10;
-      quality = 40;
-      duration = 3;
+      fps = 15;
+      quality = 20;
+      duration = 8;
+      scale = 384;
     } else if (attempt >= 4) {
-      fps = 8;
-      quality = 25;
-      duration = 2;
+      fps = 10;
+      quality = 10;
+      duration = 5;
+      scale = 320;
     }
 
-    const options = ["-an", "-c:v", "libwebp"];
+    const options = ["-an", "-vsync", "0"];
 
     if (isVideo) {
       options.push(
         "-loop", "0",
         "-t", String(duration),
         "-q:v", String(quality),
+        "-preset", "default",
         "-compression_level", "6"
       );
     } else {
-      options.push("-q:v", "85");
+      options.push("-q:v", "80");
     }
 
-    // Se agrega flags=lanczos para reescalado de alta calidad
     const filtroVideo = isVideo
-      ? `fps=${fps},scale=${scale}:${scale}:force_original_aspect_ratio=decrease:flags=lanczos,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0,format=yuva420p`
-      : `scale=512:512:force_original_aspect_ratio=decrease:flags=lanczos,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0,format=yuva420p`;
+      ? `format=rgba,scale=${scale}:${scale}:force_original_aspect_ratio=decrease,fps=${fps},pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x000000@0`
+      : `format=rgba,scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x000000@0`;
 
     ffmpeg(inputPath)
       .outputOptions(options)
@@ -79,7 +83,10 @@ async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
       .toFormat("webp")
       .save(outputPath)
       .on("end", resolve)
-      .on("error", (err) => reject(err));
+      .on("error", (err) => {
+        console.error("[FFmpeg Error Details]:", err);
+        reject(err);
+      });
   });
 }
 
