@@ -56,50 +56,62 @@ export function restoreGamesFromDB(db) {
 // ---------- Render del tablero ----------
 
 async function generateHangmanImage(game) {
-  const canvas = createCanvas(800, 800);
+  const SIZE = 1080;
+  const canvas = createCanvas(SIZE, SIZE);
   const ctx = canvas.getContext("2d");
 
   ctx.fillStyle = "#FFFFFF";
-  ctx.fillRect(0, 0, 800, 800);
+  ctx.fillRect(0, 0, SIZE, SIZE);
 
-  ctx.lineWidth = 15;
+  ctx.lineWidth = 18;
   ctx.strokeStyle = "#000000";
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
 
+  // Horca (reescalada proporcionalmente al nuevo tamaño)
   ctx.beginPath();
-  ctx.moveTo(250, 650);
-  ctx.lineTo(650, 650);
-  ctx.moveTo(550, 650);
-  ctx.lineTo(550, 100);
-  ctx.lineTo(350, 100);
-  ctx.lineTo(350, 150);
+  ctx.moveTo(300, 850);
+  ctx.lineTo(820, 850);
+  ctx.moveTo(700, 850);
+  ctx.lineTo(700, 150);
+  ctx.lineTo(450, 150);
+  ctx.lineTo(450, 210);
   ctx.stroke();
 
   const mistakes = game.mistakes;
 
   if (mistakes >= 1) {
-    ctx.beginPath(); ctx.arc(350, 220, 70, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(450, 300, 90, 0, Math.PI * 2); ctx.stroke();
     ctx.fillStyle = "#000000";
-    ctx.beginPath(); ctx.arc(325, 200, 10, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(375, 200, 10, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(350, 250, 20, Math.PI, 0); ctx.stroke();
+    ctx.beginPath(); ctx.arc(418, 270, 13, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(482, 270, 13, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(450, 335, 26, Math.PI, 0); ctx.stroke();
   }
-  if (mistakes >= 2) { ctx.beginPath(); ctx.moveTo(350, 290); ctx.lineTo(350, 450); ctx.stroke(); }
-  if (mistakes >= 3) { ctx.beginPath(); ctx.moveTo(350, 320); ctx.lineTo(250, 420); ctx.stroke(); }
-  if (mistakes >= 4) { ctx.beginPath(); ctx.moveTo(350, 320); ctx.lineTo(450, 420); ctx.stroke(); }
-  if (mistakes >= 5) { ctx.beginPath(); ctx.moveTo(350, 450); ctx.lineTo(270, 580); ctx.stroke(); }
-  if (mistakes >= 6) { ctx.beginPath(); ctx.moveTo(350, 450); ctx.lineTo(430, 580); ctx.stroke(); }
+  if (mistakes >= 2) { ctx.beginPath(); ctx.moveTo(450, 390); ctx.lineTo(450, 600); ctx.stroke(); }
+  if (mistakes >= 3) { ctx.beginPath(); ctx.moveTo(450, 430); ctx.lineTo(320, 560); ctx.stroke(); }
+  if (mistakes >= 4) { ctx.beginPath(); ctx.moveTo(450, 430); ctx.lineTo(580, 560); ctx.stroke(); }
+  if (mistakes >= 5) { ctx.beginPath(); ctx.moveTo(450, 600); ctx.lineTo(350, 770); ctx.stroke(); }
+  if (mistakes >= 6) { ctx.beginPath(); ctx.moveTo(450, 600); ctx.lineTo(550, 770); ctx.stroke(); }
 
+  // Palabra con tamaño de fuente dinámico para que siempre entre con margen
   const displayWord = game.word
     .split("")
     .map((letter) => (game.guessedLetters.has(letter) ? letter.toUpperCase() : "_"))
     .join(" ");
 
-  ctx.font = "bold 80px Arial";
-  ctx.fillStyle = "#000000";
+  const maxTextWidth = SIZE - 100; // margen de 50px a cada lado
+  let fontSize = 90;
   ctx.textAlign = "center";
-  ctx.fillText(displayWord, 400, 750);
+  ctx.fillStyle = "#000000";
+
+  do {
+    ctx.font = `bold ${fontSize}px Arial`;
+    const width = ctx.measureText(displayWord).width;
+    if (width <= maxTextWidth) break;
+    fontSize -= 4;
+  } while (fontSize > 20);
+
+  ctx.fillText(displayWord, SIZE / 2, 990);
 
   return canvas.toBuffer("image/png");
 }
