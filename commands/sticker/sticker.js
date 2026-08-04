@@ -37,7 +37,7 @@ function unwrapMessage(msg) {
 // Convertidor con parámetros para FFmpeg (solo imágenes, videos o GIFs)
 async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
   return new Promise((resolve, reject) => {
-    let fps = 60;
+    let fps = 30;
     let quality = 50;
     let duration = 30;
     let scale = 600;
@@ -59,7 +59,7 @@ async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
       scale = 320;
     }
 
-    const options = ["-an", "-vsync", "0"];
+    const options = ["-an", "-c:v", "libwebp"];
 
     if (isVideo) {
       options.push(
