@@ -7,6 +7,7 @@ import { Rstr, catOff } from "./textBots.js";
 import { isCategoryEnabled, default as cmdManagerCmd } from "./cmdManager.js";
 import { botStatus } from "./../commands/group/bot.js";
 import { categories } from "./consts/cat.js";
+import { activeHangmanGames, processHangmanGuess } from "../commands/games/ahorcado.js"; // 👈 IMPORTACIÓN DEL AHORCADO
 
 // Lista de prefijos múltiples permitidos por defecto
 const DEFAULT_PREFIXES = [".", "#", "/", "!"];
@@ -178,6 +179,13 @@ export async function handleMessage(sock, m, db, saveDB) {
   const esComando = Boolean(usedPrefix);
   const prefix = usedPrefix || groupPrefix || DEFAULT_PREFIXES[0];
 
+  // 🎮 👇 INTERCEPTOR DEL JUEGO AHORCADO 👇 🎮
+  if (activeHangmanGames && activeHangmanGames.has(remoteJid) && !esComando) {
+    const wasGameMove = await processHangmanGuess(sock, m, text, prefix);
+    if (wasGameMove) return; // Detiene la ejecución para no lanzar "Comando no existe" ni ejecutar otras acciones
+  }
+  // 🎮 👆 FIN DEL INTERCEPTOR 👆 🎮
+
   const argsForCheck = esComando
     ? text.slice(prefix.length).trim().split(/ +/)
     : [];
@@ -231,45 +239,42 @@ export async function handleMessage(sock, m, db, saveDB) {
   let isBotAdmin = false;
   let groupMetadata = null;
 
-    if (isGroup) {
-  try {
-    groupMetadata = await sock.groupMetadata(remoteJid);
-    
-    const clean = (id) => (id ? String(id).split("@")[0].split(":")[0] : null);
-    
-    const senderBase = clean(senderRaw);
-    const botBase = clean(sock.user?.id);
-
-    const userParticipant = groupMetadata.participants?.find((p) => {
-      const pId = clean(p.id);
-      const pJid = clean(p.jid);
-      const pPhone = clean(p.phoneNumber);
+  if (isGroup) {
+    try {
+      groupMetadata = await sock.groupMetadata(remoteJid);
       
-      return senderBase && (pId === senderBase || pJid === senderBase || pPhone === senderBase);
-    });
-
-    const botParticipant = groupMetadata.participants?.find((p) => {
-      const pId = clean(p.id);
-      const pJid = clean(p.jid);
-      const pPhone = clean(p.phoneNumber);
+      const clean = (id) => (id ? String(id).split("@")[0].split(":")[0] : null);
       
-      return botBase && (pId === botBase || pJid === botBase || pPhone === botBase);
-    });
+      const senderBase = clean(senderRaw);
+      const botBase = clean(sock.user?.id);
 
-    isAdmin = userParticipant?.admin === "admin" || userParticipant?.admin === "superadmin";
-    isBotAdmin = botParticipant?.admin === "admin" || botParticipant?.admin === "superadmin";
-    
-    const realUserJid = userParticipant?.jid || userParticipant?.phoneNumber || senderRaw;
-    const userNumber = clean(realUserJid);
+      const userParticipant = groupMetadata.participants?.find((p) => {
+        const pId = clean(p.id);
+        const pJid = clean(p.jid);
+        const pPhone = clean(p.phoneNumber);
+        
+        return senderBase && (pId === senderBase || pJid === senderBase || pPhone === senderBase);
+      });
 
-  } catch (e) {
-    isAdmin = false;
-    isBotAdmin = false;
+      const botParticipant = groupMetadata.participants?.find((p) => {
+        const pId = clean(p.id);
+        const pJid = clean(p.jid);
+        const pPhone = clean(p.phoneNumber);
+        
+        return botBase && (pId === botBase || pJid === botBase || pPhone === botBase);
+      });
+
+      isAdmin = userParticipant?.admin === "admin" || userParticipant?.admin === "superadmin";
+      isBotAdmin = botParticipant?.admin === "admin" || botParticipant?.admin === "superadmin";
+      
+      const realUserJid = userParticipant?.jid || userParticipant?.phoneNumber || senderRaw;
+      const userNumber = clean(realUserJid);
+
+    } catch (e) {
+      isAdmin = false;
+      isBotAdmin = false;
+    }
   }
-}
-
-
-
 
   try {
     const middlewares = await loadMiddlewares();

@@ -13,7 +13,8 @@ export const categories = [
   "AI",
   "stalk",
   "gacha",
-  "nsfw"
+  "nsfw",
+  "games"
 ];
 
 export const Aliases = {
@@ -56,5 +57,9 @@ export const Aliases = {
   nsfw: "nsfw",
   18: "nsfw",
   NSFW: "nsfw",
-  "+18": "nsfw"
+  "+18": "nsfw",
+  juegos: "games",
+  games: "games",
+  JUEGOS: "games",
+  GAMES: "games"
 };
