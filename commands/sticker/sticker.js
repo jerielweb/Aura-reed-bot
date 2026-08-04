@@ -59,22 +59,25 @@ async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
       scale = 256;
     }
 
-    const options = ["-an", "-c:v", "libwebp"];
+    // Opciones base (-an: sin audio, -vcodec: codec de video para webp)
+    const options = ["-an", "-vcodec", "libwebp"];
 
     if (isVideo) {
       options.push(
         "-loop", "0",
         "-t", String(duration),
         "-q:v", String(quality),
-        "-compression_level", "6"
+        "-compression_level", "6",
+        "-preset", "default"
       );
     } else {
-      options.push("-q:v", "80");
+      options.push("-q:v", "80"); // Calidad alta estática
     }
 
+    // Usamos 'format=rgba' y 'color=transparent' que son más seguros para Stickers en libwebp
     const filtroVideo = isVideo
-      ? `fps=${fps},scale=${scale}:${scale}:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0,format=yuva420p`
-      : `scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0,format=yuva420p`;
+      ? `fps=${fps},scale=${scale}:${scale}:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=transparent,format=rgba`
+      : `scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=transparent,format=rgba`;
 
     ffmpeg(inputPath)
       .outputOptions(options)
@@ -88,7 +91,6 @@ async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
       });
   });
 }
-
 
 export default {
   name: ["s", "sticker", "stiker"],
@@ -117,8 +119,20 @@ export default {
       react: { text: "⏳", key: message.key },
     });
 
+    // 1️⃣ DETECTAMOS LA EXTENSIÓN CORRECTA PARA EVITAR EL ERROR 69
+    let ext = ".tmp";
+    if (targetMessage.imageMessage) ext = ".jpg";
+    else if (targetMessage.videoMessage) ext = ".mp4";
+    else if (targetMessage.stickerMessage) ext = ".webp";
+    else if (targetMessage.documentMessage) {
+      const mime = targetMessage.documentMessage.mimetype || "";
+      if (mime.includes("image")) ext = ".jpg";
+      else if (mime.includes("video")) ext = ".mp4";
+    }
+
     const tempId = Date.now();
-    const tempInPath = path.join(os.tmpdir(), `aura-sticker-in-${tempId}`);
+    // Le añadimos la extensión correcta al archivo de entrada
+    const tempInPath = path.join(os.tmpdir(), `aura-sticker-in-${tempId}${ext}`);
     const tempOutPath = path.join(
       os.tmpdir(),
       `aura-sticker-out-${tempId}.webp`,
