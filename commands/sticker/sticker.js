@@ -59,25 +59,23 @@ async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
       scale = 256;
     }
 
-    // Opciones base (-an: sin audio, -vcodec: codec de video para webp)
-    const options = ["-an", "-vcodec", "libwebp"];
+    const options = ["-an", "-c:v", "libwebp"];
 
     if (isVideo) {
       options.push(
         "-loop", "0",
         "-t", String(duration),
         "-q:v", String(quality),
-        "-compression_level", "6",
-        "-preset", "default"
+        "-compression_level", "6"
       );
     } else {
-      options.push("-q:v", "80"); // Calidad alta estática
+      options.push("-q:v", "80");
     }
 
-    // Usamos 'format=rgba' y 'color=transparent' que son más seguros para Stickers en libwebp
+    // Tu filtro original intacto
     const filtroVideo = isVideo
-      ? `fps=${fps},scale=${scale}:${scale}:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=transparent,format=rgba`
-      : `scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=transparent,format=rgba`;
+      ? `fps=${fps},scale=${scale}:${scale}:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0,format=yuva420p`
+      : `scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=black@0,format=yuva420p`;
 
     ffmpeg(inputPath)
       .outputOptions(options)
@@ -119,7 +117,7 @@ export default {
       react: { text: "⏳", key: message.key },
     });
 
-    // 1️⃣ DETECTAMOS LA EXTENSIÓN CORRECTA PARA EVITAR EL ERROR 69
+    // SOLUCIÓN AL ERROR 69: Detección de extensión para el archivo temporal
     let ext = ".tmp";
     if (targetMessage.imageMessage) ext = ".jpg";
     else if (targetMessage.videoMessage) ext = ".mp4";
@@ -131,7 +129,6 @@ export default {
     }
 
     const tempId = Date.now();
-    // Le añadimos la extensión correcta al archivo de entrada
     const tempInPath = path.join(os.tmpdir(), `aura-sticker-in-${tempId}${ext}`);
     const tempOutPath = path.join(
       os.tmpdir(),
