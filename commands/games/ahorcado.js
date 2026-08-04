@@ -101,7 +101,7 @@ async function generateHangmanImage(game) {
   ctx.font = "90px Arial";
   ctx.fillStyle = "#000000";
   ctx.textAlign = "center";
-  ctx.fillText(displayWord, 400, 750);
+  ctx.fillText(displayWord, SIZE / 2, 1320);
 
   return canvas.toBuffer("image/png");
 }
