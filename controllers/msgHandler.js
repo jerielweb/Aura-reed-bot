@@ -165,10 +165,9 @@ export async function handleMessage(sock, m, db, saveDB) {
     console.error("[handleMessage] Error resolving message LIDs:", e);
   }
 
-    const text =
+   const text =
     m.message.conversation ||
     m.message.extendedTextMessage?.text ||
-    m.message.extendedTextMessage?.contextInfo?.quotedMessage?.imageMessage?.caption ||
     m.message.imageMessage?.caption ||
     m.message.videoMessage?.caption ||
     m.msg?.selectedDisplayText ||
@@ -176,6 +175,7 @@ export async function handleMessage(sock, m, db, saveDB) {
     m.message.listResponseMessage?.singleSelectReply?.selectedRowId ||
     m.text ||
     "";
+
 
   const groupPrefix = isGroup ? db.groups?.[remoteJid]?.prefix : null;
   const activePrefixes = groupPrefix ? [groupPrefix] : DEFAULT_PREFIXES;
