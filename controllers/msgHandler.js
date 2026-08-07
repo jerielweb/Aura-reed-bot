@@ -301,13 +301,7 @@ export async function handleMessage(sock, m, db, saveDB) {
     !isAdmin &&
     !isOwner
   ) {
-    return await sock.sendMessage(
-      remoteJid,
-      {
-        text: `╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ 🛡️ 𝐌𝐎𝐃𝐎 𝐒𝐎𝐋𝐎 𝐀𝐃𝐌𝐈𝐍𝐒\n╰━━━━━━━━━━━━⬣\n\n┃ > Este grupo tiene activado el modo *Solo Admins*.\n┃ > Únicamente los administradores pueden usar comandos.`,
-      },
-      { quoted: m },
-    );
+    return
   }
 
   try {
