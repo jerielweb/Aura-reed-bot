@@ -216,17 +216,15 @@ export async function handleMessage(sock, m, db, saveDB) {
     }
   }
 
-    const botId = sock.user?.id
+  const botId = sock.user?.id
     ? sock.user.id.split("@")[0].split(":")[0] + "@s.whatsapp.net"
     : null;
   const groupPrimaryBot = isGroup ? db.groups?.[remoteJid]?.primaryBot : null;
 
   // Si hay un bot primario establecido y esta instancia NO es la elegida:
   if (isGroup && groupPrimaryBot && botId && groupPrimaryBot !== botId) {
-    // Los demás bots ignoran absolutamente TODO, incluyendo setprimary
     return;
   }
-
 
   if (isGroup && db.groups?.[remoteJid]?.botOn === false) {
     if (commandNameForCheck === "bot" && argsForCheck[1]?.toLowerCase() === "on") {
@@ -288,14 +286,28 @@ export async function handleMessage(sock, m, db, saveDB) {
 
       isAdmin = userParticipant?.admin === "admin" || userParticipant?.admin === "superadmin";
       isBotAdmin = botParticipant?.admin === "admin" || botParticipant?.admin === "superadmin";
-      
-      const realUserJid = userParticipant?.jid || userParticipant?.phoneNumber || senderRaw;
-      const userNumber = clean(realUserJid);
 
     } catch (e) {
       isAdmin = false;
       isBotAdmin = false;
     }
+  }
+
+  // 🛡️ VERIFICACIÓN DEL MODO "SOLO ADMINS" (onlyAdmin)
+  if (
+    isGroup &&
+    db.groups?.[remoteJid]?.onlyAdmin &&
+    esComando &&
+    !isAdmin &&
+    !isOwner
+  ) {
+    return await sock.sendMessage(
+      remoteJid,
+      {
+        text: `╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ 🛡️ 𝐌𝐎𝐃𝐎 𝐒𝐎𝐋𝐎 𝐀𝐃𝐌𝐈𝐍𝐒\n╰━━━━━━━━━━━━⬣\n\n┃ > Este grupo tiene activado el modo *Solo Admins*.\n┃ > Únicamente los administradores pueden usar comandos.`,
+      },
+      { quoted: m },
+    );
   }
 
   try {

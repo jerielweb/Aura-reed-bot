@@ -9,12 +9,14 @@ export default {
     const remoteJid = message.key.remoteJid;
     if (!remoteJid.endsWith("@g.us")) {
       let text = `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n`;
-      text += `┃ ${fytBold("ACCION INCONPATIBLE")} \n`;
+      text += `┃ ${fytBold("ACCION INCOMPATIBLE")} \n`;
       text += `╰━━━━━━━━━━━━⬣\n\n`;
       text += `┃ > Este comando solo funciona en grupos.\n\n`;
       text += `╰〔 ⚡ ${fytBold("SYSTEM ALERT")} 〕⬣`;
+      return await socket.sendMessage(remoteJid, { text }, { quoted: message });
     }
 
+    db.groups = db.groups || {};
     if (!db.groups[remoteJid]) {
       db.groups[remoteJid] = {
         antilink: false,
@@ -29,11 +31,7 @@ export default {
     const status = args[0]?.toLowerCase();
 
     if (
-      status === "on" ||
-      status === "1" ||
-      status === "true" ||
-      status === "activar" ||
-      status === "enable"
+      ["on", "1", "true", "activar", "enable"].includes(status)
     ) {
       db.groups[remoteJid].onlyAdmin = true;
       saveDB(db);
@@ -45,11 +43,7 @@ export default {
       text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
       await socket.sendMessage(remoteJid, { text }, { quoted: message });
     } else if (
-      status === "off" ||
-      status === "0" ||
-      status === "false" ||
-      status === "desactivar" ||
-      status === "disable"
+      ["off", "0", "false", "desactivar", "disable"].includes(status)
     ) {
       db.groups[remoteJid].onlyAdmin = false;
       saveDB(db);
