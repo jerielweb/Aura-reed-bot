@@ -216,20 +216,17 @@ export async function handleMessage(sock, m, db, saveDB) {
     }
   }
 
-  const botId = sock.user?.id
+    const botId = sock.user?.id
     ? sock.user.id.split("@")[0].split(":")[0] + "@s.whatsapp.net"
     : null;
   const groupPrimaryBot = isGroup ? db.groups?.[remoteJid]?.primaryBot : null;
+
+  // Si hay un bot primario establecido y esta instancia NO es la elegida:
   if (isGroup && groupPrimaryBot && botId && groupPrimaryBot !== botId) {
-    if (
-      esComando &&
-      (commandNameForCheck === "setprimary" ||
-        commandNameForCheck === "primary")
-    ) {
-    } else {
-      return;
-    }
+    // Los demás bots ignoran absolutamente TODO, incluyendo setprimary
+    return;
   }
+
 
   if (isGroup && db.groups?.[remoteJid]?.botOn === false) {
     if (commandNameForCheck === "bot" && argsForCheck[1]?.toLowerCase() === "on") {

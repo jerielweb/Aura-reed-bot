@@ -14,16 +14,16 @@ export default {
       return await sock.sendMessage(
         remoteJid,
         {
-          text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ${fytBold("ACCION INCONPATIBLE")} \n╰━━━━━━━━━━━━⬣\n\n┃ > Este comando solo funciona en grupos.\n\n╰〔 ⚡ SYSTEM ALERT 〕⬣`,
+          text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ${fytBold("ACCION INCOMPATIBLE")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Este comando solo funciona en grupos.\n\n╰〔 ⚡ SYSTEM ALERT 〕⬣`,
         },
         { quoted: m },
       );
     }
 
-    const botId = sock.user?.id
+    const currentBotId = sock.user?.id
       ? sock.user.id.split("@")[0].split(":")[0] + "@s.whatsapp.net"
       : null;
-    if (!botId) return;
+    if (!currentBotId) return;
 
     const subCommand = args[0]?.toLowerCase();
     db.groups = db.groups || {};
@@ -49,11 +49,11 @@ export default {
       targetBot = mentioned;
     }
 
-    // Normalize targetBot if resolved
     if (targetBot) {
       targetBot = targetBot.split("@")[0].split(":")[0] + "@s.whatsapp.net";
     }
 
+    // Desactivar Bot Primario
     if (isClearing) {
       db.groups[remoteJid].primaryBot = null;
       await saveDB(db);
@@ -62,18 +62,19 @@ export default {
       text += `┃ ⚙️ 𝐂𝐎𝐍𝐅𝐈𝐆𝐔𝐑𝐀𝐂𝐈𝐎́𝐍\n`;
       text += `╰━━━━━━━━━━━━⬣\n\n`;
       text += `┃ > Se ha desactivado la prioridad del bot primario.\n`;
-      text += `┃ > Ahora todos los bots (principal y subs) responderán en este grupo.\n\n`;
+      text += `┃ > Ahora todos los bots responderán en este grupo.\n\n`;
       text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
 
       return await sock.sendMessage(remoteJid, { text }, { quoted: m });
     }
 
+    // Mostrar Estado / Ayuda
     if (!targetBot) {
       let text = `╭〔 ℹ️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
       text += `┃ ⚙️ 𝐂𝐎𝐍𝐅𝐈𝐆𝐔𝐑𝐀𝐂𝐈𝐎́𝐍\n`;
       text += `╰━━━━━━━━━━━━⬣\n\n`;
       text += `┃ *Uso del comando:*\n`;
-      text += `┃ > Responde (cita) al bot o etiquétalo (@bot) con el comando:\n`;
+      text += `┃ > Responde (cita) a un bot o etiquétalo (@bot) con:\n`;
       text += `┃ ➪ *${prefix}setprimary*\n\n`;
       text += `┃ *Para desactivar:* \n`;
       text += `┃ ➪ *${prefix}setprimary off*\n\n`;
@@ -94,6 +95,26 @@ export default {
       );
     }
 
+    // VERIFICACIÓN: El objetivo debe ser el bot principal o un sub-bot registrado
+    const mainBotJid = db.mainBotJid || currentBotId;
+    const subbotsList = db.subbots || []; // Ajusta la propiedad según tu estructura de base de datos
+    
+    const isMainBot = targetBot === mainBotJid;
+    const isSubBot = Array.isArray(subbotsList) 
+      ? subbotsList.some((sb) => sb.jid === targetBot || sb === targetBot)
+      : Boolean(subbotsList[targetBot]);
+
+    if (!isMainBot && !isSubBot) {
+      return await sock.sendMessage(
+        remoteJid,
+        {
+          text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("USUARIO NO VALIDO")}\n╰━━━━━━━━━━━━⬣\n\n┃ > El usuario etiquetado no está registrado como bot o sub-bot activo.\n\n╰〔 ⚡ SYSTEM 〕⬣`,
+        },
+        { quoted: m },
+      );
+    }
+
+    // Asignar el Bot Primario
     db.groups[remoteJid].primaryBot = targetBot;
     await saveDB(db);
 
