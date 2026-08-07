@@ -120,7 +120,7 @@ async function resolveMessageLids(m, sock, remoteJid) {
 }
 
 export async function handleMessage(sock, m, db, saveDB) {
-  if (!m || !m.message || m.key.fromMe) return;
+  if (!m || !m.message) return;
 
   const remoteJid = m.key.remoteJid;
   const isGroup = remoteJid.endsWith("@g.us");
