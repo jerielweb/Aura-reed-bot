@@ -166,7 +166,7 @@ export async function handleMessage(sock, m, db, saveDB) {
     console.error("[handleMessage] Error resolving message LIDs:", e);
   }
 
-   const text =
+  const text =
     m.message.conversation ||
     m.message.extendedTextMessage?.text ||
     m.message.imageMessage?.caption ||
@@ -177,13 +177,27 @@ export async function handleMessage(sock, m, db, saveDB) {
     m.text ||
     "";
 
-
   const groupPrefix = isGroup ? db.groups?.[remoteJid]?.prefix : null;
   const activePrefixes = groupPrefix ? [groupPrefix] : DEFAULT_PREFIXES;
 
   const usedPrefix = activePrefixes.find((p) => text.startsWith(p));
   const esComando = Boolean(usedPrefix);
   const prefix = usedPrefix || groupPrefix || DEFAULT_PREFIXES[0];
+
+  const argsForCheck = esComando
+    ? text.slice(prefix.length).trim().split(/ +/)
+    : [];
+  const commandNameForCheck = esComando ? argsForCheck[0]?.toLowerCase() : null;
+
+  // 🚫 VERIFICACIÓN DE CHAT BANEADO (BANCHAT)
+  const isChatBanned = db.chats?.[remoteJid]?.isBanned;
+  const isUnbanCmd =
+    commandNameForCheck === "unbanchat" ||
+    commandNameForCheck === "desbanearchat";
+
+  if (isChatBanned && !isUnbanCmd) {
+    return; // Ignora en silencio cualquier comando o interacción si el chat está baneado
+  }
 
   // Interceptor del juego ahorcado
   const hangmanKey = gameKey(sock, remoteJid);
@@ -201,11 +215,6 @@ export async function handleMessage(sock, m, db, saveDB) {
       if (wasGameMove) return;
     }
   }
-
-  const argsForCheck = esComando
-    ? text.slice(prefix.length).trim().split(/ +/)
-    : [];
-  const commandNameForCheck = esComando ? argsForCheck[0]?.toLowerCase() : null;
 
   const botId = sock.user?.id
     ? sock.user.id.split("@")[0].split(":")[0] + "@s.whatsapp.net"
