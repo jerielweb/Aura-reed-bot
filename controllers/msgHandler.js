@@ -216,7 +216,7 @@ export async function handleMessage(sock, m, db, saveDB) {
     }
   }
 
-    // 🤖 VERIFICACIÓN DE BOT PRIMARIO
+  // 🤖 VERIFICACIÓN DE BOT PRIMARIO
   const cleanJid = (jid) => (jid ? String(jid).split("@")[0].split(":")[0] : null);
 
   const groupPrimaryBot = isGroup ? db.groups?.[remoteJid]?.primaryBot : null;
@@ -232,7 +232,6 @@ export async function handleMessage(sock, m, db, saveDB) {
       return; // El bot secundario ignora todos los demás comandos
     }
   }
-
 
   if (isGroup && db.groups?.[remoteJid]?.botOn === false) {
     if (commandNameForCheck === "bot" && argsForCheck[1]?.toLowerCase() === "on") {
@@ -259,6 +258,7 @@ export async function handleMessage(sock, m, db, saveDB) {
     saveDB(db);
 
   const owners = db.owners || [];
+  const botId = sock.user?.id || sock.user?.jid;
   const sender = m.key.fromMe ? botId : jidRemitente;
   const isOwner = owners.includes(sender);
   const rangoLog = isOwner ? "OWNER 👑" : "USUARIO 👤";
@@ -309,7 +309,7 @@ export async function handleMessage(sock, m, db, saveDB) {
     !isAdmin &&
     !isOwner
   ) {
-    return
+    return;
   }
 
   try {
