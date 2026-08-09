@@ -1,15 +1,17 @@
 import { fytBold } from "../../models/TextStyle.js";
 
+const REPORT_GROUP_JID = "120363410372126705@g.us";
+
 export default {
   name: ["report", "bug", "sugerencia", "reportar", "sugerir"],
   category: "system",
   description:
-    "Envía un reporte de bug o sugerencia a los desarrolladores del bot.",
+    "Envía un reporte de bug o sugerencia al grupo de soporte del bot.",
   async execute(
     sock,
     m,
     args,
-    { prefix, owners, groupMetadata, jidRemitente },
+    { prefix, groupMetadata, jidRemitente },
   ) {
     const remoteJid = m.key.remoteJid;
     const reportText = args.join(" ").trim();
@@ -31,52 +33,39 @@ export default {
       ? `Grupo: ${groupMetadata?.subject || "Desconocido"}`
       : "Chat Privado";
     const senderNumber = jidRemitente.split("@")[0];
-    const pushName = m.pushName || "Usuario";
 
-    // Formatear mensaje para los propietarios
-    let textForOwners = `╭〔 📢 ${fytBold("NUEVO REPORTE")} 〕━⬣\n\n`;
-    textForOwners += `┃ 👤 ${fytBold("Usuario ›")} @${senderNumber}\n`;
-    textForOwners += `┃ ☎️ ${fytBold("Numero ›")} +${jidRemitente.split("@")[0]}\n`;
-    textForOwners += `┃ 📍 ${fytBold("Origen ›")} ${origen}\n`;
-    textForOwners += `┃ 🕒 ${fytBold("Fecha ›")} ${new Date().toLocaleString("es-CR")}\n\n`;
-    textForOwners += `┣━━━━━━━━━━━━⬣\n\n`;
-    textForOwners += `┃ 📝 ${fytBold("Mensaje:")}\n`;
-    textForOwners += `┃ > ${reportText}\n\n`;
-    textForOwners += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
+    // Formatear mensaje para el grupo de soporte
+    let textForReport = `╭〔 📢 ${fytBold("NUEVO REPORTE")} 〕━⬣\n\n`;
+    textForReport += `┃ 👤 ${fytBold("Usuario ›")} @${senderNumber}\n`;
+    textForReport += `┃ ☎️ ${fytBold("Numero ›")} +${senderNumber}\n`;
+    textForReport += `┃ 📍 ${fytBold("Origen ›")} ${origen}\n`;
+    textForReport += `┃ 🕒 ${fytBold("Fecha ›")} ${new Date().toLocaleString("es-CR")}\n\n`;
+    textForReport += `┣━━━━━━━━━━━━⬣\n\n`;
+    textForReport += `┃ 📝 ${fytBold("Mensaje:")}\n`;
+    textForReport += `┃ > ${reportText}\n\n`;
+    textForReport += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
 
-    let sentCount = 0;
-    const targetOwners = Array.isArray(owners) ? owners : [];
+    try {
+      await sock.sendMessage(REPORT_GROUP_JID, {
+        text: textForReport,
+        mentions: [jidRemitente],
+      });
 
-    for (const ownerJid of targetOwners) {
-      try {
-        await sock.sendMessage(ownerJid, {
-          text: textForOwners,
-          mentions: [jidRemitente],
-        });
-        sentCount++;
-      } catch (err) {
-        console.error(
-          `[Report Command] Error al enviar reporte al dueño (${ownerJid}):`,
-          err,
-        );
-      }
-    }
-
-    if (sentCount > 0) {
       await sock.sendMessage(remoteJid, { react: { text: "✅", key: m.key } });
       await sock.sendMessage(
         remoteJid,
         {
-          text: `╭〔 ✅ ${fytBold("REPORTE ENVIADO")} 〕━⬣\n\n┃ > Tu reporte ha sido enviado con exito\n┃ > a los desarrolladores del bot.\n┃ > ¡Gracias por tu colaboracion!\n\n╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`,
+          text: `╭〔 ✅ ${fytBold("REPORTE ENVIADO")} 〕━⬣\n\n┃ > Tu reporte ha sido enviado con exito\n┃ > al grupo de soporte del bot.\n┃ > ¡Gracias por tu colaboracion!\n\n╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`,
         },
         { quoted: m },
       );
-    } else {
+    } catch (err) {
+      console.error("[Report Command] Error al enviar reporte al grupo:", err);
       await sock.sendMessage(remoteJid, { react: { text: "❌", key: m.key } });
       await sock.sendMessage(
         remoteJid,
         {
-          text: `╭〔 ❌ ${fytBold("ERROR DE ENVIO")} 〕━⬣\n\n┃ > No se pudo enviar el reporte a los\n┃ > propietarios. Intentalo mas tarde.\n\n╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`,
+          text: `╭〔 ❌ ${fytBold("ERROR DE ENVIO")} 〕━⬣\n\n┃ > No se pudo enviar el reporte en este momento.\n┃ > Intentalo mas tarde.\n\n╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`,
         },
         { quoted: m },
       );
