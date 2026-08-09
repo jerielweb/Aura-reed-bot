@@ -4,7 +4,7 @@ import makeWASocket, {
   fetchLatestWaWebVersion,
   makeCacheableSignalKeyStore
 } from "@whiskeysockets/baileys";
-import { loadAllSubBots } from "./models/subbotManager.js";
+import { loadAllSubBots, syncSubBotsJson } from "./models/subbotManager.js";
 import { Boom } from "@hapi/boom";
 import qrcodeTerminal from "qrcode-terminal";
 import pino from "pino";
@@ -25,7 +25,6 @@ import {
   flushAllSubBotDBs,
   groupMetadataCache,
 } from "./models/subbotWorker.js";
-
 await initDB();
 const db = await getDB();
 restoreGamesFromDB(db);
@@ -329,6 +328,8 @@ async function connectToWhatsApp() {
       }
     }
     if (u.connection === "open") {
+      const mainNum = sock.user?.id || sock.user?.jid;
+      syncSubBotsJson(mainNum);
       console.log(chalk.green("✅ Bot Principal en línea y validado"));
     }
   });

@@ -83,7 +83,7 @@ export function canRegisterSubBot(senderId) {
   return false;
 }
 
-export function syncSubBotsJson(mainBotNumber = null) {
+export function syncSubBotsJson(mainBotJid = null) {
   try {
     if (!fs.existsSync(databaseDir)) {
       fs.mkdirSync(databaseDir, { recursive: true });
@@ -98,8 +98,12 @@ export function syncSubBotsJson(mainBotNumber = null) {
 
     const activeSessions = listActiveSubBotSessions();
 
+    const mainNum = mainBotJid 
+      ? String(mainBotJid).replace(/\D/g, "") 
+      : currentData.mainBot;
+
     const updatedData = {
-      mainBot: mainBotNumber ? String(mainBotNumber).replace(/\D/g, "") : currentData.mainBot,
+      mainBot: mainNum,
       subbots: activeSessions.map((id) => String(id).replace(/\D/g, "")),
     };
 
@@ -108,6 +112,7 @@ export function syncSubBotsJson(mainBotNumber = null) {
     console.error("[SUB-BOT] Error al sincronizar subbots.json:", error);
   }
 }
+
 
 export async function stopSubBot(senderId) {
   const sessionPath = path.join(sessionsDir, senderId);
