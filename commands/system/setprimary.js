@@ -20,11 +20,9 @@ export default {
       );
     }
 
+    // Limpia cualquier JID a solo dígitos
     const cleanJid = (jid) =>
-      jid ? String(jid).split("@")[0].split(":")[0] : null;
-
-    const currentBotId = cleanJid(sock.user?.id || sock.user?.jid);
-    if (!currentBotId) return;
+      jid ? String(jid).replace(/[^0-9]/g, "") : null;
 
     const subCommand = args[0]?.toLowerCase();
     db.groups = db.groups || {};
@@ -35,7 +33,6 @@ export default {
     let targetBotRaw = null;
     let isClearing = false;
 
-    // Extraer participante citado (soporta citados simples y contextInfo)
     const contextInfo =
       m.message?.extendedTextMessage?.contextInfo ||
       m.message?.imageMessage?.contextInfo ||
@@ -73,7 +70,7 @@ export default {
       return await sock.sendMessage(remoteJid, { text }, { quoted: m });
     }
 
-    // Mostrar Estado / Ayuda si no citó/mencionó a nadie
+    // Si no se citó ni etiquetó a nadie
     if (!targetBotRaw) {
       let text = `╭〔 ℹ️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
       text += `┃ ⚙️ 𝐂𝐎𝐍𝐅𝐈𝐆𝐔𝐑𝐀𝐂𝐈𝐎́𝐍\n`;
@@ -100,37 +97,18 @@ export default {
       );
     }
 
-    // Limpieza estricta para comparar únicamente los números
     const targetNum = cleanJid(targetBotRaw);
-    const targetBotJid = `${targetNum}@s.whatsapp.net`;
-
-    const mainBotNum = cleanJid(db.mainBotJid || currentBotId);
-    const isMainBot = targetNum === mainBotNum || targetNum === currentBotId;
-
-    // Obtener lista de subbots registrando arreglos u objetos
-    let subbotsList = db.subbots || [];
-    let isSubBot = false;
-
-    if (Array.isArray(subbotsList)) {
-      isSubBot = subbotsList.some(
-        (sb) => cleanJid(typeof sb === "object" ? sb.jid : sb) === targetNum,
-      );
-    } else if (typeof subbotsList === "object") {
-      isSubBot = Object.keys(subbotsList).some((key) => cleanJid(key) === targetNum);
-    }
-
-    // VERIFICACIÓN: Si no es el bot principal ni sub-bot
-    if (!isMainBot && !isSubBot) {
+    if (!targetNum) {
       return await sock.sendMessage(
         remoteJid,
-        {
-          text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("USUARIO NO VALIDO")}\n╰━━━━━━━━━━━━⬣\n\n┃ > El usuario etiquetado no está registrado como bot o sub-bot activo.\n\n╰〔 ⚡ SYSTEM 〕⬣`,
-        },
-        { quoted: m },
+        { text: "⚠️ No se pudo obtener el número del bot etiquetado/citado." },
+        { quoted: m }
       );
     }
 
-    // Asignar el Bot Primario en la Base de Datos
+    const targetBotJid = `${targetNum}@s.whatsapp.net`;
+
+    // Asignar en la Base de Datos local de esta instancia
     db.groups[remoteJid].primaryBot = targetBotJid;
     await saveDB(db);
 
