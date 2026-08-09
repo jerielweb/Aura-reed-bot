@@ -26,7 +26,8 @@ export default {
       );
     }
 
-    const cleanNum = (jid) => (jid ? String(jid).replace(/[^0-9]/g, "") : null);
+    // Limpia cualquier JID o ID dejando únicamente los dígitos del número telefónico
+    const cleanNum = (jid) => (jid ? String(jid).split("@")[0].split(":")[0].replace(/\D/g, "") : null);
 
     const subCommand = args[0]?.toLowerCase();
     db.groups = db.groups || {};
@@ -34,29 +35,33 @@ export default {
 
     const currentPrimary = db.groups[remoteJid].primaryBot;
 
-    let targetBotRaw = null;
-    let isClearing = false;
-
+    // Extracción robusta de cita o mención
     const contextInfo =
       m.message?.extendedTextMessage?.contextInfo ||
       m.message?.imageMessage?.contextInfo ||
-      m.message?.videoMessage?.contextInfo;
+      m.message?.videoMessage?.contextInfo ||
+      m.message?.buttonsResponseMessage?.contextInfo ||
+      m.message?.templateButtonReplyMessage?.contextInfo;
 
-    const replied =
+    const quotedParticipant =
       contextInfo?.participant ||
       m.quoted?.participant ||
       m.quoted?.key?.participant;
-    const mentioned = contextInfo?.mentionedJid?.[0];
+
+    const mentionedJid = contextInfo?.mentionedJid?.[0];
+
+    let targetBotRaw = null;
+    let isClearing = false;
 
     if (
       args[0] &&
       ["off", "reset", "clear", "desactivar", "ninguno"].includes(subCommand)
     ) {
       isClearing = true;
-    } else if (replied) {
-      targetBotRaw = replied;
-    } else if (mentioned) {
-      targetBotRaw = mentioned;
+    } else if (quotedParticipant) {
+      targetBotRaw = quotedParticipant;
+    } else if (mentionedJid) {
+      targetBotRaw = mentionedJid;
     }
 
     // Desactivar Bot Primario
@@ -74,13 +79,13 @@ export default {
       return await sock.sendMessage(remoteJid, { text }, { quoted: m });
     }
 
-    // Si no se citó ni etiquetó a nadie
+    // Si no se citó ni etiquetó a nadie, muestra el menú instructivo
     if (!targetBotRaw) {
       let text = `╭〔 ℹ️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
       text += `┃ ⚙️ 𝐂𝐎𝐍𝐅𝐈𝐆𝐔𝐑𝐀𝐂𝐈𝐎́𝐍\n`;
       text += `╰━━━━━━━━━━━━⬣\n\n`;
       text += `┃ *Uso del comando:*\n`;
-      text += `┃ > Responde (cita) a un bot o etiquétalo (@bot) con:\n`;
+      text += `┃ > Responde (cita) a un mensaje del bot o etiquétalo (@bot) usando:\n`;
       text += `┃ ➪ *${prefix}setprimary*\n\n`;
       text += `┃ *Para desactivar:* \n`;
       text += `┃ ➪ *${prefix}setprimary off*\n\n`;
@@ -104,19 +109,19 @@ export default {
     const targetNum = cleanNum(targetBotRaw);
     const currentBotNum = cleanNum(sock.user?.id || sock.user?.jid);
 
-    // Leer el JSON global
+    // Lectura del JSON global de bots
     let globalBots = { mainBot: null, subbots: [] };
     if (fs.existsSync(subbotsJsonPath)) {
       try {
-        globalBots = JSON.parse(fs.readFileSync(subbotsJsonPath, "utf-8"));
+        globalBots = JSON.parse(fs.readFileSync(subbotsJsonPath, "utf-8")) || globalBots;
       } catch {}
     }
 
-    // Lista unificada
+    // Lista unificada limpia de números telefónicos
     const allValidBots = [
-      globalBots.mainBot,
+      cleanNum(globalBots.mainBot),
       currentBotNum,
-      ...(globalBots.subbots || []),
+      ...(globalBots.subbots || []).map(cleanNum),
     ].filter(Boolean);
 
     const isValidBot = allValidBots.includes(targetNum);
@@ -131,7 +136,7 @@ export default {
       );
     }
 
-    // Guardar selección
+    // Guardar la selección
     const targetBotJid = `${targetNum}@s.whatsapp.net`;
     db.groups[remoteJid].primaryBot = targetBotJid;
 
