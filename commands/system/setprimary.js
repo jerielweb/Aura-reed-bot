@@ -20,9 +20,10 @@ export default {
       );
     }
 
-    const currentBotId = sock.user?.id
-      ? sock.user.id.split("@")[0].split(":")[0] + "@s.whatsapp.net"
-      : null;
+    const cleanJid = (jid) =>
+      jid ? String(jid).split("@")[0].split(":")[0] : null;
+
+    const currentBotId = cleanJid(sock.user?.id || sock.user?.jid);
     if (!currentBotId) return;
 
     const subCommand = args[0]?.toLowerCase();
@@ -31,12 +32,20 @@ export default {
 
     const currentPrimary = db.groups[remoteJid].primaryBot;
 
-    let targetBot = null;
+    let targetBotRaw = null;
     let isClearing = false;
 
-    const replied = m.message?.extendedTextMessage?.contextInfo?.participant;
-    const mentioned =
-      m.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
+    // Extraer participante citado (soporta citados simples y contextInfo)
+    const contextInfo =
+      m.message?.extendedTextMessage?.contextInfo ||
+      m.message?.imageMessage?.contextInfo ||
+      m.message?.videoMessage?.contextInfo;
+
+    const replied =
+      contextInfo?.participant ||
+      m.quoted?.participant ||
+      m.quoted?.key?.participant;
+    const mentioned = contextInfo?.mentionedJid?.[0];
 
     if (
       args[0] &&
@@ -44,13 +53,9 @@ export default {
     ) {
       isClearing = true;
     } else if (replied) {
-      targetBot = replied;
+      targetBotRaw = replied;
     } else if (mentioned) {
-      targetBot = mentioned;
-    }
-
-    if (targetBot) {
-      targetBot = targetBot.split("@")[0].split(":")[0] + "@s.whatsapp.net";
+      targetBotRaw = mentioned;
     }
 
     // Desactivar Bot Primario
@@ -68,8 +73,8 @@ export default {
       return await sock.sendMessage(remoteJid, { text }, { quoted: m });
     }
 
-    // Mostrar Estado / Ayuda
-    if (!targetBot) {
+    // Mostrar Estado / Ayuda si no citó/mencionó a nadie
+    if (!targetBotRaw) {
       let text = `╭〔 ℹ️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
       text += `┃ ⚙️ 𝐂𝐎𝐍𝐅𝐈𝐆𝐔𝐑𝐀𝐂𝐈𝐎́𝐍\n`;
       text += `╰━━━━━━━━━━━━⬣\n\n`;
@@ -79,7 +84,7 @@ export default {
       text += `┃ *Para desactivar:* \n`;
       text += `┃ ➪ *${prefix}setprimary off*\n\n`;
       if (currentPrimary) {
-        text += `┃ ➪ *Bot primario actual:* @${currentPrimary.split("@")[0]}\n\n`;
+        text += `┃ ➪ *Bot primario actual:* @${cleanJid(currentPrimary)}\n\n`;
       } else {
         text += `┃ ➪ *Bot primario actual:* Ninguno (responden todos)\n\n`;
       }
@@ -95,15 +100,26 @@ export default {
       );
     }
 
-    // VERIFICACIÓN: El objetivo debe ser el bot principal o un sub-bot registrado
-    const mainBotJid = db.mainBotJid || currentBotId;
-    const subbotsList = db.subbots || []; // Ajusta la propiedad según tu estructura de base de datos
-    
-    const isMainBot = targetBot === mainBotJid;
-    const isSubBot = Array.isArray(subbotsList) 
-      ? subbotsList.some((sb) => sb.jid === targetBot || sb === targetBot)
-      : Boolean(subbotsList[targetBot]);
+    // Limpieza estricta para comparar únicamente los números
+    const targetNum = cleanJid(targetBotRaw);
+    const targetBotJid = `${targetNum}@s.whatsapp.net`;
 
+    const mainBotNum = cleanJid(db.mainBotJid || currentBotId);
+    const isMainBot = targetNum === mainBotNum || targetNum === currentBotId;
+
+    // Obtener lista de subbots registrando arreglos u objetos
+    let subbotsList = db.subbots || [];
+    let isSubBot = false;
+
+    if (Array.isArray(subbotsList)) {
+      isSubBot = subbotsList.some(
+        (sb) => cleanJid(typeof sb === "object" ? sb.jid : sb) === targetNum,
+      );
+    } else if (typeof subbotsList === "object") {
+      isSubBot = Object.keys(subbotsList).some((key) => cleanJid(key) === targetNum);
+    }
+
+    // VERIFICACIÓN: Si no es el bot principal ni sub-bot
     if (!isMainBot && !isSubBot) {
       return await sock.sendMessage(
         remoteJid,
@@ -114,11 +130,10 @@ export default {
       );
     }
 
-    // Asignar el Bot Primario
-    db.groups[remoteJid].primaryBot = targetBot;
+    // Asignar el Bot Primario en la Base de Datos
+    db.groups[remoteJid].primaryBot = targetBotJid;
     await saveDB(db);
 
-    const targetNum = targetBot.split("@")[0];
     let text = `╭〔 ✅ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
     text += `┃ 🤖 𝐁𝐎𝐓 𝐏𝐑𝐈𝐌𝐀𝐑𝐈𝐎 𝐄𝐒𝐓𝐀𝐁𝐋𝐄𝐂𝐈𝐃𝐎\n`;
     text += `╰━━━━━━━━━━━━⬣\n\n`;
@@ -130,7 +145,7 @@ export default {
       remoteJid,
       {
         text,
-        mentions: [targetBot],
+        mentions: [targetBotJid],
       },
       { quoted: m },
     );
