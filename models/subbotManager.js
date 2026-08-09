@@ -83,7 +83,7 @@ export function canRegisterSubBot(senderId) {
   return false;
 }
 
-export function syncSubBotsJson(mainBotJid = null) {
+export function syncSubBotsJson(mainBotNumber = null) {
   try {
     if (!fs.existsSync(databaseDir)) {
       fs.mkdirSync(databaseDir, { recursive: true });
@@ -98,13 +98,14 @@ export function syncSubBotsJson(mainBotJid = null) {
 
     const activeSessions = listActiveSubBotSessions();
 
-    const mainNum = mainBotJid 
-      ? String(mainBotJid).replace(/\D/g, "") 
-      : currentData.mainBot;
+    // 🛠️ Limpia adecuadamente quitando el puerto/dispositivo (:12) antes de extraer dígitos
+    const cleanNum = (jid) => (jid ? String(jid).split("@")[0].split(":")[0].replace(/\D/g, "") : null);
+
+    const mainNum = mainBotNumber ? cleanNum(mainBotNumber) : currentData.mainBot;
 
     const updatedData = {
       mainBot: mainNum,
-      subbots: activeSessions.map((id) => String(id).replace(/\D/g, "")),
+      subbots: activeSessions.map(cleanNum).filter(Boolean),
     };
 
     fs.writeFileSync(subbotsJsonPath, JSON.stringify(updatedData, null, 2));
@@ -112,6 +113,7 @@ export function syncSubBotsJson(mainBotJid = null) {
     console.error("[SUB-BOT] Error al sincronizar subbots.json:", error);
   }
 }
+
 
 
 export async function stopSubBot(senderId) {
