@@ -1,4 +1,10 @@
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import { fytBold } from "./../../models/TextStyle.js";
+
+const ROOT_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const subbotsJsonPath = path.join(ROOT_DIR, "database", "subbots.json");
 
 export default {
   name: ["setprimary", "primary"],
@@ -20,9 +26,7 @@ export default {
       );
     }
 
-    // Limpia cualquier JID a solo dígitos
-    const cleanJid = (jid) =>
-      jid ? String(jid).replace(/[^0-9]/g, "") : null;
+    const cleanNum = (jid) => (jid ? String(jid).replace(/[^0-9]/g, "") : null);
 
     const subCommand = args[0]?.toLowerCase();
     db.groups = db.groups || {};
@@ -81,7 +85,7 @@ export default {
       text += `┃ *Para desactivar:* \n`;
       text += `┃ ➪ *${prefix}setprimary off*\n\n`;
       if (currentPrimary) {
-        text += `┃ ➪ *Bot primario actual:* @${cleanJid(currentPrimary)}\n\n`;
+        text += `┃ ➪ *Bot primario actual:* @${cleanNum(currentPrimary)}\n\n`;
       } else {
         text += `┃ ➪ *Bot primario actual:* Ninguno (responden todos)\n\n`;
       }
@@ -97,19 +101,40 @@ export default {
       );
     }
 
-    const targetNum = cleanJid(targetBotRaw);
-    if (!targetNum) {
+    const targetNum = cleanNum(targetBotRaw);
+    const currentBotNum = cleanNum(sock.user?.id || sock.user?.jid);
+
+    // Leer el JSON global
+    let globalBots = { mainBot: null, subbots: [] };
+    if (fs.existsSync(subbotsJsonPath)) {
+      try {
+        globalBots = JSON.parse(fs.readFileSync(subbotsJsonPath, "utf-8"));
+      } catch {}
+    }
+
+    // Lista unificada
+    const allValidBots = [
+      globalBots.mainBot,
+      currentBotNum,
+      ...(globalBots.subbots || []),
+    ].filter(Boolean);
+
+    const isValidBot = allValidBots.includes(targetNum);
+
+    if (!isValidBot) {
       return await sock.sendMessage(
         remoteJid,
-        { text: "⚠️ No se pudo obtener el número del bot etiquetado/citado." },
-        { quoted: m }
+        {
+          text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("USUARIO NO VALIDO")}\n╰━━━━━━━━━━━━⬣\n\n┃ > El usuario etiquetado no está registrado como bot o sub-bot activo.\n\n╰〔 ⚡ SYSTEM 〕⬣`,
+        },
+        { quoted: m },
       );
     }
 
+    // Guardar selección
     const targetBotJid = `${targetNum}@s.whatsapp.net`;
-
-    // Asignar en la Base de Datos local de esta instancia
     db.groups[remoteJid].primaryBot = targetBotJid;
+
     await saveDB(db);
 
     let text = `╭〔 ✅ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
@@ -121,10 +146,7 @@ export default {
 
     return await sock.sendMessage(
       remoteJid,
-      {
-        text,
-        mentions: [targetBotJid],
-      },
+      { text, mentions: [targetBotJid] },
       { quoted: m },
     );
   },

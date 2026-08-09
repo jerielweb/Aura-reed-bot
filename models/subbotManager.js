@@ -37,6 +37,7 @@ export function getMaxSubBots() {
 const ROOT_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sessionsDir = path.join(ROOT_DIR, "sessions", "subbots");
 const databaseDir = path.join(ROOT_DIR, "database");
+const subbotsJsonPath = path.join(databaseDir, "subbots.json");
 
 if (!fs.existsSync(sessionsDir)) fs.mkdirSync(sessionsDir, { recursive: true });
 
@@ -82,6 +83,32 @@ export function canRegisterSubBot(senderId) {
   return false;
 }
 
+export function syncSubBotsJson(mainBotNumber = null) {
+  try {
+    if (!fs.existsSync(databaseDir)) {
+      fs.mkdirSync(databaseDir, { recursive: true });
+    }
+
+    let currentData = { mainBot: null, subbots: [] };
+    if (fs.existsSync(subbotsJsonPath)) {
+      try {
+        currentData = JSON.parse(fs.readFileSync(subbotsJsonPath, "utf-8")) || currentData;
+      } catch {}
+    }
+
+    const activeSessions = listActiveSubBotSessions();
+
+    const updatedData = {
+      mainBot: mainBotNumber ? String(mainBotNumber).replace(/\D/g, "") : currentData.mainBot,
+      subbots: activeSessions.map((id) => String(id).replace(/\D/g, "")),
+    };
+
+    fs.writeFileSync(subbotsJsonPath, JSON.stringify(updatedData, null, 2));
+  } catch (error) {
+    console.error("[SUB-BOT] Error al sincronizar subbots.json:", error);
+  }
+}
+
 export async function stopSubBot(senderId) {
   const sessionPath = path.join(sessionsDir, senderId);
   let handled = false;
@@ -105,10 +132,11 @@ export async function stopSubBot(senderId) {
     fs.rmSync(sessionPath, { recursive: true, force: true });
     handled = true;
   }
+  
+  syncSubBotsJson();
   return handled;
 }
 
-// 🛠️ Restauración autónoma e independiente de todos los sub-bots
 export async function loadAllSubBots() {
   const sessions = listActiveSubBotSessions();
   if (sessions.length === 0) return;
@@ -166,6 +194,7 @@ export async function createSubBot(sock = null, m = null, type = "qr", phoneNumb
           await sock.sendMessage(remoteJid, { text: "⏳ El tiempo de vinculación ha expirado (60 segundos). Inténtalo de nuevo." }, { quoted: m });
         }
         if (fs.existsSync(sessionPath)) fs.rmSync(sessionPath, { recursive: true, force: true });
+        syncSubBotsJson();
       }
     }, 60000);
   }
@@ -253,6 +282,7 @@ export async function createSubBot(sock = null, m = null, type = "qr", phoneNumb
             try { fs.rmSync(sessionPath, { recursive: true, force: true }); } catch (e) {}
           }
           activeSubBots.delete(senderId);
+          syncSubBotsJson();
           if (timeout) clearTimeout(timeout);
         } else if (!subSock.isClosedManually) {
           console.log(`[SUB-BOT] Reconectando sesión caída de ${senderId} de forma autónoma en 7 segundos...`);
@@ -265,6 +295,7 @@ export async function createSubBot(sock = null, m = null, type = "qr", phoneNumb
         if (timeout) clearTimeout(timeout);
         
         console.log(chalk.green(`✅ Sub-Bot (${senderId}) restablecido y corriendo de forma independiente.`));
+        syncSubBotsJson();
         
         if (!wasConnected && !isAutoload && sock && remoteJid && m) {
           await sock.sendMessage(remoteJid, {
@@ -289,7 +320,7 @@ export async function createSubBot(sock = null, m = null, type = "qr", phoneNumb
           if (sock && remoteJid && m) {
             await sock.sendMessage(remoteJid, { text: `*${code.toUpperCase()}*` }, { quoted: m });
           }
-          console.log(`[SUB-BOT] Código entregado con éxito para ${senderId}`);
+          console.log(`[SUB-BOT] Código delivered con éxito para ${senderId}`);
         } catch (err) {
           console.error("Error solicitando código en sub-bot:", err);
         }
