@@ -1,4 +1,5 @@
 import { fytBold } from "../../models/TextStyle.js";
+import { getMainSocket } from "../../models/subbotManager.js";
 
 const REPORT_GROUP_JID = "120363410372126705@g.us";
 
@@ -6,7 +7,7 @@ export default {
   name: ["report", "bug", "sugerencia", "reportar", "sugerir"],
   category: "system",
   description:
-    "Envía un reporte de bug o sugerencia al grupo de soporte del bot.",
+    "Envía un reporte de bug o sugerencia al grupo de soporte usando el bot principal.",
   async execute(
     sock,
     m,
@@ -46,7 +47,10 @@ export default {
     textForReport += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
 
     try {
-      await sock.sendMessage(REPORT_GROUP_JID, {
+      // Usa el socket del Bot Principal si está disponible, de lo contrario usa el socket actual
+      const mainSock = (typeof getMainSocket === "function" ? getMainSocket() : null) || global.mainSocket || sock;
+
+      await mainSock.sendMessage(REPORT_GROUP_JID, {
         text: textForReport,
         mentions: [jidRemitente],
       });
@@ -60,7 +64,7 @@ export default {
         { quoted: m },
       );
     } catch (err) {
-      console.error("[Report Command] Error al enviar reporte al grupo:", err);
+      console.error("[Report Command] Error al enviar reporte al grupo desde el bot principal:", err);
       await sock.sendMessage(remoteJid, { react: { text: "❌", key: m.key } });
       await sock.sendMessage(
         remoteJid,
