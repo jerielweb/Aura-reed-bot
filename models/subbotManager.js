@@ -21,6 +21,17 @@ import {
   groupMetadataCache,
 } from "./subbotWorker.js";
 
+// Variable global para almacenar el socket principal
+let mainSocketInstance = null;
+
+export function setMainSocket(sock) {
+  mainSocketInstance = sock;
+}
+
+export function getMainSocket() {
+  return mainSocketInstance || global.mainSocket || null;
+}
+
 export const SUB_LIMIT_MESSAGE =
   "✐ No se han encontrado espacios disponibles para registrar un `Sub-Bot`.";
 
@@ -98,7 +109,6 @@ export function syncSubBotsJson(mainBotNumber = null) {
 
     const activeSessions = listActiveSubBotSessions();
 
-    // 🛠️ Limpia adecuadamente quitando el puerto/dispositivo (:12) antes de extraer dígitos
     const cleanNum = (jid) => (jid ? String(jid).split("@")[0].split(":")[0].replace(/\D/g, "") : null);
 
     const mainNum = mainBotNumber ? cleanNum(mainBotNumber) : currentData.mainBot;
@@ -113,8 +123,6 @@ export function syncSubBotsJson(mainBotNumber = null) {
     console.error("[SUB-BOT] Error al sincronizar subbots.json:", error);
   }
 }
-
-
 
 export async function stopSubBot(senderId) {
   const sessionPath = path.join(sessionsDir, senderId);
