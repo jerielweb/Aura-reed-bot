@@ -21,15 +21,13 @@ import {
   groupMetadataCache,
 } from "./subbotWorker.js";
 
-// Variable global para almacenar el socket principal
-let mainSocketInstance = null;
-
+// Guardar la referencia en global de Node.js para que sea visible desde cualquier módulo/subbot
 export function setMainSocket(sock) {
-  mainSocketInstance = sock;
+  global.mainSocket = sock;
 }
 
 export function getMainSocket() {
-  return mainSocketInstance || global.mainSocket || null;
+  return global.mainSocket || null;
 }
 
 export const SUB_LIMIT_MESSAGE =

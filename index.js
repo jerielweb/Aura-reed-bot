@@ -4,7 +4,7 @@ import makeWASocket, {
   fetchLatestWaWebVersion,
   makeCacheableSignalKeyStore
 } from "@whiskeysockets/baileys";
-import { loadAllSubBots, syncSubBotsJson } from "./models/subbotManager.js";
+import { loadAllSubBots, syncSubBotsJson, setMainSocket } from "./models/subbotManager.js";
 import { Boom } from "@hapi/boom";
 import qrcodeTerminal from "qrcode-terminal";
 import pino from "pino";
@@ -189,6 +189,9 @@ async function connectToWhatsApp() {
       return meta;
     },
   });
+  
+global.mainSocket = sock;
+setMainSocket(sock);
 
   await wrapGroupMetadataCache(sock);
 
