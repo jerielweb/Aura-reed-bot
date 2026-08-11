@@ -26,7 +26,7 @@ Aura Reed Bot es un bot de WhatsApp con comandos de entretenimiento, administrac
 ## 📦 Instalación
 
 ```bash
-git clone https://github.com/jeriel003/Aura-reed-bot.git
+git clone https://github.com/jerielweb/Aura-reed-bot.git
 cd aura-reed-bot
 npm install
 ```
