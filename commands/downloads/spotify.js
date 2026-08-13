@@ -1,6 +1,6 @@
 import { fytBold } from "../../models/TextStyle.js";
 import axios from "axios";
-import { spotifyDownload, SP_REGEX } from "../../lib/spotifyScraper.js";
+import { spotifyDownload, SP_REGEX } from "./../../controllers/spotifyDownloader.js";
 
 export default {
   name: ["spotify", "splay", "sp", "spdl"],
