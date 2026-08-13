@@ -1,8 +1,6 @@
 // Desarrollado por Ander
 // Solo funciona con URL de Spotify (open.spotify.com/track/...)
 
-import { Buffer } from 'buffer'
-
 const API_BASE = 'https://spotifyapi.sistemasolutions.com/api'
 const SITE = 'https://www.spotify-downloads.com'
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36'
@@ -12,24 +10,7 @@ const POLL_INTERVAL = 3000
 const POLL_MAX = 60
 const MAX_BYTES = 100 * 1024 * 1024
 
-export interface SpotifyTrack {
-  name: string
-  artist: string
-  album: string
-  duration: string
-  quality: string
-  size: number
-  buffer: Buffer
-}
-
-interface JobInfo {
-  name: string
-  artist: string
-  album: string
-  duration: string
-}
-
-function apiHeaders(extra: Record<string, string> = {}): Record<string, string> {
+function apiHeaders(extra = {}) {
   return {
     accept: '*/*',
     'user-agent': UA,
@@ -39,7 +20,7 @@ function apiHeaders(extra: Record<string, string> = {}): Record<string, string> 
   }
 }
 
-async function createJob(url: string): Promise<string> {
+async function createJob(url) {
   const res = await fetch(`${API_BASE}/download`, {
     method: 'POST',
     headers: apiHeaders({ 'content-type': 'application/json' }),
@@ -49,21 +30,21 @@ async function createJob(url: string): Promise<string> {
   const texto = await res.text()
   if (!res.ok) throw new Error(`La API respondió HTTP ${res.status}`)
 
-  let data: any = null
+  let data = null
   try { data = JSON.parse(texto) } catch {}
 
   if (data?.error) throw new Error(data.error)
   if (!data?.job_id) throw new Error('No se obtuvo job_id')
 
-  return data.job_id as string
+  return data.job_id
 }
 
-async function pollJob(jobId: string): Promise<JobInfo> {
+async function pollJob(jobId) {
   for (let i = 0; i < POLL_MAX; i++) {
     const res = await fetch(`${API_BASE}/status/${jobId}`, { headers: apiHeaders() })
 
     if (res.ok) {
-      let data: any = null
+      let data = null
       try { data = JSON.parse(await res.text()) } catch {}
 
       if (data) {
@@ -93,7 +74,7 @@ async function pollJob(jobId: string): Promise<JobInfo> {
   throw new Error('la conversión tardó demasiado')
 }
 
-async function downloadFile(jobId: string): Promise<Buffer> {
+async function downloadFile(jobId) {
   const res = await fetch(`${API_BASE}/file/${jobId}`, {
     headers: apiHeaders(),
     redirect: 'follow'
@@ -116,12 +97,12 @@ async function downloadFile(jobId: string): Promise<Buffer> {
   return buffer
 }
 
-function deleteJob(jobId: string): void {
+function deleteJob(jobId) {
   fetch(`${API_BASE}/file/${jobId}`, { method: 'DELETE', headers: apiHeaders() })
     .catch(() => {})
 }
 
-export async function spotifyDownload(url: string): Promise<SpotifyTrack> {
+export async function spotifyDownload(url) {
   if (!SP_REGEX.test(url)) throw new Error('Enlace de Spotify inválido')
 
   const jobId = await createJob(url)
@@ -141,12 +122,12 @@ export async function spotifyDownload(url: string): Promise<SpotifyTrack> {
   }
 }
 
-export function formatSize(bytes: number): string {
+export function formatSize(bytes) {
   if (bytes >= 1048576) return `${(bytes / 1048576).toFixed(1)} MB`
   return `${Math.ceil(bytes / 1024)} KB`
 }
 
-function sleep(ms: number): Promise<void> {
+function sleep(ms) {
   return new Promise(r => setTimeout(r, ms))
 }
 
