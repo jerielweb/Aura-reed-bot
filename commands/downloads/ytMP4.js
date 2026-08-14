@@ -4,7 +4,7 @@ import { fytBold } from "../../models/TextStyle.js";
 
 const YT_REGEX = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
 const LEMPI_API_KEY = "oboe";
-const LEMPI_QUALITY = 720;
+const LEMPI_QUALITY = 1080;
 
 function extractVideoId(url) {
   const patterns = [
