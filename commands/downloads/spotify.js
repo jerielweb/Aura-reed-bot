@@ -24,22 +24,20 @@ export default {
       react: { text: "🎵", key: message.key },
     });
 
-    const apiKey = global.Apis?.apiAiya?.apikey || "oboe";
-    const isUrl = text.includes("open.spotify.com");
-
     try {
-      let endpoint = "";
-      let params = {};
+      const apiKey = global.Apis?.apiAiya?.apikey || "oboe";
+      const isUrl = text.includes("open.spotify.com");
 
-      if (isUrl) {
-        // Limpiar URL dejando únicamente la parte antes del '?'
-        const cleanTrackUrl = text.split("?")[0];
-        endpoint = "https://api.alyacore.xyz/dl/spotify";
-        params = { url: cleanTrackUrl, key: apiKey };
-      } else {
-        endpoint = "https://api.alyacore.xyz/dl/spotifyplay";
-        params = { query: text, key: apiKey };
-      }
+      // Limpiar URL: remover parámetros tipo ?si=...
+      const cleanUrl = isUrl ? text.split("?")[0] : text;
+
+      const endpoint = isUrl
+        ? "https://api.alyacore.xyz/dl/spotifyv2"
+        : "https://api.alyacore.xyz/dl/spotifyplay";
+
+      const params = isUrl
+        ? { url: cleanUrl, key: apiKey }
+        : { query: cleanUrl, key: apiKey };
 
       const { data: res } = await axios.get(endpoint, { params });
 
@@ -54,15 +52,19 @@ export default {
         throw new Error("El enlace de descarga del audio no está disponible.");
       }
 
+      // Se usa la URL retornada por la API o el link limpio en caso de ser directo
+      const trackUrl = song.url || (isUrl ? cleanUrl : null);
+
       let caption = `╭〔 🎵 ${fytBold("SPOTIFY DOWNLOAD")} 〕⬣\n\n`;
       caption += `┃ ➥ ${fytBold(`${song.title}`)}\n\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
-      caption += `┃ > ${fytBold("Artista:")} › ${song.artist}\n`;
-      caption += `┃ > ${fytBold("Álbum:")} › ${song.album || "Desconocido"}\n`;
-      if (song.duration) caption += `┃ > ${fytBold("Duración:")} › ${song.duration}\n`;
-      caption += `┃ > ${fytBold("Tipo:")} › Audio (MP3)\n`;
+      caption += `┃ > ${fytBold("Artista")} › ${song.artist}\n`;
+      caption += `┃ > ${fytBold("Álbum")} › ${song.album || "Desconocido"}\n`;
+      if (song.duration) caption += `┃ > ${fytBold("Duración")} › ${song.duration}\n`;
+      if (trackUrl) caption += `┃ > ${fytBold("Link")} › ${trackUrl}\n`;
+      caption += `┃ > ${fytBold("Tipo")} › Audio (MP3)\n`;
       caption += `╰━━━━━━━━━━━━⬣\n`;
-      caption += `┃ ⏳ Descargando audio...\n`;
+      caption += `┃ ⏳ Enviando audio...\n`;
       caption += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;
 
       if (song.cover || song.coverHd) {
@@ -78,15 +80,12 @@ export default {
         await socket.sendMessage(remoteJid, { text: caption }, { quoted: message });
       }
 
-      const audioBuffer = (
-        await axios.get(downloadUrl, { responseType: "arraybuffer" })
-      ).data;
-
+      // Envío del archivo como audio
       await socket.sendMessage(
         remoteJid,
         {
-          audio: Buffer.from(audioBuffer),
-          mimetype: "audio/mp4",
+          audio: { url: downloadUrl },
+          mimetype: "audio/mpeg",
           fileName: `${song.artist} - ${song.title}.mp3`,
         },
         { quoted: message }

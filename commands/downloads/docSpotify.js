@@ -28,7 +28,7 @@ export default {
       const apiKey = global.Apis?.apiAiya?.apikey || "oboe";
       const isUrl = text.includes("open.spotify.com");
 
-      // Limpiar URL: remover parámetros tipo ?si=... o ?track=...
+      // Limpiar URL ingresada si aplica
       const cleanUrl = isUrl ? text.split("?")[0] : text;
 
       const endpoint = isUrl
@@ -52,12 +52,16 @@ export default {
         throw new Error("El enlace de descarga del audio no está disponible.");
       }
 
+      // Se usa la URL retornada por la API o el link limpio en caso de ser directo
+      const trackUrl = song.url || (isUrl ? cleanUrl : null);
+
       let caption = `╭〔 🎵 ${fytBold("SPOTIFY DOWNLOAD")} 〕⬣\n\n`;
       caption += `┃ ➥ ${fytBold(`${song.title}`)}\n\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ > ${fytBold("Artista")} › ${song.artist}\n`;
       caption += `┃ > ${fytBold("Álbum")} › ${song.album || "Desconocido"}\n`;
       if (song.duration) caption += `┃ > ${fytBold("Duración")} › ${song.duration}\n`;
+      if (trackUrl) caption += `┃ > ${fytBold("Link")} › ${trackUrl}\n`;
       caption += `┃ > ${fytBold("Tipo")} › Documento (MP3)\n`;
       caption += `╰━━━━━━━━━━━━⬣\n`;
       caption += `┃ ⏳ Descargando documento...\n`;
@@ -74,7 +78,7 @@ export default {
         );
       }
 
-      // Envío como documento
+      // Envío del archivo como documento mediante su URL de descarga
       await socket.sendMessage(
         remoteJid,
         {
