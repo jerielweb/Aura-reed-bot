@@ -32,7 +32,7 @@ export default {
       const cleanUrl = isUrl ? text.split("?")[0] : text;
 
       const endpoint = isUrl
-        ? "https://api.alyacore.xyz/dl/spotifyv2"
+        ? "https://api.alyacore.xyz/dl/spotify"
         : "https://api.alyacore.xyz/dl/spotifyplay";
 
       const params = isUrl
