@@ -45,7 +45,7 @@ export default {
         caption += `┃ > ${fytBold("Álbum")} › ${track.album || "Desconocido"}\n`;
         caption += `┃ > ${fytBold("Duración")} › ${track.duration}\n`;
         caption += `┃ > ${fytBold("Calidad")} › ${track.quality}\n`;
-        caption += `┃ > ${fytBold("Tipo")} › Documento (MP3)\n`;
+        caption += `┃ > ${fytBold("Tipo")} › Audio(MP3)\n`;
         caption += `╰━━━━━━━━━━━━⬣\n`;
         caption += `┃ ⏳ Enviando audio...\n`;
         caption += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;
@@ -55,7 +55,7 @@ export default {
         await socket.sendMessage(
           remoteJid,
           {
-            document: track.buffer,
+            audio: track.buffer,
             mimetype: "audio/mpeg",
             fileName: `${track.artist} - ${track.name}.mp3`,
           },
