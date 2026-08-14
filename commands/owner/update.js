@@ -2,7 +2,7 @@ import { exec } from "child_process";
 import { fytBold } from "../../models/TextStyle.js";
 
 export default {
-  name: ["update", "actualizar"],
+  name: ["update", "actualizar", "fix"],
   category: "owner",
   description:
     "Actualiza el bot desde el repositorio (Git) mostrando los cambios.",

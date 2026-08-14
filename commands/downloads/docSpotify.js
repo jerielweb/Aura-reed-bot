@@ -28,13 +28,16 @@ export default {
       const apiKey = global.Apis?.apiAiya?.apikey || "oboe";
       const isUrl = text.includes("open.spotify.com");
 
+      // Limpiar URL: remover parámetros tipo ?si=... o ?track=...
+      const cleanUrl = isUrl ? text.split("?")[0] : text;
+
       const endpoint = isUrl
         ? "https://api.alyacore.xyz/dl/spotifyv2"
         : "https://api.alyacore.xyz/dl/spotifyplay";
 
       const params = isUrl
-        ? { url: text, key: apiKey }
-        : { query: text, key: apiKey };
+        ? { url: cleanUrl, key: apiKey }
+        : { query: cleanUrl, key: apiKey };
 
       const { data: res } = await axios.get(endpoint, { params });
 
@@ -54,7 +57,7 @@ export default {
       caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ > ${fytBold("Artista")} › ${song.artist}\n`;
       caption += `┃ > ${fytBold("Álbum")} › ${song.album || "Desconocido"}\n`;
-      caption += `┃ > ${fytBold("Duración")} › ${song.duration}\n`;
+      if (song.duration) caption += `┃ > ${fytBold("Duración")} › ${song.duration}\n`;
       caption += `┃ > ${fytBold("Tipo")} › Documento (MP3)\n`;
       caption += `╰━━━━━━━━━━━━⬣\n`;
       caption += `┃ ⏳ Descargando documento...\n`;
@@ -71,7 +74,7 @@ export default {
         );
       }
 
-      // Envío del archivo como documento directamente vía URL
+      // Envío como documento
       await socket.sendMessage(
         remoteJid,
         {
