@@ -66,7 +66,18 @@ class YTDownloader {
    */
   async getAudio(queryOrUrl) {
     const isUrl = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/.test(queryOrUrl);
-    const videoId = this.getVideoId(queryOrUrl) || `yt_${Date.now()}`;
+    
+    // Si no es URL, obtener primero el link de YouTube mediante búsqueda
+    let targetUrl = queryOrUrl;
+    if (!isUrl) {
+      const meta = await this.getMetadata(queryOrUrl);
+      if (!meta.url) {
+        throw new Error("No se encontró ningún video para esa búsqueda.");
+      }
+      targetUrl = meta.url;
+    }
+
+    const videoId = this.getVideoId(targetUrl) || `yt_${Date.now()}`;
     const cachePath = path.join(this.tempDir, `${videoId}.mp3`);
 
     if (fs.existsSync(cachePath)) {
@@ -74,23 +85,12 @@ class YTDownloader {
       return cachePath;
     }
 
-    let downloadUrl = null;
+    const res = await axios.get(
+      `${this.baseUrl}/ytmp3v2?url=${encodeURIComponent(targetUrl)}&key=${this.apiKey}`,
+      { timeout: 30000 }
+    );
 
-    if (isUrl) {
-      // API por URL
-      const res = await axios.get(
-        `${this.baseUrl}/ytmp3v2?url=${encodeURIComponent(queryOrUrl)}&key=${this.apiKey}`,
-        { timeout: 30000 }
-      );
-      downloadUrl = res.data?.data?.dl;
-    } else {
-      // API por Query
-      const res = await axios.get(
-        `${this.baseUrl}/youtubeplay?query=${encodeURIComponent(queryOrUrl)}&key=${this.apiKey}`,
-        { timeout: 30000 }
-      );
-      downloadUrl = res.data?.data?.dl;
-    }
+    const downloadUrl = res.data?.data?.dl;
 
     if (!downloadUrl) {
       throw new Error("No se pudo obtener el enlace de descarga del audio.");
