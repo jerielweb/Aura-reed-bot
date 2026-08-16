@@ -304,7 +304,7 @@ export async function handleMessage(sock, m, db, saveDB) {
             return {
               ...p,
               jid: realJid,
-              phoneNumber: num ? `${num}@s.whatsapp.net` : undefined,
+              phoneNumber: num ? `${num}` : undefined,
               username: displayHandle.startsWith("@") ? displayHandle : `@${displayHandle}`,
             };
           })
