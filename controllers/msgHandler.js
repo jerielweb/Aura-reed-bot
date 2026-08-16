@@ -11,7 +11,7 @@ import { activeHangmanGames, gameKey } from "../models/gameState.js";
 import { processHangmanGuess } from "../commands/games/ahorcado.js";
 
 // Lista de prefijos múltiples permitidos por defecto
-const DEFAULT_PREFIXES = [".", "#", "/", "!", "-", "@", "%", ">", "$"];
+const DEFAULT_PREFIXES = [".", "#", "/", "!", "-", "", "%", ">", "$"];
 
 let middlewareCache = null;
 let middlewareCacheTime = 0;
