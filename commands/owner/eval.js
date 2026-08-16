@@ -4,7 +4,7 @@ import { fytBold } from "../../models/TextStyle.js";
 export default {
   name: ["eval", "e", "execute"],
   category: "owner",
-  ownersOnly: true,
+  ownersOnly: false,
   description:
     "Ejecuta cualquier código JavaScript en tiempo real capturando la consola.",
   async execute(
