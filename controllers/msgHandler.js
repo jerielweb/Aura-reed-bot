@@ -271,13 +271,16 @@ export async function handleMessage(sock, m, db, saveDB) {
     try {
       groupMetadata = await sock.groupMetadata(remoteJid);
       
-      // 🏷️ MAPEAR PARTICIPANTES PARA EXTRAER EL `@username` DE WHATSAPP
+      // 🏷️ MAPEAR PARTICIPANTES CON FALLBACK ROBUSTO (@username > pushName > notify > número)
       if (Array.isArray(groupMetadata.participants)) {
         groupMetadata.participants = groupMetadata.participants.map((p) => {
-          const rawUsername = p.username || p.notify || null;
+          const num = p.id ? p.id.split("@")[0].split(":")[0] : "";
+          const isSender = p.id === senderRaw || p.id === jidRemitente;
+          const name = p.username || p.notify || (isSender ? m.pushName : null) || num;
+          
           return {
             ...p,
-            username: rawUsername ? `@${rawUsername.replace(/^@/, "")}` : null,
+            username: `@${String(name).replace(/^@/, "")}`,
           };
         });
       }
