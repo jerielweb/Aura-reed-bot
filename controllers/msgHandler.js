@@ -271,18 +271,32 @@ export async function handleMessage(sock, m, db, saveDB) {
     try {
       groupMetadata = await sock.groupMetadata(remoteJid);
       
-      // 🏷️ MAPEAR PARTICIPANTES CON FALLBACK ROBUSTO (@username > pushName > notify > número)
+      // 🏷️ MAPEAR PARTICIPANTES RESOLVIENDO LIDs A JIDs REALES
       if (Array.isArray(groupMetadata.participants)) {
-        groupMetadata.participants = groupMetadata.participants.map((p) => {
-          const num = p.id ? p.id.split("@")[0].split(":")[0] : "";
-          const isSender = p.id === senderRaw || p.id === jidRemitente;
-          const name = p.username || p.notify || (isSender ? m.pushName : null) || num;
-          
-          return {
-            ...p,
-            username: `@${String(name).replace(/^@/, "")}`,
-          };
-        });
+        groupMetadata.participants = await Promise.all(
+          groupMetadata.participants.map(async (p) => {
+            let realJid = p.id;
+            
+            // Si el ID termina en @lid, lo resolvemos al JID real de WhatsApp (@s.whatsapp.net)
+            if (p.id && p.id.endsWith("@lid")) {
+              try {
+                realJid = await resolveLidToRealJid(p.id, sock, remoteJid);
+              } catch (e) {
+                realJid = p.id;
+              }
+            }
+
+            const num = realJid ? realJid.split("@")[0].split(":")[0] : "";
+            const isSender = p.id === senderRaw || realJid === jidRemitente;
+            const name = p.username || p.notify || (isSender ? m.pushName : null) || num;
+            
+            return {
+              ...p,
+              jid: realJid,
+              username: `@${String(name).replace(/^@/, "")}`,
+            };
+          })
+        );
       }
 
       const clean = (id) => (id ? String(id).split("@")[0].split(":")[0] : null);
