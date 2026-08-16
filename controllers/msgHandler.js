@@ -1,5 +1,6 @@
 import fs from "fs";
 import chalk from "chalk";
+import { resolveLidToRealJid } from "./../models/utils.js";
 import { trackGroupActivity } from "./../models/groupDb.js";
 import { cmdLog } from "./cmdLog.js";
 import { Rstr, catOff } from "./textBots.js";
@@ -8,43 +9,9 @@ import { botStatus } from "./../commands/group/bot.js";
 import { categories } from "./consts/cat.js";
 import { activeHangmanGames, gameKey } from "../models/gameState.js";
 import { processHangmanGuess } from "../commands/games/ahorcado.js";
-import { jidNormalizedUser } from "@whiskeysockets/baileys";
-
-// 💡 FUNCIÓN PARA RESOLVER USERNAMES, LIDs O NORMALIZAR JIDs
-async function resolveLidToRealJid(jid, sock, remoteJid) {
-  if (!jid) return "";
-
-  // 1. Resolver Username (@username)
-  if (jid.startsWith("@") || (!jid.includes("@") && isNaN(jid))) {
-    const cleanUsername = jid.replace("@", "").toLowerCase();
-    try {
-      if (sock?.pnFromUsername) {
-        const pn = await sock.pnFromUsername(cleanUsername);
-        if (pn) return jidNormalizedUser(pn);
-      }
-    } catch (e) {
-      console.error("[resolveLidToRealJid] Error resolviendo Username:", e.message);
-    }
-  }
-
-  // 2. Resolver LID (@lid)
-  if (jid.endsWith("@lid")) {
-    try {
-      if (sock?.signalRepository?.lidToJid) {
-        const resolved = await sock.signalRepository.lidToJid(jid);
-        if (resolved) return jidNormalizedUser(resolved);
-      }
-    } catch (e) {
-      console.error("[resolveLidToRealJid] Error resolviendo LID:", e.message);
-    }
-  }
-
-  // 3. JID normal (@s.whatsapp.net)
-  return jidNormalizedUser(jid);
-}
 
 // Lista de prefijos múltiples permitidos por defecto
-const DEFAULT_PREFIXES = [".", "#", "/", "!"];
+const DEFAULT_PREFIXES = [".", "#", "/", "!", "-", "@", "%", ">", "$"];
 
 let middlewareCache = null;
 let middlewareCacheTime = 0;
@@ -294,6 +261,7 @@ export async function handleMessage(sock, m, db, saveDB) {
   const botId = sock.user?.id || sock.user?.jid;
   const sender = m.key.fromMe ? botId : jidRemitente;
   const isOwner = owners.includes(sender);
+  const rangoLog = isOwner ? "OWNER 👑" : "USUARIO 👤";
 
   let isAdmin = false;
   let isBotAdmin = false;
@@ -364,7 +332,7 @@ export async function handleMessage(sock, m, db, saveDB) {
   if (!esComando) {
     cmdLog({
       numeroReal,
-      rango: isOwner ? "OWNER 👑" : "USUARIO 👤",
+      rango: rangoLog,
       isGroup,
       text,
       pushName: m.pushName,
