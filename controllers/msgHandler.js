@@ -1,5 +1,6 @@
 import fs from "fs";
 import chalk from "chalk";
+import NodeCache from "node-cache";
 import { resolveLidToRealJid } from "./../models/utils.js";
 import { trackGroupActivity } from "./../models/groupDb.js";
 import { cmdLog } from "./cmdLog.js";
@@ -9,6 +10,30 @@ import { botStatus } from "./../commands/group/bot.js";
 import { categories } from "./consts/cat.js";
 import { activeHangmanGames, gameKey } from "../models/gameState.js";
 import { processHangmanGuess } from "../commands/games/ahorcado.js";
+
+// Caché para metadatos de grupos (guarda por 10 minutos en memoria RAM)
+const groupMetadataCache = new NodeCache({ stdTTL: 600, checkperiod: 120 });
+
+// Función auxiliar para obtener metadata desde caché o solicitarla de forma segura
+async function getGroupMetadataSafe(sock, remoteJid) {
+  if (!remoteJid || !remoteJid.endsWith("@g.us")) return null;
+
+  // 1. Devolver desde la caché local si existe
+  const cached = groupMetadataCache.get(remoteJid);
+  if (cached) return cached;
+
+  // 2. Si no existe, solicitar a WhatsApp dentro de un bloque protegido
+  try {
+    const metadata = await sock.groupMetadata(remoteJid);
+    if (metadata) {
+      groupMetadataCache.set(remoteJid, metadata);
+    }
+    return metadata;
+  } catch (error) {
+    console.error(`[groupMetadataCache] Error o rate-limit obteniendo metadatos de ${remoteJid}:`, error.message);
+    return null; // Retorna null para evitar tumbar la ejecución en caso de error 429
+  }
+}
 
 // Lista de prefijos múltiples permitidos por defecto
 const DEFAULT_PREFIXES = [".", "#", "/", "!", "-", "", "%", ">", "$"];
@@ -269,9 +294,10 @@ export async function handleMessage(sock, m, db, saveDB) {
   let groupMetadata = null;
 
   if (isGroup) {
-    try {
-      groupMetadata = await sock.groupMetadata(remoteJid);
-      
+    // Uso del método seguro respaldado por caché en RAM
+    groupMetadata = await getGroupMetadataSafe(sock, remoteJid);
+
+    if (groupMetadata) {
       // 🏷️ MAPEAR PARTICIPANTES CORRIGIENDO EXTRACCIÓN DE USERNAME Y LIDs
       if (Array.isArray(groupMetadata.participants)) {
         groupMetadata.participants = await Promise.all(
@@ -334,10 +360,6 @@ export async function handleMessage(sock, m, db, saveDB) {
 
       isAdmin = userParticipant?.admin === "admin" || userParticipant?.admin === "superadmin";
       isBotAdmin = botParticipant?.admin === "admin" || botParticipant?.admin === "superadmin";
-
-    } catch (e) {
-      isAdmin = false;
-      isBotAdmin = false;
     }
   }
 
