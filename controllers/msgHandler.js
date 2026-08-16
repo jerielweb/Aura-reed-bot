@@ -1,6 +1,6 @@
 import fs from "fs";
 import chalk from "chalk";
-import { resolveLidToRealJid } from "./../models/utils.js";
+// import { resolveLidToRealJid } from "./../models/utils.js";
 import { trackGroupActivity } from "./../models/groupDb.js";
 import { cmdLog } from "./cmdLog.js";
 import { Rstr, catOff } from "./textBots.js";
@@ -9,7 +9,10 @@ import { botStatus } from "./../commands/group/bot.js";
 import { categories } from "./consts/cat.js";
 import { activeHangmanGames, gameKey } from "../models/gameState.js";
 import { processHangmanGuess } from "../commands/games/ahorcado.js";
+import { jidNormalizedUser } from "@whiskeysockets/baileys";
 
+
+const resolveLidToRealJid = jidNormalizedUser
 // Lista de prefijos múltiples permitidos por defecto
 const DEFAULT_PREFIXES = [".", "#", "/", "!"];
 
