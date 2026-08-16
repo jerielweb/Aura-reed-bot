@@ -219,11 +219,12 @@ export async function handleMessage(sock, m, db, saveDB) {
   // 🤖 VERIFICACIÓN DE BOT PRIMARIO
   const cleanJid = (jid) => (jid ? String(jid).split("@")[0].split(":")[0] : null);
 
-  const groupPrimaryBot = isGroup ? db.groups?.[remoteJid]?.primaryBot : null;
+  const groupPrimaryBot = isGroup ? db.groups?.[remoteJid]?.prefix : null;
 
-  if (isGroup && groupPrimaryBot) {
+  if (isGroup && db.groups?.[remoteJid]?.primaryBot) {
+    const groupPrimaryBotJid = db.groups[remoteJid].primaryBot;
     const currentBotNum = cleanJid(sock.user?.id || sock.user?.jid);
-    const primaryBotNum = cleanJid(groupPrimaryBot);
+    const primaryBotNum = cleanJid(groupPrimaryBotJid);
 
     // Permitir el comando setprimary/primary para poder reconfigurar o desactivar
     const isPrimaryCmd = ["setprimary", "primary"].includes(commandNameForCheck);
@@ -271,7 +272,7 @@ export async function handleMessage(sock, m, db, saveDB) {
     try {
       groupMetadata = await sock.groupMetadata(remoteJid);
       
-      // 🏷️ MAPEAR PARTICIPANTES RESOLVIENDO LIDS Y EVITANDO MOSTRAR EL ID DE LID
+      // 🏷️ MAPEAR PARTICIPANTES CORRIGIENDO EXTRACCIÓN DE USERNAME Y LIDs
       if (Array.isArray(groupMetadata.participants)) {
         groupMetadata.participants = await Promise.all(
           groupMetadata.participants.map(async (p) => {
@@ -288,21 +289,23 @@ export async function handleMessage(sock, m, db, saveDB) {
               }
             }
 
-            const cleanNum = (jid) => {
+            const extractNum = (jid) => {
               if (!jid || jid.endsWith("@lid")) return null;
               return jid.split("@")[0].split(":")[0];
             };
 
-            const num = cleanNum(realJid) || cleanNum(p.jid) || cleanNum(p.phoneNumber);
+            const num = extractNum(realJid) || extractNum(p.jid) || extractNum(p.phoneNumber);
             const isSender = p.id === senderRaw || realJid === jidRemitente;
-            const fallbackName = num || m.pushName || "usuario";
-            const name = p.username || p.notify || (isSender ? m.pushName : null) || fallbackName;
+            
+            // Prioriza username real si no es un número/LID, de lo contrario busca el notify/pushName o número limpio
+            const validUsername = p.username && !p.username.includes("@") && !/^\d+$/.test(p.username) ? p.username : null;
+            const displayHandle = validUsername || p.notify || (isSender ? m.pushName : null) || num || "usuario";
 
             return {
               ...p,
               jid: realJid,
               phoneNumber: num ? `${num}@s.whatsapp.net` : undefined,
-              username: `@${String(name).replace(/^@/, "")}`,
+              username: displayHandle.startsWith("@") ? displayHandle : `@${displayHandle}`,
             };
           })
         );
