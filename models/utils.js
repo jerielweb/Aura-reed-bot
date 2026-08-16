@@ -4,6 +4,9 @@ const metadataTTL = 5000;
 
 function normalizeToJid(phone) {
   if (!phone) return null;
+  // Si el valor recibido es un LID explícito, NO lo convertimos a @s.whatsapp.net
+  if (typeof phone === "string" && phone.endsWith("@lid")) return null;
+  
   const base =
     typeof phone === "number" ? phone.toString() : phone.replace(/\D/g, "");
   return base ? `${base}@s.whatsapp.net` : null;
@@ -45,14 +48,13 @@ export async function resolveLidToRealJid(lid, client, remoteJid) {
   // CASO 1: Chat Privado (Limpieza de :1 o similares)
   if (!isGroup) {
     const numeroLimpio = input.split("@")[0].split(":")[0];
-    return `${numeroLimpio}@s.whatsapp.net`;
+    return isLid ? input : `${numeroLimpio}@s.whatsapp.net`;
   }
 
   // CASO 2: Grupos (Resolución de LID a número real)
   if (input.endsWith("@s.whatsapp.net") && !input.includes(":")) return input;
   if (lidCache.has(input)) return lidCache.get(input);
 
-  const lidBase = input.split("@")[0].split(":")[0];
   let cached = groupMetadataCache.get(remoteJid);
   let metadata;
 
@@ -61,80 +63,40 @@ export async function resolveLidToRealJid(lid, client, remoteJid) {
       metadata = await client.groupMetadata(remoteJid);
       groupMetadataCache.set(remoteJid, { metadata, timestamp: Date.now() });
     } catch {
-      return `${lidBase}@s.whatsapp.net`;
+      return input;
     }
   } else {
     metadata = cached.metadata;
   }
 
+  const lidBase = input.split("@")[0].split(":")[0];
+
   for (const p of metadata.participants || []) {
-    const idBase = p?.id?.split("@")[0]?.split(":")[0];
-    const phone = normalizeToJid(p?.phoneNumber || p?.lid);
-    if (idBase === lidBase && phone) {
+    const pIdBase = p?.id?.split("@")[0]?.split(":")[0];
+    const pJidBase = p?.jid?.split("@")[0]?.split(":")[0];
+    
+    // Buscar coincidencia directa por ID o JID resolviendo el teléfono real
+    const phone = normalizeToJid(p?.phoneNumber) || (pJidBase && !p?.jid?.endsWith("@lid") ? `${pJidBase}@s.whatsapp.net` : null);
+
+    if ((pIdBase === lidBase || pJidBase === lidBase) && phone) {
       lidCache.set(input, phone);
       return phone;
     }
   }
 
-  return `${lidBase}@s.whatsapp.net`;
+  // Si no se pudo resolver el número real, retornamos el valor original para no distorsionar LIDs como números de teléfono
+  return input;
 }
 
-// Scrip de estilos
+// Script de estilos
 export const fyt = (texto) => {
   const mapa = {
-    a: "𝐚",
-    b: "𝐛",
-    c: "𝐜",
-    d: "𝐝",
-    e: "𝐞",
-    f: "𝐟",
-    g: "𝐠",
-    h: "𝐡",
-    i: "𝐢",
-    j: "𝐣",
-    k: "𝐤",
-    l: "𝐥",
-    m: "𝐦",
-    n: "𝐧",
-    o: "𝐨",
-    p: "𝐩",
-    q: "𝐪",
-    r: "𝐫",
-    s: "𝐬",
-    t: "𝐭",
-    u: "𝐮",
-    v: "𝐯",
-    w: "𝐰",
-    x: "𝐱",
-    y: "𝐲",
-    z: "𝐳",
-
-    A: "𝐀",
-    B: "𝐁",
-    C: "𝐂",
-    D: "𝐃",
-    E: "𝐄",
-    F: "𝐅",
-    G: "𝐆",
-    H: "𝐇",
-    I: "𝐈",
-    J: "𝐉",
-    K: "𝐊",
-    L: "𝐋",
-    M: "𝐌",
-    N: "𝐍",
-    O: "𝐎",
-    P: "𝐏",
-    Q: "𝐐",
-    R: "𝐑",
-    S: "𝐒",
-    T: "𝐓",
-    U: "𝐔",
-    V: "𝐕",
-    W: "𝐖",
-    X: "𝐗",
-    Y: "𝐘",
-    Z: "𝐙",
+    a: "𝐚", b: "𝐛", c: "𝐜", d: "𝐝", e: "𝐞", f: "𝐟", g: "𝐠", h: "𝐡", i: "𝐢",
+    j: "𝐣", k: "𝐤", l: "𝐥", m: "𝐦", n: "𝐧", o: "𝐨", p: "𝐩", q: "𝐪", r: "𝐫",
+    s: "𝐬", t: "𝐭", u: "𝐮", v: "𝐯", w: "𝐰", x: "𝐱", y: "𝐲", z: "𝐳",
+    A: "𝐀", B: "𝐁", C: "𝐂", D: "𝐃", E: "𝐄", F: "𝐅", G: "𝐆", H: "𝐇", I: "𝐈",
+    J: "𝐉", K: "𝐊", L: "𝐋", M: "𝐌", N: "𝐍", O: "𝐎", P: "𝐏", Q: "𝐐", R: "𝐑",
+    S: "𝐒", T: "𝐓", U: "𝐔", V: "𝐕", W: "𝐖", X: "𝐗", Y: "𝐘", Z: "𝐙",
   };
   return texto
     .split("")
