@@ -1,6 +1,6 @@
 {
   "name": "aura-reed-bot",
-  "version": "3.7.0",
+  "version": "3.9.0",
   "allowScrips": {
     "better-sqlite3": true,
     "msgpackr-extrackt": true,
