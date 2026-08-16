@@ -31,7 +31,7 @@
   "license": "MIT",
   "dependencies": {
     "@ffprobe-installer/ffprobe": "^2.1.2",
-    "@whiskeysockets/baileys": "git@github.com:Andresv27728/baileys-beta.git",
+    "@whiskeysockets/baileys": "github:naut21/Baileys",
     "@google/genai": "^2.8.0",
     "@hapi/boom": "^10.0.1",
     "@tobyg74/tiktok-api-dl": "^1.3.7",
