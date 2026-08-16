@@ -25,26 +25,30 @@ export default {
 
     const isCode = command === "code";
 
-    // 1. Validar si envió el número en el comando .code
-    const inputNum = args[0] ? args[0].replace(/\D/g, "") : null;
+    // 1. Extraer el argumento de forma segura
+    const rawArg = Array.isArray(args) && args[0] ? String(args[0]) : "";
+    const inputNum = rawArg.replace(/\D/g, "");
 
+    // 2. Validar que se incluya el número en .code
     if (isCode && (!inputNum || inputNum.length < 7)) {
       return await socket.sendMessage(
         remoteJid,
-        { text: "⚠️ Ingresa el número de teléfono con su código de país.\n\nEjemplo: `.code 50612345678`" },
-        { quoted: message }
+        {
+          text: "⚠️ Ingresa el número de teléfono con su código de país.\n\nEjemplo: `.code 50612345678`",
+        },
+        { quoted: message },
       );
     }
 
     const targetNumber = inputNum || numeroReal;
     const senderId = resolveSubBotSenderId(targetNumber, jidRemitente);
 
-    // 2. Límite de sub-bots
+    // 3. Límite de sub-bots
     if (!canRegisterSubBot(senderId)) {
       return await socket.sendMessage(
         remoteJid,
         { text: SUB_LIMIT_MESSAGE },
-        { quoted: message }
+        { quoted: message },
       );
     }
 
@@ -52,7 +56,7 @@ export default {
       db.users[sender] = { Subs: 0 };
     }
 
-    // 3. Cooldown de 2 minutos
+    // 4. Cooldown de 2 minutos
     let lastSub = db.users[sender].Subs || 0;
     let now = Date.now();
     if (now - lastSub < 120000) {
@@ -62,7 +66,7 @@ export default {
         {
           text: `ꕥ Debes esperar *${timeLeft}* para volver a intentar vincular un sub-bot.`,
         },
-        { quoted: message }
+        { quoted: message },
       );
     }
 
@@ -90,7 +94,7 @@ export default {
       await socket.sendMessage(
         remoteJid,
         { text: "❌ Ocurrió un error al procesar tu solicitud." },
-        { quoted: message }
+        { quoted: message },
       );
     }
   },
