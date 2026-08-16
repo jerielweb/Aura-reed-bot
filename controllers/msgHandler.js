@@ -271,28 +271,37 @@ export async function handleMessage(sock, m, db, saveDB) {
     try {
       groupMetadata = await sock.groupMetadata(remoteJid);
       
-      // 🏷️ MAPEAR PARTICIPANTES RESOLVIENDO LIDs A JIDs REALES
+      // 🏷️ MAPEAR PARTICIPANTES RESOLVIENDO LIDS Y EVITANDO MOSTRAR EL ID DE LID
       if (Array.isArray(groupMetadata.participants)) {
         groupMetadata.participants = await Promise.all(
           groupMetadata.participants.map(async (p) => {
             let realJid = p.id;
-            
-            // Si el ID termina en @lid, lo resolvemos al JID real de WhatsApp (@s.whatsapp.net)
+
             if (p.id && p.id.endsWith("@lid")) {
               try {
-                realJid = await resolveLidToRealJid(p.id, sock, remoteJid);
+                const resolved = await resolveLidToRealJid(p.id, sock, remoteJid);
+                if (resolved && !resolved.endsWith("@lid")) {
+                  realJid = resolved;
+                }
               } catch (e) {
                 realJid = p.id;
               }
             }
 
-            const num = realJid ? realJid.split("@")[0].split(":")[0] : "";
+            const cleanNum = (jid) => {
+              if (!jid || jid.endsWith("@lid")) return null;
+              return jid.split("@")[0].split(":")[0];
+            };
+
+            const num = cleanNum(realJid) || cleanNum(p.jid) || cleanNum(p.phoneNumber);
             const isSender = p.id === senderRaw || realJid === jidRemitente;
-            const name = p.username || p.notify || (isSender ? m.pushName : null) || num;
-            
+            const fallbackName = num || m.pushName || "usuario";
+            const name = p.username || p.notify || (isSender ? m.pushName : null) || fallbackName;
+
             return {
               ...p,
               jid: realJid,
+              phoneNumber: num ? `${num}@s.whatsapp.net` : undefined,
               username: `@${String(name).replace(/^@/, "")}`,
             };
           })
