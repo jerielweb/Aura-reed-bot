@@ -18,7 +18,7 @@ export default {
     const botName = db.botName || "Aura Reed";
     const botType = sock.isSubBot ? "Sub-Bot" : "Principal";
     const tituloEstilizado = fytBold(`${botName.toUpperCase()} BOT`);
-    const chanellink = global.chanellink || "https://api.alyacore.xyz/a/10bfc2";
+    const chanellink = "https://aetheryx.xyz/";
 
     const categoryAliases = Aliases;
 
