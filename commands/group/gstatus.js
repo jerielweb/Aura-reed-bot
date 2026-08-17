@@ -122,10 +122,11 @@ export default {
 
     const inputContent = args.join(" ");
 
-    const quotedMsg =
-      message.message?.extendedTextMessage?.contextInfo?.quotedMessage ||
-      message.message?.ephemeralMessage?.message?.extendedTextMessage
-        ?.contextInfo?.quotedMessage;
+    // Extracción segura de la estructura de un mensaje citado en Baileys actualizado
+    const quotedCtx = message.message?.extendedTextMessage?.contextInfo || 
+                      message.message?.ephemeralMessage?.message?.extendedTextMessage?.contextInfo;
+    
+    const quotedMsg = quotedCtx?.quotedMessage;
 
     try {
       if (quotedMsg) {
@@ -133,20 +134,20 @@ export default {
         const mediaType = type.replace("Message", "").toLowerCase();
 
         if (["image", "video", "audio", "document"].includes(mediaType)) {
+          // Adaptado para versiones recientes de Baileys usando el objeto completo con contextInfo
           const buffer = await downloadMediaMessage(
             {
               key: {
                 remoteJid,
-                id: message.message?.extendedTextMessage?.contextInfo
-                  ?.stanzaId,
-                participant:
-                  message.message?.extendedTextMessage?.contextInfo
-                    ?.participant,
+                id: quotedCtx.stanzaId,
+                participant: quotedCtx.participant,
+                fromMe: quotedCtx.participant === socket.user?.id
               },
               message: quotedMsg,
             },
             "buffer",
-            {}
+            {},
+            { logger: console, reuploadRequest: socket.updateMediaMessage }
           );
 
           await sendGroupStatus(socket, remoteJid, {
@@ -155,6 +156,7 @@ export default {
             caption: inputContent || quotedMsg[type]?.caption || "",
             mimetype: quotedMsg[type]?.mimetype,
             fileName: quotedMsg[type]?.fileName,
+            ptt: quotedMsg[type]?.ptt || false
           });
         } else {
           const statusText =
