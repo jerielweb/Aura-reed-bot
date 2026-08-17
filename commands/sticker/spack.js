@@ -157,23 +157,18 @@ export default {
       const stickerList = (
         await Promise.allSettled(
           stickers.map(async (s) => {
-            try {
-              const buf = await toBuffer(s.imageUrl);
-              const webp = await toWebp(buf, s.isAnimated);
-              return {
-                sticker: webp,
-                isAnimated: s.isAnimated || false,
-                isLottie: false,
-                emojis: ["🎭"],
-              };
-            } catch (err) {
-              console.warn(`Saltando sticker dañado: ${s.imageUrl}`);
-              return null;
-            }
+            const buf = await toBuffer(s.imageUrl);
+            const webp = await toWebp(buf, s.isAnimated);
+            return {
+              sticker: webp,
+              isAnimated: s.isAnimated || false,
+              isLottie: false,
+              emojis: ["🎭"],
+            };
           })
         )
       )
-        .filter((r) => r.status === "fulfilled" && r.value !== null)
+        .filter((r) => r.status === "fulfilled")
         .map((r) => r.value);
 
       if (!stickerList.length) {
