@@ -6,7 +6,7 @@ import {
 } from "@whiskeysockets/baileys";
 import { fytBold } from "../../models/TextStyle.js";
 
-// Función interna para publicar el estado de grupo V2
+// Función interna corregida para publicar el estado de grupo V2 con multimedia
 const sendGroupStatus = async (socket, jid, options = {}) => {
   const {
     text,
@@ -53,17 +53,30 @@ const sendGroupStatus = async (socket, jid, options = {}) => {
       throw new Error("Servidor de carga no disponible");
     if (!media) throw new Error("Se requiere un archivo multimedia");
 
-    const mediaContent = {
+    // Construcción limpia del objeto multimedia requerido por Baileys
+    let mediaPayload = {};
+    if (typeof media === "string") {
+      mediaPayload = { url: media };
+    } else {
+      mediaPayload = { stream: media }; // o buffer directo soportado por el uploader
+    }
+
+    if (caption) mediaPayload.caption = caption;
+    if (mimetype) mediaPayload.mimetype = mimetype;
+    if (fileName && type === "document") mediaPayload.fileName = fileName;
+    if (type === "audio") mediaPayload.ptt = ptt;
+
+    // En Baileys moderno, pasar el buffer directamente requiere la propiedad específica según el tipo
+    const contentInput = {
       [type]: typeof media === "string" ? { url: media } : media,
     };
 
-    if (caption && ["image", "video"].includes(type))
-      mediaContent.caption = caption;
-    if (mimetype) mediaContent.mimetype = mimetype;
-    if (fileName && type === "document") mediaContent.fileName = fileName;
-    if (type === "audio") mediaContent.ptt = ptt;
+    if (caption && ["image", "video"].includes(type)) contentInput.caption = caption;
+    if (mimetype) contentInput.mimetype = mimetype;
+    if (fileName && type === "document") contentInput.fileName = fileName;
+    if (type === "audio") contentInput.ptt = ptt;
 
-    const content = await generateWAMessageContent(mediaContent, {
+    const content = await generateWAMessageContent(contentInput, {
       upload: socket.waUploadToServer,
     });
 
@@ -93,7 +106,7 @@ const sendGroupStatus = async (socket, jid, options = {}) => {
 
 export default {
   name: ["estadogrupo", "gstatus", "statusgrupo"],
-  description: "Publica un estado exclusivo para el grupo actual.",
+  description: "Publica an estado exclusivo para el grupo actual.",
   adminOnly: false,
 
   execute: async (socket, message, args, { prefix }) => {
@@ -115,14 +128,12 @@ export default {
       );
     }
 
-    // Reacción de espera
     await socket.sendMessage(remoteJid, {
       react: { text: "⏳", key: message.key },
     });
 
     const inputContent = args.join(" ");
 
-    // Extracción segura de la estructura de un mensaje citado en Baileys actualizado
     const quotedCtx = message.message?.extendedTextMessage?.contextInfo || 
                       message.message?.ephemeralMessage?.message?.extendedTextMessage?.contextInfo;
     
@@ -134,7 +145,6 @@ export default {
         const mediaType = type.replace("Message", "").toLowerCase();
 
         if (["image", "video", "audio", "document"].includes(mediaType)) {
-          // Adaptado para versiones recientes de Baileys usando el objeto completo con contextInfo
           const buffer = await downloadMediaMessage(
             {
               key: {
@@ -150,13 +160,16 @@ export default {
             { logger: console, reuploadRequest: socket.updateMediaMessage }
           );
 
+          // Asegurar extracción correcta de propiedades multimedia anidadas en Baileys
+          const innerContent = quotedMsg[type] || {};
+
           await sendGroupStatus(socket, remoteJid, {
             type: mediaType,
             media: buffer,
-            caption: inputContent || quotedMsg[type]?.caption || "",
-            mimetype: quotedMsg[type]?.mimetype,
-            fileName: quotedMsg[type]?.fileName,
-            ptt: quotedMsg[type]?.ptt || false
+            caption: inputContent || innerContent.caption || "",
+            mimetype: innerContent.mimetype,
+            fileName: innerContent.fileName,
+            ptt: innerContent.ptt || false
           });
         } else {
           const statusText =
@@ -209,7 +222,6 @@ export default {
         });
       }
 
-      // Reacción de éxito
       await socket.sendMessage(remoteJid, {
         react: { text: "✅", key: message.key },
       });
@@ -223,7 +235,6 @@ export default {
       await socket.sendMessage(remoteJid, { text }, { quoted: message });
     } catch (e) {
       console.error(e);
-      // Reacción de error
       await socket.sendMessage(remoteJid, {
         react: { text: "❌", key: message.key },
       });
