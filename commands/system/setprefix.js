@@ -3,7 +3,7 @@ import { fytBold } from "../../models/TextStyle.js";
 export default {
   name: ["setprefix", "prefix"],
   description: "Modifica prefijo.",
-  adminOnly: true,
+  adminOnly: false,
   category: "system",
 
   async execute(sock, m, args, { db, saveDB }) {
