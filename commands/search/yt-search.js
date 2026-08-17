@@ -1,4 +1,4 @@
-import axios from "axios";
+import yts from "yt-search";
 import formatter from "../../controllers/functions/formatNumbers.js";
 
 export default {
@@ -25,92 +25,48 @@ export default {
       { quoted: message },
     );
 
-    // Funciones para ambas APIs
-    const searchApifaa = async () => {
-      try {
-        const res = await axios.get(
-          `https://api-faa.my.id/faa/youtube?q=${encodeURIComponent(query)}`,
+    try {
+      const searchResult = await yts(query);
+      const videos = searchResult.videos.slice(0, 5);
+
+      if (!videos.length) {
+        return await socket.sendMessage(
+          remoteJid,
+          { text: "❌ No se encontraron resultados." },
+          { quoted: message },
         );
-        if (res.data?.status && res.data?.result?.length > 0) {
-          return {
-            source: "Faa YouTube API",
-            results: res.data.result.slice(0, 5).map((item) => ({
-              title: item.title,
-              author: item.channel || "Desconocido",
-              duration: item.duration || "N/A",
-              views: item.views || "N/A",
-              image: item.imageUrl,
-              url: item.link,
-            })),
-          };
-        }
-      } catch (err) {
-        console.log("Error Faa YouTube API:", err.message);
       }
-      return null;
-    };
 
-    const searchDelirius = async () => {
-      try {
-        const res = await axios.get(
-          `${global.youtubeApis.delirius.url}?q=${encodeURIComponent(query)}`,
-        );
-        if (res.data?.data?.length > 0) {
-          return {
-            source: "Delirius API",
-            results: res.data.data.slice(0, 5).map((item) => ({
-              title: item.title,
-              author: item.author?.name || "Desconocido",
-              duration: item.duration,
-              views: item.views,
-              image: item.image,
-              url: item.url,
-            })),
-          };
-        }
-      } catch (err) {
-        console.log("Error Delirius:", err.message);
-      }
-      return null;
-    };
+      let text = `╭━━〔 𝐘𝐎𝐔𝐓𝐔𝐁𝐄 𝐒𝐄𝐀𝐑𝐂𝐇 〕━━⬣\n`;
+      text += `┃ 🔍 𝐏𝐨𝐫: yt-search\n`;
+      text += `┃ 🎬 𝐁úsqueda: ${query}\n`;
+      text += `╰━━━━━━━━━━━━━━━━⬣\n\n`;
 
-    // Carrera: el primero que responda gana
-    const result = await Promise.race([
-      searchApifaa().catch(() => null),
-      searchDelirius().catch(() => null),
-    ]);
+      videos.forEach((video, i) => {
+        text += `┃ ${i + 1}. *${video.title}*\n`;
+        text += `┃ ├ 👤 ${video.author.name}\n`;
+        text += `┃ ├ ⏱️ ${video.timestamp}\n`;
+        text += `┃ ├ 👁️ ${formatter(video.views)}\n`;
+        text += `┃ └ 🔗 ${video.url}\n\n`;
+      });
 
-    if (!result) {
-      return await socket.sendMessage(
+      text += `╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣`;
+
+      await socket.sendMessage(
         remoteJid,
-        { text: "❌ No se encontraron resultados o error en las APIs." },
+        {
+          image: { url: videos[0].thumbnail },
+          caption: text,
+        },
+        { quoted: message },
+      );
+    } catch (error) {
+      console.error("Error en yt-search:", error);
+      await socket.sendMessage(
+        remoteJid,
+        { text: "❌ Ocurrió un error al realizar la búsqueda." },
         { quoted: message },
       );
     }
-
-    // Formatear respuesta
-    let text = `╭━━〔 𝐘𝐎𝐔𝐓𝐔𝐁𝐄 𝐒𝐄𝐀𝐑𝐂𝐇 〕━━⬣\n`;
-    text += `┃ 🔍 𝐏𝐨𝐫: ${result.source}\n`;
-    text += `┃ 🎬 𝐁úsqueda: ${query}\n`;
-    text += `╰━━━━━━━━━━━━━━━━⬣\n\n`;
-
-    result.results.forEach((video, i) => {
-      text += `┃ ${i + 1}. *${video.title}*\n`;
-      text += `┃ ├ 👤 ${video.author}\n`;
-      text += `┃ ├ ⏱️ ${video.duration}\n`;
-      text += `┃ ├ 👁️ ${formatter(video.views)}\n`;
-      text += `┃ └ 🔗 ${video.url}\n\n`;
-    });
-
-    text += `╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣`;
-
-    await socket.sendMessage(
-      remoteJid,
-      {
-        image: { url: result.results[0].image },
-        caption: text,
-      },
-      { quoted: message },
-    );
   },
 };
