@@ -53,19 +53,6 @@ const sendGroupStatus = async (socket, jid, options = {}) => {
       throw new Error("Servidor de carga no disponible");
     if (!media) throw new Error("Se requiere un archivo multimedia");
 
-    // Construcción limpia del objeto multimedia requerido por Baileys
-    let mediaPayload = {};
-    if (typeof media === "string") {
-      mediaPayload = { url: media };
-    } else {
-      mediaPayload = { stream: media }; // o buffer directo soportado por el uploader
-    }
-
-    if (caption) mediaPayload.caption = caption;
-    if (mimetype) mediaPayload.mimetype = mimetype;
-    if (fileName && type === "document") mediaPayload.fileName = fileName;
-    if (type === "audio") mediaPayload.ptt = ptt;
-
     // En Baileys moderno, pasar el buffer directamente requiere la propiedad específica según el tipo
     const contentInput = {
       [type]: typeof media === "string" ? { url: media } : media,
@@ -106,7 +93,7 @@ const sendGroupStatus = async (socket, jid, options = {}) => {
 
 export default {
   name: ["estadogrupo", "gstatus", "statusgrupo"],
-  description: "Publica an estado exclusivo para el grupo actual.",
+  description: "Publica un estado exclusivo para el grupo actual.",
   adminOnly: false,
 
   execute: async (socket, message, args, { prefix }) => {
@@ -145,20 +132,25 @@ export default {
         const mediaType = type.replace("Message", "").toLowerCase();
 
         if (["image", "video", "audio", "document"].includes(mediaType)) {
-          const buffer = await downloadMediaMessage(
-            {
-              key: {
-                remoteJid,
-                id: quotedCtx.stanzaId,
-                participant: quotedCtx.participant,
-                fromMe: quotedCtx.participant === socket.user?.id
+          let buffer;
+          if (message.quoted && typeof message.quoted.download === "function") {
+            buffer = await message.quoted.download();
+          } else {
+            buffer = await downloadMediaMessage(
+              {
+                key: {
+                  remoteJid,
+                  id: quotedCtx.stanzaId,
+                  participant: quotedCtx.participant,
+                  fromMe: quotedCtx.participant === socket.user?.id
+                },
+                message: quotedMsg,
               },
-              message: quotedMsg,
-            },
-            "buffer",
-            {},
-            { logger: console, reuploadRequest: socket.updateMediaMessage }
-          );
+              "buffer",
+              {},
+              { logger: console, reuploadRequest: socket.updateMediaMessage }
+            );
+          }
 
           // Asegurar extracción correcta de propiedades multimedia anidadas en Baileys
           const innerContent = quotedMsg[type] || {};
