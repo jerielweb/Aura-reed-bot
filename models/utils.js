@@ -1,10 +1,10 @@
 const groupMetadataCache = new Map();
 const lidCache = new Map();
-const metadataTTL = 5000;
+const metadataTTL = 300000; // 5 minutos (antes eran 5 segundos)
+const pendingMetadataRequests = new Map(); // Para evitar peticiones simultáneas duplicadas
 
 function normalizeToJid(phone) {
   if (!phone) return null;
-  // Si el valor recibido es un LID explícito, NO lo convertimos a @s.whatsapp.net
   if (typeof phone === "string" && phone.endsWith("@lid")) return null;
   
   const base =
@@ -30,7 +30,7 @@ export async function resolveLidToRealJid(lid, client, remoteJid) {
       const cleanLid = `${input.split("@")[0].split(":")[0]}@lid`;
       const pn = await client.signalRepository.lidMapping.getPNForLID(cleanLid);
       if (pn) {
-        const resolvedJid = pn.split(":")[0]; // Limpiar sufijos de dispositivo como :1
+        const resolvedJid = pn.split(":")[0];
         const resolvedNormalized = resolvedJid.endsWith("@s.whatsapp.net")
           ? resolvedJid
           : `${resolvedJid}@s.whatsapp.net`;
@@ -45,13 +45,13 @@ export async function resolveLidToRealJid(lid, client, remoteJid) {
     }
   }
 
-  // CASO 1: Chat Privado (Limpieza de :1 o similares)
+  // CASO 1: Chat Privado
   if (!isGroup) {
     const numeroLimpio = input.split("@")[0].split(":")[0];
     return isLid ? input : `${numeroLimpio}@s.whatsapp.net`;
   }
 
-  // CASO 2: Grupos (Resolución de LID a número real)
+  // CASO 2: Grupos
   if (input.endsWith("@s.whatsapp.net") && !input.includes(":")) return input;
   if (lidCache.has(input)) return lidCache.get(input);
 
@@ -59,15 +59,36 @@ export async function resolveLidToRealJid(lid, client, remoteJid) {
   let metadata;
 
   if (!cached || Date.now() - cached.timestamp > metadataTTL) {
-    try {
-      metadata = await client.groupMetadata(remoteJid);
-      groupMetadataCache.set(remoteJid, { metadata, timestamp: Date.now() });
-    } catch {
-      return input;
+    // Si ya hay una petición en curso para este grupo, esperamos a que termine en lugar de disparar otra
+    if (pendingMetadataRequests.has(remoteJid)) {
+      metadata = await pendingMetadataRequests.get(remoteJid);
+    } else {
+      const fetchPromise = (async () => {
+        try {
+          const res = await client.groupMetadata(remoteJid);
+          groupMetadataCache.set(remoteJid, { metadata: res, timestamp: Date.now() });
+          return res;
+        } catch (error) {
+          // Si da rate-limit (429), devolvemos el caché viejo si existe para evitar romper el flujo
+          if (cached?.metadata) return cached.metadata;
+          throw error;
+        } finally {
+          pendingMetadataRequests.delete(remoteJid);
+        }
+      })();
+
+      pendingMetadataRequests.set(remoteJid, fetchPromise);
+      try {
+        metadata = await fetchPromise;
+      } catch {
+        return input;
+      }
     }
   } else {
     metadata = cached.metadata;
   }
+
+  if (!metadata) return input;
 
   const lidBase = input.split("@")[0].split(":")[0];
 
@@ -75,7 +96,6 @@ export async function resolveLidToRealJid(lid, client, remoteJid) {
     const pIdBase = p?.id?.split("@")[0]?.split(":")[0];
     const pJidBase = p?.jid?.split("@")[0]?.split(":")[0];
     
-    // Buscar coincidencia directa por ID o JID resolviendo el teléfono real
     const phone = normalizeToJid(p?.phoneNumber) || (pJidBase && !p?.jid?.endsWith("@lid") ? `${pJidBase}@s.whatsapp.net` : null);
 
     if ((pIdBase === lidBase || pJidBase === lidBase) && phone) {
@@ -84,7 +104,6 @@ export async function resolveLidToRealJid(lid, client, remoteJid) {
     }
   }
 
-  // Si no se pudo resolver el número real, retornamos el valor original para no distorsionar LIDs como números de teléfono
   return input;
 }
 
