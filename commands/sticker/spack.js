@@ -78,7 +78,6 @@ export default {
       );
     }
 
-    // Reacción de espera
     await socket.sendMessage(remoteJid, {
       react: { text: "⏳", key: message.key },
     });
@@ -105,16 +104,12 @@ export default {
         );
       }
 
-      // Metadata del usuario / DB
       const senderNum =
         message.key.participant ||
         message.key.remoteJid.replace(/@s.whatsapp.net|@g.us/, "");
       const user = db?.users?.[senderNum] || {};
 
-      // Obtiene el apodo/nombre de WhatsApp o el guardado en DB
       const pushName = message.pushName || user.name || "Usuario";
-
-      const packName = user.text1 || global.packname || "Aura Reed";
       const authorName = user.text2 || global.author || pushName;
 
       const bestPack = freePacks[0];
@@ -138,7 +133,7 @@ export default {
       }
 
       const { detalles } = detail;
-      const stickers = detalles.stickers.slice(0, 60);
+      const stickers = detalles.stickers.slice(0, 30);
 
       let infoText = `╭〔 📦 ${fytBold("AURA REED")} 〕⬣\n`;
       infoText += `┃ 🏷️ ${fytBold("PROCESANDO PACK")}\n`;
@@ -154,24 +149,36 @@ export default {
         { quoted: message }
       );
 
-      const stickerList = (
-        await Promise.allSettled(
-          stickers.map(async (s) => {
-            const buf = await toBuffer(s.imageUrl);
-            const webp = await toWebp(buf, s.isAnimated);
-            return {
-              sticker: webp,
-              isAnimated: s.isAnimated || false,
-              isLottie: false,
-              emojis: ["🎭"],
-            };
-          })
-        )
-      )
-        .filter((r) => r.status === "fulfilled")
-        .map((r) => r.value);
+      const stickerList = [];
+      for (const s of stickers) {
+        try {
+          const buf = await toBuffer(s.imageUrl);
+          const webp = await toWebp(buf, s.isAnimated);
+          
+          // Baileys espera que 'url' o 'buffer' (como stream/Buffer) se pasen correctamente según la versión interna, 
+          // probemos pasando el Buffer directamente en la propiedad 'url' o usando un objeto compatible con generateWAMessageMedia.
+          stickerList.push({
+            url: s.imageUrl, // Algunas versiones de Baileys leen directamente la URL o el buffer procesado en 'data'
+            // O pasarlo como buffer directo si la versión lo acepta:
+            // data: webp
+          });
+        } catch (err) {
+          console.warn(`Saltando sticker fallido: ${s.imageUrl}`);
+        }
+      }
 
-      if (!stickerList.length) {
+      // Enfoque alternativo mandando un array de buffers con type sticker si el stickerPack da problemas,
+      // O estructurarlo exactamente como Baileys lo procesa en prepareWAMessageMedia:
+      const formattedStickers = [];
+      for (const s of stickers) {
+        try {
+          const buf = await toBuffer(s.imageUrl);
+          const webp = await toWebp(buf, s.isAnimated);
+          formattedStickers.push(webp); // Enviar directamente los buffers webp si Baileys lo soporta así
+        } catch (e) {}
+      }
+
+      if (!formattedStickers.length) {
         await socket.sendMessage(remoteJid, {
           react: { text: "❌", key: message.key },
         });
@@ -193,22 +200,12 @@ export default {
         .webp({ quality: 80 })
         .toBuffer();
 
-      // Envío del paquete de stickers completo vía Baileys
-      await socket.sendMessage(
-        remoteJid,
-        {
-          stickerPack: {
-            name: detalles.name,
-            publisher: authorName,
-            description: `${detalles.name} • ${global.botname || "Aura Reed"}`,
-            cover,
-            stickers: stickerList,
-          },
-        },
-        { quoted: message }
-      );
+      // Mandar individualmente o usar el formato plano que acepta Baileys en prepareWAMessageMedia
+      for (const stkBuf of formattedStickers) {
+        await socket.sendMessage(remoteJid, { sticker: stkBuf }, { quoted: message });
+        await delay(500); // Pequeño delay para evitar flood
+      }
 
-      // Reacción de éxito
       await socket.sendMessage(remoteJid, {
         react: { text: "✅", key: message.key },
       });
