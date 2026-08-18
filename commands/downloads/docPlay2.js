@@ -110,9 +110,9 @@ export default {
       await socket.sendMessage(
         remoteJid,
         {
-          video: { url: videoUrl },
+          document: { url: videoUrl },
           mimetype: "video/mp4",
-          document: `${title.replace(/[<>:"/\\|?*]/g, "")}.mp4`,
+          fileName: `${title.replace(/[<>:"/\\|?*]/g, "")}.mp4`,
           caption: `🎬 *𝐓𝐢𝐭𝐮𝐥𝐨:* ${title}\n⚡ *𝐀𝐮𝐫𝐚 𝐑𝐞𝐞𝐝 𝐃𝐨𝐰𝐧𝐥𝐨𝐚𝐝𝐞𝐫*`,
         },
         { quoted: message },
