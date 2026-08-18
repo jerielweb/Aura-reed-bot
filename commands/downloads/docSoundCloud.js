@@ -55,7 +55,7 @@ async function searchTrackByQuery(query) {
 }
 
 export default {
-  name: ["scplay", "scdl", "sc", "soundcloud"],
+  name: ["dscplay", "dscdl", "dsc", "docsoundcloud"],
   description: "Descarga canciones de SoundCloud",
   category: "downloads",
 
@@ -155,11 +155,11 @@ export default {
       }
 
       const cleanTitle = track.title.replace(/[<>:"/\\|?*]/g, "");
-    
+      
       await socket.sendMessage(
         remoteJid,
         {
-          audio: { url: audioUrl },
+          document: { url: audioUrl },
           mimetype: "audio/mpeg",
           fileName: `${cleanTitle}.mp3`,
         },

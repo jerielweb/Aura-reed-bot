@@ -1,9 +1,10 @@
 import yts from "yt-search";
-import downloader from "../../controllers/ytDownloader.js";
-import formatter from "../../controllers/functions/formatNumbers.js";
 import { fytBold } from "../../models/TextStyle.js";
+import formatter from "../../controllers/functions/formatNumbers.js";
 
 const YT_REGEX = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
+const API_URL = "https://api.alyacore.xyz/dl/youtubeplayv2";
+const API_KEY = "oboe";
 
 function extractVideoId(url) {
   const patterns = [
@@ -34,9 +35,6 @@ export default {
         },
         { quoted: message },
       );
-      await socket.sendMessage(remoteJid, {
-        react: { text: "❓", key: message.key },
-      });
     }
 
     await socket.sendMessage(remoteJid, {
@@ -66,7 +64,7 @@ export default {
       } else {
         const videoId = extractVideoId(text);
         if (!videoId) throw new Error("URL de YouTube no válida");
-        finalUrl = `https://youtu.be/${videoId}`;
+        finalUrl = `https://youtube.com/watch?v=${videoId}`;
 
         try {
           const searchById = await yts({ videoId });
@@ -98,15 +96,17 @@ export default {
         }
       }
 
-      const title = videoData.title || "Video de YouTube";
-      const author =
-        videoData.author?.name || videoData.author || "Desconocido";
-      const duration = videoData.duration?.timestamp || "??";
+      const response = await fetch(`${API_URL}?query=${encodeURIComponent(finalUrl)}&type=mp3&quality=auto&key=${API_KEY}`);
+      const json = await response.json();
+      
+      if (!json.status || !json.data) throw new Error("La API no pudo procesar el audio.");
+
+      const title = json.data.title || videoData.title || "Video de YouTube";
+      const author = json.data.author || videoData.author?.name || videoData.author || "Desconocido";
+      const duration = json.data.duration || videoData.duration?.timestamp || "??";
       const views = typeof videoData.views === "number" ? videoData.views : 0;
-      const thumbnail =
-        videoData.thumbnail ||
-        videoData.image ||
-        `https://i.ytimg.com/vi/${extractVideoId(finalUrl) || "default"}/hqdefault.jpg`;
+      const thumbnail = json.data.thumbnail || videoData.thumbnail || videoData.image || `https://i.ytimg.com/vi/${extractVideoId(finalUrl) || "default"}/hqdefault.jpg`;
+      const audioUrl = json.data.dl;
 
       let caption = `╭〔 🎵 ${fytBold("YT DOWNLOADER")} 〕━⬣\n\n`;
       caption += `┃ ➥ ${fytBold(title)}\n\n`;
@@ -126,12 +126,10 @@ export default {
         { quoted: message },
       );
 
-      const audioPath = await downloader.getAudio(finalUrl);
-
       await socket.sendMessage(
         remoteJid,
         {
-          audio: { url: audioPath },
+          audio: { url: audioUrl },
           mimetype: "audio/mpeg",
           fileName: `${title.replace(/[<>:"/\\|?*]/g, "")}.mp3`,
         },
