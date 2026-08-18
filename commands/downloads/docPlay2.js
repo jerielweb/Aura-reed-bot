@@ -31,7 +31,7 @@ async function fetchLempiVideo(youtubeUrl, quality = LEMPI_QUALITY) {
 }
 
 export default {
-  name: ["ytmp4doc", "docvideo", "playdogvideo", "docmp4", "ytvd", "docplay2"],
+  name: ["dytmp4", "docvideo", "docplayvideo", "docmp4", "dytv", "docplay2"],
   category: "downloads",
   description: "Busca y descarga video de YouTube.",
   execute: async (socket, message, args) => {
@@ -93,7 +93,7 @@ export default {
       caption += `┃ > ${fytBold("Canal")}› ${author}\n`;
       caption += `┃ > ${fytBold("Duración")} › ${duration}\n`;
       caption += `┃ > ${fytBold("Tamaño")} › ${size}\n`;
-      caption += `┃ > ${fytBold("Tipo")} > Documento MP4\n`;
+      caption += `┃ > ${fytBold("Tipo")} > Video MP4\n`;
       caption += `┃ > ${fytBold("Url")} › ${finalUrl}\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ ⏳ Enviando video...\n`;
