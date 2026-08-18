@@ -5,7 +5,6 @@ const badWordsData = JSON.parse(
   fs.readFileSync("./database/badWords.json", "utf-8"),
 );
 
-// Pre-normalizar palabras prohibidas para mayor velocidad y omitir las de 2 letras o menos
 for (const level of Object.values(badWordsData.levels)) {
   level.normalizedWords = level.words
     .filter((w) => w.trim().length > 2)
@@ -76,7 +75,7 @@ export default {
       saveDB(db);
 
       let text = `╭〔 ❌ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
-      text += `┃ 🛡️ 𝐒𝐈𝐒𝐓Ե𝐌𝐀 𝐀𝐍𝐓𝐈𝐓𝐎𝐗𝐈𝐂\n`;
+      text += `┃ 🛡️ 𝐒𝐈𝐒𝐓𝐄𝐌𝐀 𝐀𝐍𝐓𝐈𝐓𝐎𝐗𝐈𝐂\n`;
       text += `╰━━━━━━━━━━━━⬣\n\n`;
       text += `┃ > El sistema Antitoxic ha\n`;
       text += `┃ > sido desactivado con éxito.\n\n`;
@@ -194,77 +193,44 @@ function normalizeText(text, removeVowels = false) {
 async function handleToxic(socket, m, level, db, saveDB) {
   const remoteJid = m.key.remoteJid;
   const user = m.key.participant || remoteJid;
-  const action = level.action;
   const reason = level.reason;
 
   try {
     await socket.sendMessage(remoteJid, { delete: m.key });
   } catch (e) {}
 
-  if (action === "kick") {
-    let text = `╭〔 🚨 ${fytBold("ANTI-TOXIC SYSTEM")} 〕⬣\n`;
-    text += `┃ 👤 Usuario: @${user.split("@")[0]}\n`;
-    text += `┃ 🛡️ Acción: Expulsado por mala conducta\n`;
-    text += `┃ 📌 Razón: ${reason}\n`;
-    text += `╰━━━━━━━━━━━━⬣\n\n`;
-    text += `┃ ⚠️ El usuario ha sido expulsado\n`;
-    text += `┃ ⚠️ por usar lenguaje tóxico.\n\n`;
-    text += `╰〔 ${fytBold("SYSTEM ACTIVE")} 〕⬣`;
+  if (!db.groups[remoteJid].warns) db.groups[remoteJid].warns = {};
+  if (!db.groups[remoteJid].warns[user])
+    db.groups[remoteJid].warns[user] = [];
 
-    await socket.sendMessage(remoteJid, { text, mentions: [user] });
-    await socket.groupParticipantsUpdate(remoteJid, [user], "remove");
-  } else if (action === "warn") {
-    if (!db.groups[remoteJid].warns) db.groups[remoteJid].warns = {};
-    if (!db.groups[remoteJid].warns[user])
-      db.groups[remoteJid].warns[user] = [];
+  const date = new Date().toLocaleDateString("es-CR", {
+    timeZone: "America/Costa_Rica",
+  });
+  
+  db.groups[remoteJid].warns[user].push({
+    reason: `Toxicidad: ${reason}`,
+    date,
+  });
+  saveDB(db);
 
-    const date = new Date().toLocaleDateString("es-CR", {
-      timeZone: "America/Costa_Rica",
-    });
-    db.groups[remoteJid].warns[user].push({
-      reason: `Toxicidad: ${reason}`,
-      date,
-    });
-    saveDB(db);
+  const limit = db.groups[remoteJid].warnLimit || 3;
+  const count = db.groups[remoteJid].warns[user].length;
+  const botJid = socket.user.id.split(":")[0] + "@s.whatsapp.net";
 
-    const limit = db.groups[remoteJid].warnLimit || 3;
-    const count = db.groups[remoteJid].warns[user].length;
+  let text = `╭〔 ⚠️ ${fytBold("ANTI-TOXIC SYSTEM")} 〕⬣\n`;
+  text += `┃ 👤 Usuario: @${user.split("@")[0]}\n`;
+  text += `┃ 🛡️ Admin: 𝐒𝐘𝐒𝐓𝐄𝐌 ⚡\n`;
+  text += `┃ 📌 Acción: Advertencia agregada\n`;
+  text += `┃ 📊 Warns: [ ${count}/${limit} ]\n`;
+  text += `┃ 📝 Razón: ${reason}\n`;
+  text += `┃ ⏰ Fecha: ${date}\n\n`;
+  text += `┣━━━━━━━━━━━━━━━━⬣\n\n`;
+  text += `┃ ⚠️ Se ha añadido una\n`;
+  text += `┃ ⚠️ advertencia al usuario.\n`;
+  text += `┣━━━━━━━━━━━━━━━━⬣\n\n`;
+  text += `┃ ❗ El mensaje infractor\n`;
+  text += `┃ ❗ ha sido eliminado.\n\n`;
+  text += `╰〔 ${fytBold("SYSTEM ACTIVE")} 〕⬣`;
 
-    if (count >= limit) {
-      let text = `╭〔 🚨 ${fytBold("ANTI-TOXIC SYSTEM")} 〕⬣`;
-      text += `┃ 👤 Usuario: @${user.split("@")[0]}\n`;
-      text += `┃ 📊 Warns: [ ${count}/${limit} ]\n`;
-      text += `┃ 🛡️ Acción: Expulsado por mala conducta\n`;
-      text += `┃ ⏰ Fecha: ${date}\n\n`;
-      text += `┣━━━━━━━━━━━━━━━━⬣\n\n`;
-      text += `┃ ⚠️ El usuario ha alcanzado el límite\n`;
-      text += `┃ ⚠️ de advertencias por toxicidad.\n`;
-      text += `┃ ⚠️ Será expulsado del grupo.\n\n`;
-      text += `╰〔 ${fytBold("SYSTEM ACTIVE")} 〕⬣`;
-
-      await socket.sendMessage(remoteJid, { text, mentions: [user] });
-      await socket.groupParticipantsUpdate(remoteJid, [user], "remove");
-      db.groups[remoteJid].warns[user] = [];
-      saveDB(db);
-    } else {
-      const botJid = socket.user.id.split(":")[0] + "@s.whatsapp.net";
-
-      let text = `╭〔 ⚠️ ${fytBold("ANTI-TOXIC SYSTEM")} 〕⬣\n`;
-      text += `┃ 👤 Usuario: @${user.split("@")[0]}\n`;
-      text += `┃ 🛡️ Admin: 𝐒𝐘𝐒𝐓𝐄𝐌 ⚡\n`;
-      text += `┃ 📌 Acción: Advertencia agregada\n`;
-      text += `┃ 📊 Warns: [ ${count}/${limit} ]\n`;
-      text += `┃ 📝 Razón: ${reason}\n`;
-      text += `┃ ⏰ Fecha: ${date}\n\n`;
-      text += `┣━━━━━━━━━━━━━━━━⬣\n\n`;
-      text += `┃ ⚠️ Se ha añadido una\n`;
-      text += `┃ ⚠️ advertencia al usuario.\n`;
-      text += `┣━━━━━━━━━━━━━━━━⬣\n\n`;
-      text += `┃ ❗ Al llegar al límite\n`;
-      text += `┃ ❗ será expulsado.\n\n`;
-      text += `╰〔 ${fytBold("SYSTEM ACTIVE")} 〕⬣`;
-
-      await socket.sendMessage(remoteJid, { text, mentions: [user, botJid] });
-    }
-  }
+  await socket.sendMessage(remoteJid, { text, mentions: [user, botJid] });
 }
