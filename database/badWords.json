@@ -9,7 +9,7 @@
         "mierda", "joder", "coño", "cono", "carajo", "verga",
         "chingar", "chinga", "pinche", "culero", "culera",
         "marica", "maricon", "maricón", "gay", "joto", "pargo","pinga",
-        "chobolo dow", "viejo", "vieja", "vr", "fuck", "ñerga", "ñurca"
+        "chobolo dow", "viejo", "vieja", "fuck", "ñerga", "ñurca"
       ]
     },
     "severe": {
@@ -18,13 +18,12 @@
       "words": [
         "hijo de puta", "hijueputa", "la concha de tu madre",
         "vete a la mierda", "chupa pija", "come mierda",
-        "malparido", "malparida", "gonorrea", "hp",
-        "hdp", "hdspm", "ptm", "ctm","zarnoso","sarnoso","sarnosa", "coma mierda",
+        "malparido", "malparida", "gonorrea", "hdp", "hdspm", "ptm", "ctm","zarnoso","sarnoso","sarnosa", "coma mierda",
         "su maire", "maldito", "teta", "tierroso", "tierrosa"
       ]
     },
     "discriminatory": {
-      "action": "kick",
+      "action": "warn",
       "reason": "Discriminación",
       "words": [
         "negro", "negra", "nigga", "gay", "playo", "playaso",
@@ -32,7 +31,7 @@
       ]
     },
     "inappropriate": {
-      "action": "kick",
+      "action": "warn",
       "reason": "Lenguaje inapropiado",
       "words": [
         "maricon", "maricona", "marica", "maricon", "mariconazo", "mariconazo",

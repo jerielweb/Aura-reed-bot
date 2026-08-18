@@ -5,12 +5,14 @@ const badWordsData = JSON.parse(
   fs.readFileSync("./database/badWords.json", "utf-8"),
 );
 
-// Pre-normalizar palabras prohibidas para mayor velocidad
+// Pre-normalizar palabras prohibidas para mayor velocidad y omitir las de 2 letras o menos
 for (const level of Object.values(badWordsData.levels)) {
-  level.normalizedWords = level.words.map((w) => ({
-    full: normalizeText(w),
-    noVowels: normalizeText(w, true),
-  }));
+  level.normalizedWords = level.words
+    .filter((w) => w.trim().length > 2)
+    .map((w) => ({
+      full: normalizeText(w),
+      noVowels: normalizeText(w, true),
+    }));
 }
 
 export default {
@@ -22,7 +24,6 @@ export default {
   execute: async (socket, message, args, { db, saveDB }) => {
     const remoteJid = message.key.remoteJid;
     if (!remoteJid.endsWith("@g.us")) {
-      // Plantilla del mensaje para que sea más atractivo visualmente
       let text = `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n`;
       text += `┃ ${fytBold("ACCION INCONPATIBLE")} \n`;
       text += `╰━━━━━━━━━━━━⬣\n\n`;
@@ -56,7 +57,6 @@ export default {
       db.groups[remoteJid].antitoxic = true;
       saveDB(db);
 
-      // Plantilla del mensaje para que sea más atractivo visualmente
       let text = `╭〔 ✅ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
       text += `┃ 🛡️ 𝐒𝐈𝐒𝐓𝐄𝐌𝐀 𝐀𝐍𝐓𝐈𝐓𝐎𝐗𝐈𝐂\n`;
       text += `╰━━━━━━━━━━━━⬣\n\n`;
@@ -75,22 +75,19 @@ export default {
       db.groups[remoteJid].antitoxic = false;
       saveDB(db);
 
-      // Plantilla del mensaje para que sea más atractivo visualmente
       let text = `╭〔 ❌ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
-      text += `┃ 🛡️ 𝐒𝐈𝐒𝐓𝐄𝐌𝐀 𝐀𝐍𝐓𝐈𝐓𝐎𝐗𝐈𝐂\n`;
+      text += `┃ 🛡️ 𝐒𝐈𝐒𝐓Ե𝐌𝐀 𝐀𝐍𝐓𝐈𝐓𝐎𝐗𝐈𝐂\n`;
       text += `╰━━━━━━━━━━━━⬣\n\n`;
       text += `┃ > El sistema Antitoxic ha\n`;
       text += `┃ > sido desactivado con éxito.\n\n`;
       text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
 
-      // Enviar mensaje de éxito
       await socket.sendMessage(remoteJid, { text }, { quoted: message });
     } else {
       const currentStatus = db.groups[remoteJid]?.antitoxic
         ? "✅ Activado"
         : "❌ Desactivado";
 
-      // Plantilla del mensaje para que sea más atractivo visualmente
       let text = `╭〔 🛡️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
       text += `┃ ⚙️ 𝐒𝐈𝐒𝐓𝐄𝐌𝐀 𝐀𝐍𝐓𝐈𝐓𝐎𝐗𝐈𝐂\n`;
       text += `╰━━━━━━━━━━━━⬣\n\n`;
@@ -102,7 +99,6 @@ export default {
       text += `┃ ✦ Desactivar sistema antitoxic\n\n`;
       text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
 
-      // Enviar mensaje de estado
       await socket.sendMessage(remoteJid, { text }, { quoted: message });
     }
   },
@@ -112,7 +108,6 @@ export default {
     if (!remoteJid.endsWith("@g.us") || !db.groups[remoteJid]?.antitoxic)
       return;
 
-    // Ignorar mensajes que son comandos o que no contienen texto
     const prefix = db.groups?.[remoteJid]?.prefix || db.prefix;
     if (!text || text.startsWith(prefix)) return;
 
@@ -141,10 +136,10 @@ export default {
           return;
         }
         if (
-          wordObj.noVowels.length >= 3 &&
+          wordObj.noVowels.length >= 4 &&
           noVowelsText.includes(wordObj.noVowels)
         ) {
-          if (wordObj.noVowels.length === 3 && noVowelsText.length > 5)
+          if (wordObj.noVowels.length === 4 && noVowelsText.length > 6)
             continue;
 
           console.log(
@@ -178,16 +173,16 @@ function normalizeText(text, removeVowels = false) {
   let normalized = text
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Quitar acentos
+    .replace(/[\u0300-\u036f]/g, "")
     .split("")
     .map((char) => charMap[char] || char)
     .join("")
-    .replace(/h/g, "") // Quitar 'h'
-    .replace(/[v]/g, "b") // b/v
-    .replace(/[zc]/g, "s") // s/z/c
-    .replace(/[k]/g, "g") // g/k
-    .replace(/[^a-z0-9]/g, "") // Quitar símbolos
-    .replace(/\s+/g, ""); // Quitar espacios
+    .replace(/h/g, "")
+    .replace(/[v]/g, "b")
+    .replace(/[zc]/g, "s")
+    .replace(/[k]/g, "g")
+    .replace(/[^a-z0-9]/g, "")
+    .replace(/\s+/g, "");
 
   if (removeVowels) {
     normalized = normalized.replace(/[aeiou]/g, "");
@@ -202,13 +197,11 @@ async function handleToxic(socket, m, level, db, saveDB) {
   const action = level.action;
   const reason = level.reason;
 
-  // Eliminar mensaje
   try {
     await socket.sendMessage(remoteJid, { delete: m.key });
   } catch (e) {}
 
   if (action === "kick") {
-    // Plantilla del mensaje para que sea más atractivo visualmente
     let text = `╭〔 🚨 ${fytBold("ANTI-TOXIC SYSTEM")} 〕⬣\n`;
     text += `┃ 👤 Usuario: @${user.split("@")[0]}\n`;
     text += `┃ 🛡️ Acción: Expulsado por mala conducta\n`;
@@ -218,7 +211,6 @@ async function handleToxic(socket, m, level, db, saveDB) {
     text += `┃ ⚠️ por usar lenguaje tóxico.\n\n`;
     text += `╰〔 ${fytBold("SYSTEM ACTIVE")} 〕⬣`;
 
-    // Enviar mensaje y expulsar al usuario
     await socket.sendMessage(remoteJid, { text, mentions: [user] });
     await socket.groupParticipantsUpdate(remoteJid, [user], "remove");
   } else if (action === "warn") {
@@ -239,7 +231,6 @@ async function handleToxic(socket, m, level, db, saveDB) {
     const count = db.groups[remoteJid].warns[user].length;
 
     if (count >= limit) {
-      // Plantilla del mensaje para que sea más atractivo visualmente
       let text = `╭〔 🚨 ${fytBold("ANTI-TOXIC SYSTEM")} 〕⬣`;
       text += `┃ 👤 Usuario: @${user.split("@")[0]}\n`;
       text += `┃ 📊 Warns: [ ${count}/${limit} ]\n`;
@@ -251,7 +242,6 @@ async function handleToxic(socket, m, level, db, saveDB) {
       text += `┃ ⚠️ Será expulsado del grupo.\n\n`;
       text += `╰〔 ${fytBold("SYSTEM ACTIVE")} 〕⬣`;
 
-      // Enviar mensaje y expulsar al usuario
       await socket.sendMessage(remoteJid, { text, mentions: [user] });
       await socket.groupParticipantsUpdate(remoteJid, [user], "remove");
       db.groups[remoteJid].warns[user] = [];
@@ -259,7 +249,6 @@ async function handleToxic(socket, m, level, db, saveDB) {
     } else {
       const botJid = socket.user.id.split(":")[0] + "@s.whatsapp.net";
 
-      // Plantilla del mensaje para que sea más atractivo visualmente
       let text = `╭〔 ⚠️ ${fytBold("ANTI-TOXIC SYSTEM")} 〕⬣\n`;
       text += `┃ 👤 Usuario: @${user.split("@")[0]}\n`;
       text += `┃ 🛡️ Admin: 𝐒𝐘𝐒𝐓𝐄𝐌 ⚡\n`;
@@ -275,7 +264,6 @@ async function handleToxic(socket, m, level, db, saveDB) {
       text += `┃ ❗ será expulsado.\n\n`;
       text += `╰〔 ${fytBold("SYSTEM ACTIVE")} 〕⬣`;
 
-      // Enviar mensaje de advertencia
       await socket.sendMessage(remoteJid, { text, mentions: [user, botJid] });
     }
   }
