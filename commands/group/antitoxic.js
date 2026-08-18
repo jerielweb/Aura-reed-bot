@@ -194,6 +194,7 @@ async function handleToxic(socket, m, level, db, saveDB) {
   const remoteJid = m.key.remoteJid;
   const user = m.key.participant || remoteJid;
   const reason = level.reason;
+  const userMessage = text; // Captura el mensaje que envió el usuario
 
   try {
     await socket.sendMessage(remoteJid, { delete: m.key });
@@ -219,6 +220,7 @@ async function handleToxic(socket, m, level, db, saveDB) {
 
   let text = `╭〔 ⚠️ ${fytBold("ANTI-TOXIC SYSTEM")} 〕⬣\n`;
   text += `┃ 👤 Usuario: @${user.split("@")[0]}\n`;
+  text += `┃ 💬 Dijo: "${userMessage}"\n`;
   text += `┃ 🛡️ Admin: 𝐒𝐘𝐒𝐓𝐄𝐌 ⚡\n`;
   text += `┃ 📌 Acción: Advertencia agregada\n`;
   text += `┃ 📊 Warns: [ ${count}/${limit} ]\n`;
