@@ -26,7 +26,6 @@ export default {
     });
 
     try {
-      // Pedimos un límite mayor a la API (ej. 100) para tener de dónde escoger aleatoriamente
       const apiUrl = `https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&tags=${encodeURIComponent(text)}&limit=100&api_key=${API_KEY}&user_id=${USER_ID}`;
       
       const response = await fetch(apiUrl);
@@ -45,25 +44,28 @@ export default {
         );
       }
 
-      // Mezclamos el array aleatoriamente y tomamos un máximo de 10
+      // Mezclamos y seleccionamos 4 o hasta 10 imágenes para el álbum
       const shuffled = data.sort(() => 0.5 - Math.random());
-      const selectedPosts = shuffled.slice(0, 10);
+      const selectedPosts = shuffled.slice(0, 4); // WhatsApp suele agrupar visualmente muy bien de 4 en adelante (tipo collage)
 
-      // Enviamos cada imagen en un bucle
-      for (const [index, post] of selectedPosts.entries()) {
+      // Preparamos el texto del pie de página (caption) similar al estilo de tu captura
+      const caption = `╭───〔 🔞 ${fytBold("RULE34 SEARCH")} 〕───⬣\n` +
+                      `┃ 🔍 Búsqueda: ${text}\n` +
+                      `┃ ⚙️ Motor: › Rule34 API\n` +
+                      `╰───〔 ⚡ ${fytBold("AURA REED")} 〕───⬣`;
+
+      // Enviamos el álbum utilizando la estructura compatible con Baileys
+      for (let i = 0; i < selectedPosts.length; i++) {
+        const post = selectedPosts[i];
         const fileUrl = post.file_url || post.image;
         if (!fileUrl) continue;
 
-        const caption = `╭〔 🔞 ${fytBold(`RULE34 (${index + 1}/${selectedPosts.length})`)} 〕━⬣\n\n` +
-                        `┃ > ${fytBold("ID")} › ${post.id}\n` +
-                        `┃ > ${fytBold("Tags")} › ${post.tags.split(" ").slice(0, 5).join(", ")}...\n` +
-                        `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
-
+        // Si es la primera imagen, adjuntamos el banner/caption principal
         await socket.sendMessage(
           remoteJid,
           {
             image: { url: fileUrl },
-            caption: caption,
+            caption: i === 0 ? caption : undefined,
           },
           { quoted: message },
         );
