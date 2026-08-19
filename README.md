@@ -1,6 +1,6 @@
 # Aura Reed Bot
 
-![Aura Reed Bot](https://i.imgur.com/IAjTKcq.jpeg)
+![Aura Reed Bot](https://cdn.dix.lat/me/izijnp-c91x-ozzy3t-433130.jpg)
 
 Bot de WhatsApp para grupos y uso personal, construido con `@whiskeysockets/baileys` y un sistema modular de comandos.
 
