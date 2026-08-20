@@ -97,8 +97,8 @@ export default {
         remoteJid,
         {
           video: { url: audioUrl },
-          mimetype: "audio/mpeg",
-          fileName: `${title.replace(/[<>:"/\\|?*]/g, "")}.mp3`,
+          mimetype: "video/mp4",
+          fileName: `${title.replace(/[<>:"/\\|?*]/g, "")}.mp4`,
         },
         { quoted: message },
       );
