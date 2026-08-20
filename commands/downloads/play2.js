@@ -69,7 +69,7 @@ export default {
       const duration = videoData.duration?.timestamp || res.metadata?.timestamp || "??";
       const views = typeof videoData.views === "number" ? videoData.views : (res.metadata?.views || 0);
       const ytURL = `https://youtu.be/${videoData.videoId}`
-      const quality = download.quality || "Auto"
+      const quality = res.download.quality || "Auto"
       const thumbnail = videoData.thumbnail || videoData.image || res.metadata?.thumbnail || `https://i.ytimg.com/vi/${extractVideoId(finalUrl)}/hqdefault.jpg`;
       
       // Enlace directo corregido
