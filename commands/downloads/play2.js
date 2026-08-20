@@ -3,7 +3,8 @@ import yt from "@vreden/youtube_scraper";
 import { fytBold } from "../../models/TextStyle.js";
 import formatter from "../../controllers/functions/formatNumbers.js";
 import ffmpeg from "fluent-ffmpeg";
-import { PassThrough } from "stream";
+import fs from "fs";
+import path from "path";
 
 const YT_REGEX = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
 
@@ -41,6 +42,14 @@ export default {
     await socket.sendMessage(remoteJid, {
       react: { text: "⏳", key: message.key },
     });
+
+    const tempDir = path.resolve("./temp");
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+
+    const inputPath = path.join(tempDir, `in_${message.key.id}.mp4`);
+    const outputPath = path.join(tempDir, `out_${message.key.id}.mp4`);
 
     try {
       let finalUrl = text;
@@ -82,7 +91,7 @@ export default {
       caption += `┃ > ${fytBold("Calidad")} › ${quality}\n`;
       caption += `┃ > ${fytBold("Url")} › ${ytURL}\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
-      caption += `┃ > ⌛ Procesando en streaming...\n`;
+      caption += `┃ > ⌛ Procesando con FFmpeg...\n`;
       caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
 
       await socket.sendMessage(
@@ -91,16 +100,20 @@ export default {
         { quoted: message },
       );
 
-      // Descargar stream del video desde el CDN
-      const fetchResponse = await fetch(videoUrl);
-      if (!fetchResponse.ok) throw new Error("No se pudo obtener el archivo del CDN.");
-
-      const pass = new PassThrough();
-      const chunks = [];
-
+      // Descargar al archivo temporal local con un Stream seguro
+      const response = await fetch(videoUrl);
+      if (!response.ok) throw new Error("No se pudo descargar el archivo del CDN.");
+      
+      const fileStream = fs.createWriteStream(inputPath);
       await new Promise((resolve, reject) => {
-        ffmpeg(fetchResponse.body)
-          .inputFormat("mp4")
+        response.body.pipe(fileStream);
+        fileStream.on("finish", resolve);
+        fileStream.on("error", reject);
+      });
+
+      // Procesar con FFmpeg desde el archivo local de forma ultra rápida
+      await new Promise((resolve, reject) => {
+        ffmpeg(inputPath)
           .outputOptions([
             "-c:v libx264",
             "-preset ultrafast",
@@ -108,24 +121,20 @@ export default {
             "-pix_fmt yuv420p",
             "-c:a aac",
             "-b:a 96k",
-            "-movflags +frag_keyframe+empty_moov"
+            "-movflags +faststart"
           ])
-          .format("mp4")
-          .on("data", (chunk) => chunks.push(chunk))
+          .save(outputPath)
           .on("end", resolve)
-          .on("error", (err) => {
-            console.error("Error FFmpeg stream:", err);
-            reject(err);
-          })
-          .pipe(pass, { end: true });
+          .on("error", reject);
       });
 
-      const videoBuffer = Buffer.concat(chunks);
+      // Leer el resultado procesado y enviarlo a WhatsApp
+      const processedBuffer = await fs.promises.readFile(outputPath);
 
       await socket.sendMessage(
         remoteJid,
         {
-          video: videoBuffer,
+          video: processedBuffer,
           mimetype: "video/mp4",
           fileName: `${title.replace(/[<>:"/\\|?*]/g, "")}.mp4`,
         },
@@ -137,7 +146,7 @@ export default {
       });
 
     } catch (error) {
-      console.error("Error en ytmp4 con FFmpeg stream:", error);
+      console.error("Error en ytmp4 con FFmpeg local:", error);
       await socket.sendMessage(remoteJid, {
         react: { text: "❌", key: message.key },
       });
@@ -148,6 +157,12 @@ export default {
         },
         { quoted: message },
       );
+    } finally {
+      // Limpieza estricta de la carpeta temp local para no gastar espacio en Akirax
+      try {
+        if (fs.existsSync(inputPath)) await fs.promises.unlink(inputPath);
+        if (fs.existsSync(outputPath)) await fs.promises.unlink(outputPath);
+      } catch {}
     }
   },
 };
