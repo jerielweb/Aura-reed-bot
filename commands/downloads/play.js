@@ -21,7 +21,7 @@ function extractVideoId(url) {
 export default {
   name: ["ytmp3", "play", "playaudio", "mp3", "yta", "audio"],
   category: "downloads",
-  description: "Busca y descarga audio de YouTube usando @vreden/youtube_scraper.",
+  description: "Busca y descarga audio de YouTube",
   execute: async (socket, message, args) => {
     const remoteJid = message.key.remoteJid;
     const text = args.join(" ").trim();
