@@ -10,6 +10,7 @@ export function cmdLog({
   pushName,
   groupMetadata,
   sock,
+  prefix
 }) {
   // Si no hay commandName, ignoramos el mensaje por completo para mejorar el rendimiento y evitar impresiones innecesarias
   if (!commandName) return;
