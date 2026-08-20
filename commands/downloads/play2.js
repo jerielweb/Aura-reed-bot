@@ -107,13 +107,19 @@ export default {
       await new Promise((resolve, reject) => {
         ffmpeg(inputPath)
           .outputOptions([
-            "-c copy",
+            "-c:v libx264",
+            "-preset ultrafast",    // Máxima velocidad de procesamiento
+            "-crf 26",              // Compresión rápida y ligera (evita que pese mucho y acelera el render)
+            "-pix_fmt yuv420p",     // Obligatorio para que WhatsApp lo acepte
+            "-c:a aac",             // Mata el problema del audio incompatible
+            "-b:a 128k",
             "-movflags +faststart"
           ])
           .save(outputPath)
           .on("end", resolve)
           .on("error", reject);
       });
+
 
       // 3. Leer el archivo ya procesado y enviarlo
       const processedBuffer = await fs.readFile(outputPath);
