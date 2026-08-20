@@ -56,19 +56,22 @@ export default {
         videoData = await yts({ videoId });
       }
 
-      // Solicitud a máxima calidad (320 kbps) según la librería
+      // Solicitud a máxima calidad según la librería
       const res = await yt.ytmp3(finalUrl, 320);
       
-      if (!res || !res.status || !res.download) {
+      // Validación corregida para acceder a res.download.url
+      if (!res || !res.status || !res.download || !res.download.url) {
         throw new Error("El servicio de descarga no respondió correctamente.");
       }
 
       const title = videoData.title || res.metadata?.title || "Video de YouTube";
-      const author = videoData.author?.name || "Desconocido";
-      const duration = videoData.duration?.timestamp || "??";
-      const views = typeof videoData.views === "number" ? videoData.views : 0;
-      const thumbnail = videoData.thumbnail || videoData.image || `https://i.ytimg.com/vi/${extractVideoId(finalUrl)}/hqdefault.jpg`;
-      const audioUrl = res.download;
+      const author = videoData.author?.name || res.metadata?.author?.name || "Desconocido";
+      const duration = videoData.duration?.timestamp || res.metadata?.timestamp || "??";
+      const views = typeof videoData.views === "number" ? videoData.views : (res.metadata?.views || 0);
+      const thumbnail = videoData.thumbnail || videoData.image || res.metadata?.thumbnail || `https://i.ytimg.com/vi/${extractVideoId(finalUrl)}/hqdefault.jpg`;
+      
+      // Enlace directo corregido
+      const audioUrl = res.download.url;
 
       let caption = `╭〔 🎵 ${fytBold("YT DOWNLOADER")} 〕━⬣\n\n`;
       caption += `┃ ➥ ${fytBold(title)}\n\n`;
