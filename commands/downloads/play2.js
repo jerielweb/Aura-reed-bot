@@ -57,7 +57,7 @@ export default {
       }
 
       // Solicitud a máxima calidad según la librería
-      const res = await yt.ytmp4(finalUrl, 720);
+      const res = await yt.ytmp4(finalUrl, 480);
       
       // Validación corregida para acceder a res.download.url
       if (!res || !res.status || !res.download || !res.download.url) {
