@@ -53,8 +53,10 @@ export function ensureGroup(db, remoteJid) {
       activity: {},
       users: {},
     };
-  } else if (!db.groups[remoteJid].users) {
-    db.groups[remoteJid].users = {};
+  } else {
+    if (!db.groups[remoteJid].activity) db.groups[remoteJid].activity = {};
+    if (!db.groups[remoteJid].users) db.groups[remoteJid].users = {};
+    if (!db.groups[remoteJid].warns) db.groups[remoteJid].warns = {};
   }
   return db.groups[remoteJid];
 }
