@@ -1,10 +1,9 @@
 import yts from "yt-search";
-import formatter from "../../controllers/functions/formatNumbers.js";
+import yt from "@vreden/youtube_scraper";
 import { fytBold } from "../../models/TextStyle.js";
+import formatter from "../../controllers/functions/formatNumbers.js";
 
 const YT_REGEX = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
-const LEMPI_API_KEY = "oboe";
-const LEMPI_QUALITY = 1080;
 
 function extractVideoId(url) {
   const patterns = [
@@ -19,21 +18,10 @@ function extractVideoId(url) {
   return null;
 }
 
-async function fetchLempiVideo(youtubeUrl, quality = LEMPI_QUALITY) {
-  const apiUrl = `https://api.lempi.lat/dl/ytv?url=${encodeURIComponent(youtubeUrl)}&quality=${quality}&apikey=${LEMPI_API_KEY}`;
-  const res = await fetch(apiUrl);
-  if (!res.ok) throw new Error(`API respondió con estado ${res.status}`);
-  const data = await res.json();
-  if (!data?.status || !data?.datos?.url) {
-    throw new Error("La API no pudo procesar el video.");
-  }
-  return data;
-}
-
 export default {
-  name: ["ytmp4", "video", "playvideo", "mp4", "ytv", "play2"],
+  name: ["ytmp3", "play", "playaudio", "mp3", "yta", "audio"],
   category: "downloads",
-  description: "Busca y descarga video de YouTube.",
+  description: "Busca y descarga audio de YouTube usando @vreden/youtube_scraper.",
   execute: async (socket, message, args) => {
     const remoteJid = message.key.remoteJid;
     const text = args.join(" ").trim();
@@ -42,7 +30,7 @@ export default {
       return await socket.sendMessage(
         remoteJid,
         {
-          text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("FALTA BUSQUEDA")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, proporciona un\n┃ > nombre o enlace de video.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
+          text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("FALTA BUSQUEDA")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, proporciona un\n┃ > nombre o enlace de canción.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
         },
         { quoted: message },
       );
@@ -54,66 +42,63 @@ export default {
 
     try {
       let finalUrl = text;
+      let videoData = null;
 
-      // Si NO es un link de YouTube, buscamos con yt-search para resolver la URL
       if (!YT_REGEX.test(text)) {
         const search = await yts(text);
-        if (!search.videos?.length) {
-          await socket.sendMessage(remoteJid, {
-            react: { text: "❌", key: message.key },
-          });
-          return await socket.sendMessage(
-            remoteJid,
-            {
-              text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("SIN RESULTADOS")}\n╰━━━━━━━━━━━━⬣\n\n┃ > No se encontro ningun video.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
-            },
-            { quoted: message },
-          );
-        }
-        finalUrl = search.videos[0].url;
+        if (!search.videos?.length) throw new Error("No se encontró ningún video.");
+        videoData = search.videos[0];
+        finalUrl = videoData.url;
       } else {
         const videoId = extractVideoId(text);
         if (!videoId) throw new Error("URL de YouTube no válida");
-        finalUrl = `https://youtu.be/${videoId}`;
+        finalUrl = `https://youtube.com/watch?v=${videoId}`;
+        videoData = await yts({ videoId });
       }
 
-      // Descarga a través de la API de lempi (esta ya trae título, canal, miniatura, etc.)
-      const data = await fetchLempiVideo(finalUrl);
+      // Solicitud a máxima calidad según la librería
+      const res = await yt.ytmp4(finalUrl, 720);
+      
+      // Validación corregida para acceder a res.download.url
+      if (!res || !res.status || !res.download || !res.download.url) {
+        throw new Error("El servicio de descarga no respondió correctamente.");
+      }
 
-      const title = data.titulo || "Video de YouTube";
-      const author = data.canal || "Desconocido";
-      const duration = data.duracion || "??";
-      const thumbnail = data.miniatura;
-      const size = data.datos?.tamaño || "??";
-      const videoUrl = data.datos.url;
+      const title = videoData.title || res.metadata?.title || "Video de YouTube";
+      const author = videoData.author?.name || res.metadata?.author?.name || "Desconocido";
+      const duration = videoData.duration?.timestamp || res.metadata?.timestamp || "??";
+      const views = typeof videoData.views === "number" ? videoData.views : (res.metadata?.views || 0);
+      const ytURL = `https://youtu.be/${videoData.videoId}`
+      const quality = download.quality || "Auto"
+      const thumbnail = videoData.thumbnail || videoData.image || res.metadata?.thumbnail || `https://i.ytimg.com/vi/${extractVideoId(finalUrl)}/hqdefault.jpg`;
+      
+      // Enlace directo corregido
+      const audioUrl = res.download.url;
 
-      let caption = `╭〔 🎬 ${fytBold("YT DOWNLOADER")} 〕━⬣\n\n`;
+      let caption = `╭〔 🎵 ${fytBold("YT DOWNLOADER")} 〕━⬣\n\n`;
       caption += `┃ ➥ ${fytBold(title)}\n\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
-      caption += `┃ > ${fytBold("Canal")}› ${author}\n`;
+      caption += `┃ > ${fytBold("Canal")} › ${author}\n`;
       caption += `┃ > ${fytBold("Duración")} › ${duration}\n`;
-      caption += `┃ > ${fytBold("Tamaño")} › ${size}\n`;
-      caption += `┃ > ${fytBold("Tipo")} > Video MP4\n`;
-      caption += `┃ > ${fytBold("Url")} › ${finalUrl}\n`;
+      caption += `┃ > ${fytBold("Vistas")} › ${formatter(views)}\n`;
+      caption += `┃ > ${fytBold("Calidad")} › ${quality}\n`;
+      caption += `┃ > ${fytBold("Url")} › ${ytURL}\n`
       caption += `┣━━━━━━━━━━━━⬣\n`;
-      caption += `┃ ⏳ Enviando video...\n`;
+      caption += `┃ > ⌛ Enviando video...\n`;
       caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
 
-      if (thumbnail) {
-        await socket.sendMessage(
-          remoteJid,
-          { image: { url: thumbnail }, caption },
-          { quoted: message },
-        );
-      }
+      await socket.sendMessage(
+        remoteJid,
+        { image: { url: thumbnail }, caption },
+        { quoted: message },
+      );
 
       await socket.sendMessage(
         remoteJid,
         {
-          video: { url: videoUrl },
-          mimetype: "video/mp4",
-          fileName: `${title.replace(/[<>:"/\\|?*]/g, "")}.mp4`,
-          caption: `🎬 *𝐓𝐢𝐭𝐮𝐥𝐨:* ${title}\n⚡ *𝐀𝐮𝐫𝐚 𝐑𝐞𝐞𝐝 𝐃𝐨𝐰𝐧𝐥𝐨𝐚𝐝𝐞𝐫*`,
+          video: { url: audioUrl },
+          mimetype: "audio/mpeg",
+          fileName: `${title.replace(/[<>:"/\\|?*]/g, "")}.mp3`,
         },
         { quoted: message },
       );
@@ -129,7 +114,7 @@ export default {
       await socket.sendMessage(
         remoteJid,
         {
-          text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("ERROR DE DESCARGA")}\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message || "Ocurrio un error inesperado."}\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
+          text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("ERROR DE DESCARGA")}\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message || "Ocurrió un error inesperado."}\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
         },
         { quoted: message },
       );
