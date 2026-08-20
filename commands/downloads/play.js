@@ -21,7 +21,7 @@ function extractVideoId(url) {
 export default {
   name: ["ytmp3", "play", "playaudio", "mp3", "yta", "audio"],
   category: "downloads",
-  description: "Busca y descarga audio de YouTube a máxima calidad.",
+  description: "Busca y descarga audio de YouTube usando @vreden/youtube_scraper.",
   execute: async (socket, message, args) => {
     const remoteJid = message.key.remoteJid;
     const text = args.join(" ").trim();
@@ -56,16 +56,19 @@ export default {
         videoData = await yts({ videoId });
       }
 
-      // Descarga configurada a máxima calidad (320 kbps)
-      const audioData = await yt.ytmp3(finalUrl, 320);
-      if (!audioData || !audioData.download) throw new Error("No se pudo procesar el audio.");
+      // Solicitud a máxima calidad (320 kbps) según la librería
+      const res = await yt.ytmp3(finalUrl, 320);
+      
+      if (!res || !res.status || !res.download) {
+        throw new Error("El servicio de descarga no respondió correctamente.");
+      }
 
-      const title = videoData.title || "Video de YouTube";
+      const title = videoData.title || res.metadata?.title || "Video de YouTube";
       const author = videoData.author?.name || "Desconocido";
       const duration = videoData.duration?.timestamp || "??";
       const views = typeof videoData.views === "number" ? videoData.views : 0;
       const thumbnail = videoData.thumbnail || videoData.image || `https://i.ytimg.com/vi/${extractVideoId(finalUrl)}/hqdefault.jpg`;
-      const audioUrl = audioData.download;
+      const audioUrl = res.download;
 
       let caption = `╭〔 🎵 ${fytBold("YT DOWNLOADER")} 〕━⬣\n\n`;
       caption += `┃ ➥ ${fytBold(title)}\n\n`;
@@ -73,7 +76,7 @@ export default {
       caption += `┃ > ${fytBold("Canal")} › ${author}\n`;
       caption += `┃ > ${fytBold("Duración")} › ${duration}\n`;
       caption += `┃ > ${fytBold("Vistas")} › ${formatter(views)}\n`;
-      caption += `┃ > ${fytBold("Calidad")} › 320 kbps (Máxima)\n`;
+      caption += `┃ > ${fytBold("Calidad")} › 320 kbps\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ > ⌛ Enviando audio...\n`;
       caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
