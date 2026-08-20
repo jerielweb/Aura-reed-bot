@@ -68,6 +68,7 @@ export default {
       const author = videoData.author?.name || res.metadata?.author?.name || "Desconocido";
       const duration = videoData.duration?.timestamp || res.metadata?.timestamp || "??";
       const views = typeof videoData.views === "number" ? videoData.views : (res.metadata?.views || 0);
+      const ytURL = `https://youtu.be/${videoData.videoId}`
       const thumbnail = videoData.thumbnail || videoData.image || res.metadata?.thumbnail || `https://i.ytimg.com/vi/${extractVideoId(finalUrl)}/hqdefault.jpg`;
       
       // Enlace directo corregido
@@ -80,6 +81,7 @@ export default {
       caption += `┃ > ${fytBold("Duración")} › ${duration}\n`;
       caption += `┃ > ${fytBold("Vistas")} › ${formatter(views)}\n`;
       caption += `┃ > ${fytBold("Calidad")} › 320 kbps\n`;
+      caption += `┃ > ${fytBold("Url")} › ${ytURL}\n`
       caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ > ⌛ Enviando audio...\n`;
       caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
