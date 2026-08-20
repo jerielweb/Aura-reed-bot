@@ -3,9 +3,7 @@ import yt from "@vreden/youtube_scraper";
 import { fytBold } from "../../models/TextStyle.js";
 import formatter from "../../controllers/functions/formatNumbers.js";
 import ffmpeg from "fluent-ffmpeg";
-import { promises as fs } from "fs";
-import path from "path";
-import os from "os";
+import { Readable } from "stream";
 
 const YT_REGEX = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
 
@@ -43,10 +41,6 @@ export default {
     await socket.sendMessage(remoteJid, {
       react: { text: "⏳", key: message.key },
     });
-
-    const tempDir = os.tmpdir();
-    const inputPath = path.join(tempDir, `input_${Date.now()}.mp4`);
-    const outputPath = path.join(tempDir, `output_${Date.now()}.mp4`);
 
     try {
       let finalUrl = text;
@@ -88,7 +82,7 @@ export default {
       caption += `┃ > ${fytBold("Calidad")} › ${quality}\n`;
       caption += `┃ > ${fytBold("Url")} › ${ytURL}\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
-      caption += `┃ > ⌛ Procesando con FFmpeg...\n`;
+      caption += `┃ > ⌛ Procesando en memoria...\n`;
       caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
 
       await socket.sendMessage(
@@ -97,32 +91,33 @@ export default {
         { quoted: message },
       );
 
-      // 1. Descargar el archivo bruto del CDN a un archivo temporal
+      // Descargar stream del video desde el CDN
       const fetchResponse = await fetch(videoUrl);
-      if (!fetchResponse.ok) throw new Error("No se pudo descargar el archivo del CDN.");
-      const arrayBuffer = await fetchResponse.arrayBuffer();
-      await fs.writeFile(inputPath, Buffer.from(arrayBuffer));
+      if (!fetchResponse.ok) throw new Error("No se pudo obtener el archivo del CDN.");
+      const inputStream = Readable.fromWeb(fetchResponse.body);
 
-      // 2. Procesar con FFmpeg para normalizar códecs (H.264 + AAC) aptos para WhatsApp
+      // Procesar con FFmpeg totalmente en memoria (sin usar disco duro / tmp)
+      const chunks = [];
       await new Promise((resolve, reject) => {
-        ffmpeg(inputPath)
+        ffmpeg(inputStream)
           .outputOptions([
             "-c:v libx264",
-            "-preset ultrafast",    // Máxima velocidad de procesamiento
-            "-crf 26",              // Compresión rápida y ligera (evita que pese mucho y acelera el render)
-            "-pix_fmt yuv420p",     // Obligatorio para que WhatsApp lo acepte
-            "-c:a aac",             // Mata el problema del audio incompatible
+            "-preset ultrafast",
+            "-crf 26",
+            "-pix_fmt yuv420p",
+            "-c:a aac",
             "-b:a 128k",
-            "-movflags +faststart"
+            "-movflags +faststart",
+            "-f matroska" // Contenedor intermedio en buffer
           ])
-          .save(outputPath)
+          .format("mp4")
+          .on("data", (chunk) => chunks.push(chunk))
           .on("end", resolve)
-          .on("error", reject);
+          .on("error", reject)
+          .pipe();
       });
 
-
-      // 3. Leer el archivo ya procesado y enviarlo
-      const processedBuffer = await fs.readFile(outputPath);
+      const processedBuffer = Buffer.concat(chunks);
 
       await socket.sendMessage(
         remoteJid,
@@ -139,7 +134,7 @@ export default {
       });
 
     } catch (error) {
-      console.error("Error en ytmp4 con FFmpeg:", error);
+      console.error("Error en ytmp4 con FFmpeg stream:", error);
       await socket.sendMessage(remoteJid, {
         react: { text: "❌", key: message.key },
       });
@@ -150,12 +145,6 @@ export default {
         },
         { quoted: message },
       );
-    } finally {
-      // Limpiar archivos temporales del sistema
-      try {
-        await fs.unlink(inputPath).catch(() => {});
-        await fs.unlink(outputPath).catch(() => {});
-      } catch {}
     }
   },
 };
