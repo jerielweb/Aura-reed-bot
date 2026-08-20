@@ -2,10 +2,6 @@ import yts from "yt-search";
 import yt from "@vreden/youtube_scraper";
 import { fytBold } from "../../models/TextStyle.js";
 import formatter from "../../controllers/functions/formatNumbers.js";
-import ffmpeg from "fluent-ffmpeg";
-import { promises as fs } from "fs";
-import path from "path";
-import os from "os";
 
 const YT_REGEX = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
 
@@ -43,10 +39,6 @@ export default {
     await socket.sendMessage(remoteJid, {
       react: { text: "⏳", key: message.key },
     });
-
-    const tempDir = os.tmpdir();
-    const inputPath = path.join(tempDir, `input_${Date.now()}.mp4`);
-    const outputPath = path.join(tempDir, `output_${Date.now()}.mp4`);
 
     try {
       let finalUrl = text;
@@ -88,7 +80,7 @@ export default {
       caption += `┃ > ${fytBold("Calidad")} › ${quality}\n`;
       caption += `┃ > ${fytBold("Url")} › ${ytURL}\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
-      caption += `┃ > ⌛ Procesando con FFmpeg...\n`;
+      caption += `┃ > ⌛ Descargando y enviando video...\n`;
       caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
 
       await socket.sendMessage(
@@ -97,34 +89,15 @@ export default {
         { quoted: message },
       );
 
-      // 1. Descargar el archivo bruto del CDN a un archivo temporal
+      // Descargamos el video a memoria como Buffer para evitar errores de cabecera en WhatsApp
       const fetchResponse = await fetch(videoUrl);
-      if (!fetchResponse.ok) throw new Error("No se pudo descargar el archivo del CDN.");
-      const arrayBuffer = await fetchResponse.arrayBuffer();
-      await fs.writeFile(inputPath, Buffer.from(arrayBuffer));
-
-      // 2. Procesar con FFmpeg para normalizar códecs (H.264 + AAC) aptos para WhatsApp
-      await new Promise((resolve, reject) => {
-        ffmpeg(inputPath)
-          .outputOptions([
-            "-c:v libx264",
-            "-preset ultrafast",
-            "-c:a aac",
-            "-b:a 128k",
-            "-movflags +faststart"
-          ])
-          .save(outputPath)
-          .on("end", resolve)
-          .on("error", reject);
-      });
-
-      // 3. Leer el archivo ya procesado y enviarlo
-      const processedBuffer = await fs.readFile(outputPath);
+      if (!fetchResponse.ok) throw new Error("No se pudo obtener el archivo binario del video.");
+      const videoBuffer = Buffer.from(await fetchResponse.arrayBuffer());
 
       await socket.sendMessage(
         remoteJid,
         {
-          video: processedBuffer,
+          video: videoBuffer,
           mimetype: "video/mp4",
           fileName: `${title.replace(/[<>:"/\\|?*]/g, "")}.mp4`,
         },
@@ -134,9 +107,8 @@ export default {
       await socket.sendMessage(remoteJid, {
         react: { text: "✅", key: message.key },
       });
-
     } catch (error) {
-      console.error("Error en ytmp4 con FFmpeg:", error);
+      console.error("Error en ytmp4:", error);
       await socket.sendMessage(remoteJid, {
         react: { text: "❌", key: message.key },
       });
@@ -147,12 +119,6 @@ export default {
         },
         { quoted: message },
       );
-    } finally {
-      // Limpiar archivos temporales del sistema
-      try {
-        await fs.unlink(inputPath).catch(() => {});
-        await fs.unlink(outputPath).catch(() => {});
-      } catch {}
     }
   },
 };
