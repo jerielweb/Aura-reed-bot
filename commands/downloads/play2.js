@@ -56,10 +56,8 @@ export default {
         videoData = await yts({ videoId });
       }
 
-      // Solicitud a máxima calidad según la librería
-      const res = await yt.ytmp4(finalUrl, 360);
+      const res = await yt.ytmp4(finalUrl, 720);
       
-      // Validación corregida para acceder a res.download.url
       if (!res || !res.status || !res.download || !res.download.url) {
         throw new Error("El servicio de descarga no respondió correctamente.");
       }
@@ -68,12 +66,10 @@ export default {
       const author = videoData.author?.name || res.metadata?.author?.name || "Desconocido";
       const duration = videoData.duration?.timestamp || res.metadata?.timestamp || "??";
       const views = typeof videoData.views === "number" ? videoData.views : (res.metadata?.views || 0);
-      const ytURL = `https://youtu.be/${videoData.videoId}`
-      const quality = res.download.quality || "Auto"
+      const ytURL = `https://youtu.be/${videoData.videoId || extractVideoId(finalUrl)}`;
+      const quality = res.download.quality || "720p";
       const thumbnail = videoData.thumbnail || videoData.image || res.metadata?.thumbnail || `https://i.ytimg.com/vi/${extractVideoId(finalUrl)}/hqdefault.jpg`;
-      
-      // Enlace directo corregido
-      const audioUrl = res.download.url;
+      const videoUrl = res.download.url;
 
       let caption = `╭〔 🎵 ${fytBold("YT DOWNLOADER")} 〕━⬣\n\n`;
       caption += `┃ ➥ ${fytBold(title)}\n\n`;
@@ -82,9 +78,9 @@ export default {
       caption += `┃ > ${fytBold("Duración")} › ${duration}\n`;
       caption += `┃ > ${fytBold("Vistas")} › ${formatter(views)}\n`;
       caption += `┃ > ${fytBold("Calidad")} › ${quality}\n`;
-      caption += `┃ > ${fytBold("Url")} › ${ytURL}\n`
+      caption += `┃ > ${fytBold("Url")} › ${ytURL}\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
-      caption += `┃ > ⌛ Enviando video...\n`;
+      caption += `┃ > ⌛ Descargando y enviando video...\n`;
       caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
 
       await socket.sendMessage(
@@ -93,10 +89,15 @@ export default {
         { quoted: message },
       );
 
+      // Descargamos el video a memoria como Buffer para evitar errores de cabecera en WhatsApp
+      const fetchResponse = await fetch(videoUrl);
+      if (!fetchResponse.ok) throw new Error("No se pudo obtener el archivo binario del video.");
+      const videoBuffer = Buffer.from(await fetchResponse.arrayBuffer());
+
       await socket.sendMessage(
         remoteJid,
         {
-          video: { url: audioUrl },
+          video: videoBuffer,
           mimetype: "video/mp4",
           fileName: `${title.replace(/[<>:"/\\|?*]/g, "")}.mp4`,
         },
