@@ -1,7 +1,7 @@
 import { fytBold } from "../../models/TextStyle.js";
 import { getMainSocket } from "../../models/subbotManager.js";
 
-const REPORT_GROUP_JID = "120363410372126705@g.us";
+const REPORT_GROUP_JID = "120363428874580394@g.us";
 
 export default {
   name: ["report", "bug", "sugerencia", "reportar", "sugerir"],
