@@ -3,7 +3,7 @@ import yt from "@vreden/youtube_scraper";
 import { fytBold } from "../../models/TextStyle.js";
 import formatter from "../../controllers/functions/formatNumbers.js";
 import ffmpeg from "fluent-ffmpeg";
-import { Readable } from "stream";
+import { PassThrough } from "stream";
 
 const YT_REGEX = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
 
@@ -82,7 +82,7 @@ export default {
       caption += `┃ > ${fytBold("Calidad")} › ${quality}\n`;
       caption += `┃ > ${fytBold("Url")} › ${ytURL}\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
-      caption += `┃ > ⌛ Procesando en memoria...\n`;
+      caption += `┃ > ⌛ Procesando en streaming...\n`;
       caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
 
       await socket.sendMessage(
@@ -94,35 +94,38 @@ export default {
       // Descargar stream del video desde el CDN
       const fetchResponse = await fetch(videoUrl);
       if (!fetchResponse.ok) throw new Error("No se pudo obtener el archivo del CDN.");
-      const inputStream = Readable.fromWeb(fetchResponse.body);
 
-      // Procesar con FFmpeg totalmente en memoria (sin usar disco duro / tmp)
+      const pass = new PassThrough();
       const chunks = [];
+
       await new Promise((resolve, reject) => {
-        ffmpeg(inputStream)
+        ffmpeg(fetchResponse.body)
+          .inputFormat("mp4")
           .outputOptions([
             "-c:v libx264",
             "-preset ultrafast",
-            "-crf 26",
+            "-crf 28",
             "-pix_fmt yuv420p",
             "-c:a aac",
-            "-b:a 128k",
-            "-movflags +faststart",
-            "-f matroska" // Contenedor intermedio en buffer
+            "-b:a 96k",
+            "-movflags +frag_keyframe+empty_moov"
           ])
           .format("mp4")
           .on("data", (chunk) => chunks.push(chunk))
           .on("end", resolve)
-          .on("error", reject)
-          .pipe();
+          .on("error", (err) => {
+            console.error("Error FFmpeg stream:", err);
+            reject(err);
+          })
+          .pipe(pass, { end: true });
       });
 
-      const processedBuffer = Buffer.concat(chunks);
+      const videoBuffer = Buffer.concat(chunks);
 
       await socket.sendMessage(
         remoteJid,
         {
-          video: processedBuffer,
+          video: videoBuffer,
           mimetype: "video/mp4",
           fileName: `${title.replace(/[<>:"/\\|?*]/g, "")}.mp4`,
         },
