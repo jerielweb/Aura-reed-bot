@@ -100,18 +100,14 @@ export default {
         { quoted: message },
       );
 
-      // Descargar al archivo temporal local con un Stream seguro
+      // Descarga limpia compatible con Node.js usando ArrayBuffer
       const response = await fetch(videoUrl);
       if (!response.ok) throw new Error("No se pudo descargar el archivo del CDN.");
       
-      const fileStream = fs.createWriteStream(inputPath);
-      await new Promise((resolve, reject) => {
-        response.body.pipe(fileStream);
-        fileStream.on("finish", resolve);
-        fileStream.on("error", reject);
-      });
+      const arrayBuffer = await response.arrayBuffer();
+      await fs.promises.writeFile(inputPath, Buffer.from(arrayBuffer));
 
-      // Procesar con FFmpeg desde el archivo local de forma ultra rápida
+      // Procesar con FFmpeg desde el archivo local
       await new Promise((resolve, reject) => {
         ffmpeg(inputPath)
           .outputOptions([
@@ -158,7 +154,7 @@ export default {
         { quoted: message },
       );
     } finally {
-      // Limpieza estricta de la carpeta temp local para no gastar espacio en Akirax
+      // Limpieza estricta de la carpeta temp local
       try {
         if (fs.existsSync(inputPath)) await fs.promises.unlink(inputPath);
         if (fs.existsSync(outputPath)) await fs.promises.unlink(outputPath);
