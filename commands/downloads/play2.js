@@ -3,7 +3,7 @@ import formatter from "../../controllers/functions/formatNumbers.js";
 import { fytBold } from "../../models/TextStyle.js";
 
 const YT_REGEX = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
-const LEMPI_API_KEY = "oboe";
+const LEMPI_API_KEY = "lem_ca32338e1dc47034f2d84a1867a7f5033fc19fe7";
 const LEMPI_QUALITY = 1080;
 
 function extractVideoId(url) {
