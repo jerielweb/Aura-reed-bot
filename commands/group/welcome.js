@@ -4,7 +4,7 @@ export default {
   name: ["welcome", "bienvenida"],
   category: "group",
   description: "Activa o desactiva los mensajes de bienvenida.",
-  adminOnly: true,
+  adminOnly: false,
   execute: async (socket, message, args, { db, saveDB }) => {
     const remoteJid = message.key.remoteJid;
 

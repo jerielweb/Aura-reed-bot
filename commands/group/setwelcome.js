@@ -4,7 +4,7 @@ export default {
   name: ["setwelcome", "setbienvenida"],
   category: "group",
   description: "Personaliza o restablece el mensaje de bienvenida del grupo",
-  adminOnly: true,
+  adminOnly: false,
   execute: async (socket, message, args, { prefix, db, saveDB }) => {
     const remoteJid = message.key.remoteJid;
 
