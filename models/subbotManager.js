@@ -59,7 +59,7 @@ export function listActiveSubBotSessions() {
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
     .filter((name) =>
-      fs.existsSync(path.join(sessionsDir, name, "creds.json")),
+      fs.existsSync(path.join(sessionsDir, name, "session.db")),
     );
 }
 
