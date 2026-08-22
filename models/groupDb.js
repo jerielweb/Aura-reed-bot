@@ -1,4 +1,5 @@
 import { getDBSync } from "./db.js";
+import { jidNormalizedUser } from "@whiskeysockets/baileys";
 
 export const DEFAULT_GROUP = {
   antilink: false,
@@ -73,9 +74,22 @@ export function getGroupUser(
   jid,
   defaults = { coins: 0, bank: 0 },
 ) {
+  // Normalizamos SIEMPRE la clave aquí para que no importe si el llamador
+  // pasa un jid crudo (@lid, con sufijo de dispositivo, etc.) o ya normalizado.
+  // Así lectura y escritura de economía apuntan siempre al mismo registro.
+  const normalizedJid = jidNormalizedUser(jid);
   const users = getGroupUsers(db, remoteJid);
-  if (!users[jid]) users[jid] = { ...defaults };
-  return users[jid];
+
+  // Migración suave: si existe un registro viejo guardado con la clave cruda
+  // (antes de este fix) y aún no existe uno con la clave normalizada,
+  // lo migramos para no perder la plata que ya tenía el usuario.
+  if (!users[normalizedJid] && jid !== normalizedJid && users[jid]) {
+    users[normalizedJid] = users[jid];
+    delete users[jid];
+  }
+
+  if (!users[normalizedJid]) users[normalizedJid] = { ...defaults };
+  return users[normalizedJid];
 }
 
 /** Registra un mensaje del usuario en la actividad del grupo y otorga XP global. */
