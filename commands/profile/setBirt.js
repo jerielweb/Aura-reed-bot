@@ -1,5 +1,5 @@
-import { getGroupUser } from "../../models/groupDb.js";
-import { parseBirthday } from "../../models/profileUtils.js";
+import { getProfileUser, parseBirthday } from "../../models/profileUtils.js";
+import { getDBSync } from "../../models/db.js";
 import { fytBold } from "../../models/TextStyle.js";
 import { jidNormalizedUser } from "@whiskeysockets/baileys";
 
@@ -32,10 +32,16 @@ export default {
       );
     }
 
-    const user = getGroupUser(db, remoteJid, normalizedSender, {});
+    // Esto ahora modifica el perfil global unificado
+    const user = getProfileUser(db, remoteJid, normalizedSender);
     user.birthday = birthday;
     if (typeof saveDB === "function") saveDB(db);
-    let text = `╭〔 🎂${fytBold("PERFIL")} 〕⬣\n`;
+    
+    // Si manejas save global, asegúrate de guardarlo también si es necesario
+    const globalDb = getDBSync();
+    if (globalDb.save) globalDb.save();
+
+    let text = `╭〔 🎂${fytBold("PERFIL")} 〕\n`;
     text += `┃ ✅ ${fytBold("CUMPLEAÑOS GUARDADO")}\n╰━━━━━━━━━━━━⬣\n\n`;
     text += `┃ > Fecha: *${birthday}*\n\n`;
     text += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;

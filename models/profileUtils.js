@@ -119,7 +119,7 @@ export function formatProfileText(user, pushName, jid) {
   text += `┃ 🆔 𝐈𝐃 › ${jid.split("@")[0]}\n\n`;
   text += `┃ ⚧️ 𝐆𝐞́𝐧𝐞𝐫𝐨 › ${genre}\n`;
   text += `┃ 🎂 𝐂𝐮𝐦𝐩𝐥𝐞𝐚𝐧̃𝐨𝐬 › ${birthday}\n`;
-  text += `┃ 🎈 ${fytBold('Edad › ')}${`${yearsOld}` || "Indefinido"}\n\n`;
+  text += `┃ 🎈 ${fytBold('Edad › ')}${yearsOld !== null ? yearsOld : "Indefinido"}\n\n`;
   text += `┃ 💍 𝐄𝐬𝐭𝐚𝐝𝐨 › ${married}\n`;
   text += `┃ 📊 𝐍𝐢𝐯𝐞𝐥 › ${level}\n`;
   text += `┃ ✨ 𝐗𝐏 › ${formatter(xp)}\n`;
@@ -141,11 +141,11 @@ export async function getProfilePictureUrl(socket, jid) {
 }
 
 /**
- * Obtiene de manera híbrida la economía independiente por grupo
- * y el perfil social (XP, nivel, pareja, etc.) de forma global.
+ * Obtiene de manera híbrida la economía local por grupo
+ * y unifica el perfil social de forma 100% global.
  */
 export function getProfileUser(db, remoteJid, jid) {
-  // 1. Economía aislada por grupo (almacenada en botDb.groups)
+  // 1. Economía aislada por grupo
   if (!db.groups) db.groups = {};
   if (!db.groups[remoteJid]) db.groups[remoteJid] = {};
   if (!db.groups[remoteJid].users) db.groups[remoteJid].users = {};
@@ -156,8 +156,9 @@ export function getProfileUser(db, remoteJid, jid) {
   }
   let localEconomy = groupUsers[jid];
 
-  // 2. Perfil social 100% global (XP, nivel, género, cumpleaños, matrimonio)
+  // 2. Perfil social global (obtenido desde getDBSync())
   const globalDb = getDBSync();
+  if (!globalDb.users) globalDb.users = {};
   if (!globalDb.users[jid]) {
     globalDb.users[jid] = {
       xp: 0,
@@ -169,7 +170,7 @@ export function getProfileUser(db, remoteJid, jid) {
   }
   let globalUser = globalDb.users[jid];
 
-  // Objeto unificado para lectura y escritura directa
+  // Retorna un Proxy/Objeto unificado que lee economía del grupo y lo social global
   return {
     get coins() { return localEconomy.coins; },
     set coins(val) { localEconomy.coins = val; },

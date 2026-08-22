@@ -1,5 +1,4 @@
-import { getGroupUser } from "../../models/groupDb.js";
-import { GENRES } from "../../models/profileUtils.js";
+import { getProfileUser, GENRES } from "../../models/profileUtils.js";
 import { jidNormalizedUser } from "@whiskeysockets/baileys";
 
 export default {
@@ -24,7 +23,7 @@ export default {
       );
     }
 
-    const user = getGroupUser(db, remoteJid, normalizedSender, {});
+    const user = getProfileUser(db, remoteJid, normalizedSender);
     user.genre = choice;
     if (typeof saveDB === "function") saveDB(db);
 
