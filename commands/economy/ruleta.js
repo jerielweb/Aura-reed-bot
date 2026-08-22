@@ -1,5 +1,6 @@
-import { getGroupUser } from "../../models/groupDb.js";
+import { jidNormalizedUser } from "@whiskeysockets/baileys";
 import formatter from "../../controllers/functions/formatNumbers.js";
+import { getGroupUser } from "../../models/groupDb.js";
 
 export default {
   name: ["ruleta", "roulette", "rt"],
@@ -7,7 +8,11 @@ export default {
   description: "Juega a la ruleta.",
   execute: async (socket, message, args, { db, saveDB, jidRemitente }) => {
     const remoteJid = message.key.remoteJid;
-    const user = getGroupUser(db, remoteJid, jidRemitente, {
+    const participantJid = jidNormalizedUser(
+      message.key.participant || message.key.remoteJid || jidRemitente
+    );
+
+    const user = getGroupUser(db, remoteJid, participantJid, {
       coins: 0,
       bank: 0,
     });
@@ -92,7 +97,7 @@ export default {
 
     await socket.sendMessage(
       remoteJid,
-      { text, mentions: [jidRemitente] },
+      { text, mentions: [participantJid] },
       { quoted: message },
     );
   },

@@ -8,11 +8,11 @@ import { LRUCache } from "lru-cache";
 
 const DATABASE_DIR = path.resolve("./database");
 const subBotInstances = new Map();
+
 export const groupMetadataCache = new LRUCache({
-  ttl: 30 * 60 * 1000, // 30 minutes
+  ttl: 30 * 60 * 1000,
   max: 500,
 });
-const METADATA_TTL = 5 * 60 * 1000; // 5 minutes
 
 export async function getSubBotDB(senderId) {
   if (subBotInstances.has(senderId)) {
@@ -30,241 +30,56 @@ export async function getSubBotDB(senderId) {
             key TEXT PRIMARY KEY,
             value TEXT
         );
-        CREATE TABLE IF NOT EXISTS users (
-            jid TEXT PRIMARY KEY,
-            data TEXT
-        );
         CREATE TABLE IF NOT EXISTS groups (
             jid TEXT PRIMARY KEY,
             data TEXT
         );
     `);
 
-  // Create node-cache instances with TTL of 10 minutes
   const groupsCache = new NodeCache({ stdTTL: 600, useClones: false });
-  const usersCache = new NodeCache({ stdTTL: 600, useClones: false });
 
-  // Cache expired hooks to write to SQLite
   groupsCache.on("expired", (key, value) => {
     try {
-      conn
-        .prepare(
-          "INSERT INTO groups(jid, data) VALUES(?, ?) ON CONFLICT(jid) DO UPDATE SET data=excluded.data",
-        )
-        .run(key, JSON.stringify(value));
-      console.log(
-        chalk.gray(
-          `[SubBot DB ${senderId}] Grupo ${key} guardado en SQLite por expiración de caché`,
-        ),
-      );
+      conn.prepare(
+        "INSERT INTO groups(jid, data) VALUES(?, ?) ON CONFLICT(jid) DO UPDATE SET data=excluded.data"
+      ).run(key, JSON.stringify(value));
     } catch (err) {
-      console.error(
-        chalk.red(
-          `[SubBot DB ${senderId}] Error al guardar grupo expirado ${key}:`,
-        ),
-        err.message,
-      );
+      console.error(chalk.red(`[SubBot DB ${senderId}] Error al guardar grupo expirado ${key}:`), err.message);
     }
   });
 
-  usersCache.on("expired", (key, value) => {
-    try {
-      conn
-        .prepare(
-          "INSERT INTO users(jid, data) VALUES(?, ?) ON CONFLICT(jid) DO UPDATE SET data=excluded.data",
-        )
-        .run(key, JSON.stringify(value));
-      console.log(
-        chalk.gray(
-          `[SubBot DB ${senderId}] Usuario ${key} guardado en SQLite por expiración de caché`,
-        ),
-      );
-    } catch (err) {
-      console.error(
-        chalk.red(
-          `[SubBot DB ${senderId}] Error al guardar usuario expirado ${key}:`,
-        ),
-        err.message,
-      );
+  const groupsProxy = new Proxy({}, {
+    get(target, key) {
+      if (typeof key !== "string" || key === "toJSON" || key === "then") return target[key];
+      let group = groupsCache.get(key);
+      if (!group) {
+        try {
+          const row = conn.prepare("SELECT data FROM groups WHERE jid = ?").get(key);
+          if (row) {
+            group = JSON.parse(row.data);
+            groupsCache.set(key, group);
+          }
+        } catch (err) {
+          console.error(chalk.red(`[SubBot DB ${senderId}] Error cargando grupo ${key}:`), err.message);
+        }
+      }
+      return group;
+    },
+    set(target, key, value) {
+      if (typeof key === "string") groupsCache.set(key, value);
+      return true;
+    },
+    deleteProperty(target, key) {
+      if (typeof key === "string") {
+        groupsCache.del(key);
+        try { conn.prepare("DELETE FROM groups WHERE jid = ?").run(key); } catch {}
+      }
+      return true;
     }
   });
 
-  // Create proxies to intercept JS reads and writes
-  const groupsProxy = new Proxy(
-    {},
-    {
-      get(target, key) {
-        if (typeof key !== "string" || key === "toJSON" || key === "then")
-          return target[key];
-
-        let group = groupsCache.get(key);
-        if (!group) {
-          try {
-            const row = conn
-              .prepare("SELECT data FROM groups WHERE jid = ?")
-              .get(key);
-            if (row) {
-              group = JSON.parse(row.data);
-              groupsCache.set(key, group);
-            }
-          } catch (err) {
-            console.error(
-              chalk.red(
-                `[SubBot DB ${senderId}] Error cargando grupo ${key} de SQLite:`,
-              ),
-              err.message,
-            );
-          }
-        }
-        return group;
-      },
-      set(target, key, value) {
-        if (typeof key === "string") {
-          groupsCache.set(key, value);
-        }
-        return true;
-      },
-      deleteProperty(target, key) {
-        if (typeof key === "string") {
-          groupsCache.del(key);
-          try {
-            conn.prepare("DELETE FROM groups WHERE jid = ?").run(key);
-          } catch (err) {
-            console.error(
-              chalk.red(
-                `[SubBot DB ${senderId}] Error eliminando grupo ${key} de SQLite:`,
-              ),
-              err.message,
-            );
-          }
-        }
-        return true;
-      },
-      has(target, key) {
-        if (typeof key !== "string") return false;
-        if (groupsCache.has(key)) return true;
-        try {
-          const row = conn
-            .prepare("SELECT 1 FROM groups WHERE jid = ?")
-            .get(key);
-          return !!row;
-        } catch {
-          return false;
-        }
-      },
-      ownKeys() {
-        try {
-          const rows = conn.prepare("SELECT jid FROM groups").all();
-          const keys = new Set(rows.map((r) => r.jid));
-          const cachedKeys = groupsCache.keys();
-          for (const k of cachedKeys) keys.add(k);
-          return Array.from(keys);
-        } catch {
-          return groupsCache.keys();
-        }
-      },
-      getOwnPropertyDescriptor() {
-        return {
-          enumerable: true,
-          configurable: true,
-        };
-      },
-    },
-  );
-
-  const usersProxy = new Proxy(
-    {},
-    {
-      get(target, key) {
-        if (typeof key !== "string" || key === "toJSON" || key === "then")
-          return target[key];
-
-        let user = usersCache.get(key);
-        if (!user) {
-          try {
-            const row = conn
-              .prepare("SELECT data FROM users WHERE jid = ?")
-              .get(key);
-            if (row) {
-              user = JSON.parse(row.data);
-              usersCache.set(key, user);
-            }
-          } catch (err) {
-            console.error(
-              chalk.red(
-                `[SubBot DB ${senderId}] Error cargando usuario ${key} de SQLite:`,
-              ),
-              err.message,
-            );
-          }
-        }
-        return user;
-      },
-      set(target, key, value) {
-        if (typeof key === "string") {
-          usersCache.set(key, value);
-        }
-        return true;
-      },
-      deleteProperty(target, key) {
-        if (typeof key === "string") {
-          usersCache.del(key);
-          try {
-            conn.prepare("DELETE FROM users WHERE jid = ?").run(key);
-          } catch (err) {
-            console.error(
-              chalk.red(
-                `[SubBot DB ${senderId}] Error eliminando usuario ${key} de SQLite:`,
-              ),
-              err.message,
-            );
-          }
-        }
-        return true;
-      },
-      has(target, key) {
-        if (typeof key !== "string") return false;
-        if (usersCache.has(key)) return true;
-        try {
-          const row = conn
-            .prepare("SELECT 1 FROM users WHERE jid = ?")
-            .get(key);
-          return !!row;
-        } catch {
-          return false;
-        }
-      },
-      ownKeys() {
-        try {
-          const rows = conn.prepare("SELECT jid FROM users").all();
-          const keys = new Set(rows.map((r) => r.jid));
-          const cachedKeys = usersCache.keys();
-          for (const k of cachedKeys) keys.add(k);
-          return Array.from(keys);
-        } catch {
-          return usersCache.keys();
-        }
-      },
-      getOwnPropertyDescriptor() {
-        return {
-          enumerable: true,
-          configurable: true,
-        };
-      },
-    },
-  );
-
-  // Ensure defaults inherit from the main database if available
   let mainDb = {};
-  try {
-    mainDb = getDBSync();
-  } catch (e) {
-    console.warn(
-      chalk.yellow(
-        `[SubBot DB ${senderId}] No se pudo obtener la DB principal, usando valores por defecto.`,
-      ),
-    );
-  }
+  try { mainDb = getDBSync(); } catch (e) {}
 
   const defaults = [
     ["prefix", mainDb.prefix || "."],
@@ -276,251 +91,42 @@ export async function getSubBotDB(senderId) {
   ];
 
   const stmtSelect = conn.prepare("SELECT key FROM config WHERE key = ?");
-  const stmtInsert = conn.prepare(
-    "INSERT INTO config(key, value) VALUES(?, ?)",
-  );
+  const stmtInsert = conn.prepare("INSERT INTO config(key, value) VALUES(?, ?)");
 
   for (const [key, defaultValue] of defaults) {
-    const row = stmtSelect.get(key);
-    if (!row) {
+    if (!stmtSelect.get(key)) {
       stmtInsert.run(key, JSON.stringify(defaultValue));
     }
   }
 
-  // Load config
   const configRows = conn.prepare("SELECT key, value FROM config").all();
   const dbData = {};
   for (const row of configRows) {
-    try {
-      dbData[row.key] = JSON.parse(row.value);
-    } catch {
-      dbData[row.key] = row.value;
-    }
+    try { dbData[row.key] = JSON.parse(row.value); } catch { dbData[row.key] = row.value; }
   }
 
-  const dbCache = {
+  const db = {
     prefix: dbData.prefix ?? ".",
     owners: dbData.owners || [`${senderId}@s.whatsapp.net`],
     ownerRoles: dbData.ownerRoles || {},
     maxSubBots: dbData.maxSubBots ?? 0,
     botName: dbData.botName ?? "Aura Reed",
     customBanner: dbData.customBanner ?? null,
-  };
-
-  const db = {
-    ...dbCache,
     groups: groupsProxy,
-    users: usersProxy,
+    get users() {
+      // Los perfiles globales (XP, nivel, casados) vienen de la BD principal
+      return getDBSync().users;
+    }
   };
 
   subBotInstances.set(senderId, {
     conn,
     db,
-    dbCache,
     groupsCache,
-    usersCache,
     groupsProxy,
-    usersProxy,
     saveTimer: null,
     saving: false,
   });
 
-  console.log(
-    chalk.gray(`[SubBot DB ${senderId}] SQLite3 & Node-Cache Inicializado`),
-  );
   return db;
-}
-
-export async function saveSubBotDB(senderId, data, options = {}) {
-  const inst = subBotInstances.get(senderId);
-  if (!inst) return;
-
-  if (data && typeof data === "object") {
-    const { groups, users, ...dbData } = data;
-
-    if (Object.keys(dbData).length > 0) {
-      inst.dbCache = { ...inst.dbCache, ...dbData };
-      Object.assign(inst.db, dbData);
-    }
-
-    if (groups && typeof groups === "object" && groups !== inst.groupsProxy) {
-      for (const [key, value] of Object.entries(groups)) {
-        inst.groupsCache.set(key, value);
-      }
-    }
-
-    if (users && typeof users === "object" && users !== inst.usersProxy) {
-      for (const [key, value] of Object.entries(users)) {
-        inst.usersCache.set(key, value);
-      }
-    }
-  }
-
-  if (inst.saveTimer) clearTimeout(inst.saveTimer);
-
-  const writeDbFiles = () => {
-    try {
-      const prefix = inst.dbCache.prefix ?? ".";
-      const owners = inst.dbCache.owners || [`${senderId}@s.whatsapp.net`];
-      const maxSubBots = inst.dbCache.maxSubBots ?? 0;
-      const ownerRoles = inst.dbCache.ownerRoles || {};
-      const botName = inst.dbCache.botName ?? "Aura Reed";
-      const customBanner = inst.dbCache.customBanner ?? null;
-
-      const cachedGroups = inst.groupsCache.keys();
-      const cachedUsers = inst.usersCache.keys();
-
-      inst.conn.transaction(() => {
-        const configUpdates = [
-          ["prefix", prefix],
-          ["owners", owners],
-          ["maxSubBots", maxSubBots],
-          ["ownerRoles", ownerRoles],
-          ["botName", botName],
-          ["customBanner", customBanner],
-        ];
-        const stmtConfig = inst.conn.prepare(
-          "INSERT INTO config(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
-        );
-        for (const [k, v] of configUpdates) {
-          stmtConfig.run(k, JSON.stringify(v));
-        }
-
-        const stmtGroup = inst.conn.prepare(
-          "INSERT INTO groups(jid, data) VALUES(?, ?) ON CONFLICT(jid) DO UPDATE SET data=excluded.data",
-        );
-        for (const jid of cachedGroups) {
-          const gd = inst.groupsCache.get(jid);
-          if (gd) stmtGroup.run(jid, JSON.stringify(gd));
-        }
-
-        const stmtUser = inst.conn.prepare(
-          "INSERT INTO users(jid, data) VALUES(?, ?) ON CONFLICT(jid) DO UPDATE SET data=excluded.data",
-        );
-        for (const jid of cachedUsers) {
-          const ud = inst.usersCache.get(jid);
-          if (ud) stmtUser.run(jid, JSON.stringify(ud));
-        }
-      })();
-
-      console.log(chalk.gray(`[SubBot DB ${senderId}] SQLite3 Guardado`));
-    } catch (err) {
-      console.error(
-        chalk.red(`[SubBot DB ${senderId}] Error en writeDbFiles:`),
-        err.message,
-      );
-    }
-  };
-
-  if (options.immediate) {
-    if (inst.saving) return;
-    inst.saving = true;
-    try {
-      writeDbFiles();
-    } finally {
-      inst.saving = false;
-    }
-    return;
-  }
-
-  inst.saveTimer = setTimeout(() => {
-    inst.saveTimer = null;
-    if (inst.saving) return;
-    inst.saving = true;
-    try {
-      writeDbFiles();
-    } finally {
-      inst.saving = false;
-    }
-  }, 800);
-}
-
-export async function flushAllSubBotDBs() {
-  console.log(
-    chalk.gray(
-      "[SubBot DB] Guardando todas las bases de datos de sub-bots activas...",
-    ),
-  );
-  for (const [senderId, inst] of subBotInstances.entries()) {
-    try {
-      if (inst.saveTimer) {
-        clearTimeout(inst.saveTimer);
-        inst.saveTimer = null;
-      }
-
-      const prefix = inst.dbCache.prefix ?? ".";
-      const owners = inst.dbCache.owners || [`${senderId}@s.whatsapp.net`];
-      const maxSubBots = inst.dbCache.maxSubBots ?? 0;
-      const ownerRoles = inst.dbCache.ownerRoles || {};
-      const botName = inst.dbCache.botName ?? "Aura Reed";
-      const customBanner = inst.dbCache.customBanner ?? null;
-
-      const cachedGroups = inst.groupsCache.keys();
-      const cachedUsers = inst.usersCache.keys();
-
-      inst.conn.transaction(() => {
-        const configUpdates = [
-          ["prefix", prefix],
-          ["owners", owners],
-          ["maxSubBots", maxSubBots],
-          ["ownerRoles", ownerRoles],
-          ["botName", botName],
-          ["customBanner", customBanner],
-        ];
-        const stmtConfig = inst.conn.prepare(
-          "INSERT INTO config(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
-        );
-        for (const [k, v] of configUpdates) {
-          stmtConfig.run(k, JSON.stringify(v));
-        }
-
-        const stmtGroup = inst.conn.prepare(
-          "INSERT INTO groups(jid, data) VALUES(?, ?) ON CONFLICT(jid) DO UPDATE SET data=excluded.data",
-        );
-        for (const jid of cachedGroups) {
-          const gd = inst.groupsCache.get(jid);
-          if (gd) stmtGroup.run(jid, JSON.stringify(gd));
-        }
-
-        const stmtUser = inst.conn.prepare(
-          "INSERT INTO users(jid, data) VALUES(?, ?) ON CONFLICT(jid) DO UPDATE SET data=excluded.data",
-        );
-        for (const jid of cachedUsers) {
-          const ud = inst.usersCache.get(jid);
-          if (ud) stmtUser.run(jid, JSON.stringify(ud));
-        }
-      })();
-
-      inst.conn.close();
-      console.log(
-        chalk.gray(`[SubBot DB ${senderId}] Flushed y cerrado correctamente.`),
-      );
-    } catch (err) {
-      console.error(
-        chalk.red(`[SubBot DB ${senderId}] Error en flush:`),
-        err.message,
-      );
-    }
-  }
-  subBotInstances.clear();
-}
-export async function wrapGroupMetadataCache(sock) {
-  sock.getMetadata = async (jid) => {
-    const meta = groupMetadataCache.get(jid);
-    if (meta) return meta;
-    const fetch = await sock.groupMetadata(jid).catch(() => null);
-    if (fetch) {
-      groupMetadataCache.set(jid, fetch);
-      return fetch;
-    }
-    return null;
-  };
-  sock.updateMetadata = async (jid) => {
-    const fetch = await sock.groupMetadata(jid).catch(() => null);
-    if (fetch) {
-      groupMetadataCache.set(jid, fetch);
-      return fetch;
-    }
-    return null;
-  };
 }

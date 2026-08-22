@@ -1,6 +1,8 @@
+import { jidNormalizedUser } from "@whiskeysockets/baileys";
 import formatNumber from "../../controllers/functions/formatNumbers.js";
 import { economyTexts } from "../../models/economyTexts.js";
 import { getGroupUser } from "../../models/groupDb.js";
+import { getDBSync } from "../../models/db.js";
 
 export default {
   name: ["mine", "minar", "chambear"],
@@ -9,17 +11,30 @@ export default {
     "Mina en las cuevas para conseguir XP, monedas y tal vez algo legendario.",
   execute: async (socket, message, args, { db, saveDB, jidRemitente }) => {
     const remoteJid = message.key.remoteJid;
-    const user = getGroupUser(db, remoteJid, jidRemitente, {
+    const participantJid = jidNormalizedUser(
+      message.key.participant || message.key.remoteJid || jidRemitente
+    );
+
+    // 1. Obtener datos locales de economía del grupo
+    const userEconomy = getGroupUser(db, remoteJid, participantJid, {
       coins: 0,
       bank: 0,
       lastMine: 0,
-      xp: 0,
     });
+
+    // 2. Obtener datos globales del perfil (XP, nivel)
+    const globalDb = getDBSync();
+    if (!globalDb.users) globalDb.users = {};
+    if (!globalDb.users[participantJid]) {
+      globalDb.users[participantJid] = { xp: 0, level: 1 };
+    }
+    const userGlobal = globalDb.users[participantJid];
+
     const now = Date.now();
     const cooldown = 30 * 60 * 1000; // 30 minutos
 
-    if (user.lastMine && now - user.lastMine < cooldown) {
-      const timeLeft = cooldown - (now - user.lastMine);
+    if (userEconomy.lastMine && now - userEconomy.lastMine < cooldown) {
+      const timeLeft = cooldown - (now - userEconomy.lastMine);
       const minutes = Math.floor(timeLeft / (1000 * 60));
       const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
 
@@ -73,15 +88,16 @@ export default {
         Math.floor(Math.random() * (50000 - 20000 + 1)) + 20000;
     }
 
-    // Guardar tiempo actual en milisegundos para bloquear el comando por 30m
-    user.lastMine = now;
+    // 3. Guardar en Base de Datos (Economía local por grupo y XP global)
+    userEconomy.lastMine = now;
 
-    // Actualizar XP y monedas
-    user.xp = (user.xp || 0) + xpGanado;
+    // XP y Nivel se actualizan en el perfil global
+    userGlobal.xp = (userGlobal.xp || 0) + xpGanado;
+    userGlobal.level = Math.floor(userGlobal.xp / 150) + 1;
 
     const totalAAsignar = monedasGanadas + monedasLegendarias;
     if (totalAAsignar > 0) {
-      user.coins = (user.coins || 0) + totalAAsignar;
+      userEconomy.coins = (userEconomy.coins || 0) + totalAAsignar;
     }
 
     saveDB(db);
@@ -95,7 +111,7 @@ export default {
     menuTexto += textoResultado;
 
     if (recompensaLegendaria) {
-      menuTexto += `\n╰━━━━ ⭐ ¡𝐋𝐄𝐆𝐄𝐍𝐃𝐀𝐑block𝐈𝐎! ⭐ ━━⬣\n`;
+      menuTexto += `\n╰━━━━ ⭐ ¡𝐋𝐄𝐆𝐄𝐍𝐃𝐀𝐑𝐈𝐎! ⭐ ━━⬣\n`;
       menuTexto += `┃ 🎁 ¡SUERTE SUPREMA!\n`;
       menuTexto += `┃ 🔍 Encontraste un objeto único:\n`;
       menuTexto += `┃ > *${recompensaLegendaria}*\n`;

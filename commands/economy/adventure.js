@@ -1,6 +1,7 @@
-import formatNumber from "../../controllers/functions/formatNumbers.js";
+import Import formatNumber from "../../controllers/functions/formatNumbers.js";
 import { economyTexts } from "../../models/economyTexts.js";
 import { getGroupUser } from "../../models/groupDb.js";
+import { getDBSync } from "../../models/db.js";
 
 export default {
   name: ["adventure", "aventura", "explorar"],
@@ -9,22 +10,33 @@ export default {
     "Embárcate en una misión RPG para conseguir XP, monedas y botín legendario.",
   execute: async (socket, message, args, { db, saveDB, jidRemitente }) => {
     const remoteJid = message.key.remoteJid;
-    const user = getGroupUser(
+    const participantJid = message.key.participant || message.key.remoteJid;
+
+    // 1. Obtener datos de economía locales del grupo
+    const userEconomy = getGroupUser(
       db,
       remoteJid,
-      message.key.participant || message.key.remoteJid,
-      { coins: 0, bank: 0, xp: 0, lastAdventure: 0 },
+      participantJid,
+      { coins: 0, bank: 0, lastAdventure: 0 },
     );
+
+    // 2. Obtener datos globales del perfil (XP, nivel)
+    const globalDb = getDBSync();
+    if (!globalDb.users) globalDb.users = {};
+    if (!globalDb.users[participantJid]) {
+      globalDb.users[participantJid] = { xp: 0, level: 1 };
+    }
+    const userGlobal = globalDb.users[participantJid];
 
     // Cooldown de 2 horas (2 * 60 * 60 * 1000)
     const tiempoCooldown = 2 * 60 * 60 * 1000;
 
-    // 1. Verificar Cooldown (lastAdventure)
+    // 3. Verificar Cooldown (lastAdventure)
     if (
-      user.lastAdventure &&
-      Date.now() - user.lastAdventure < tiempoCooldown
+      userEconomy.lastAdventure &&
+      Date.now() - userEconomy.lastAdventure < tiempoCooldown
     ) {
-      const timeLeft = tiempoCooldown - (Date.now() - user.lastAdventure);
+      const timeLeft = tiempoCooldown - (Date.now() - userEconomy.lastAdventure);
       const horas = Math.floor(timeLeft / (60 * 60 * 1000));
       const minutos = Math.floor((timeLeft % (60 * 60 * 1000)) / (60 * 1000));
       const segundos = Math.floor((timeLeft % (60 * 1000)) / 1000);
@@ -43,7 +55,7 @@ export default {
       );
     }
 
-    // 2. Probabilidades y Rangos (Mismo formato que el minado)
+    // 4. Probabilidades y Rangos
     const ganoDinero = Math.random() > 0.3; // 70% de éxito
     const xpGanado = Math.floor(Math.random() * (80 - 40 + 1)) + 40; // Otorga entre 40 y 80 de XP
 
@@ -53,17 +65,15 @@ export default {
     let textoResultado = "";
 
     if (ganoDinero) {
-      // Rango de monedas de aventura: entre 5,000 y 10,000 monedas
       monedasGanadas = Math.floor(Math.random() * (20000 - 10000 + 1)) + 10000;
       const listaExitos = economyTexts.adventure.success;
       const textoAzar =
-        listaExitos[Math.floor(Math.random() * listaExitos.length)];
+        listaExits[Math.floor(Math.random() * listaExits.length)];
       textoResultado = `┃ ⚔️ ${textoAzar} +${formatNumber(monedasGanadas)} Monedas 💰\n`;
     } else {
       const listaFallos = economyTexts.adventure.fail;
       const textoAzar =
         listaFallos[Math.floor(Math.random() * listaFallos.length)];
-      // No muestra "+0" igual que en mine
       textoResultado = `┃ 🛡️ ${textoAzar}\n`;
     }
 
@@ -77,21 +87,26 @@ export default {
       ];
       recompensaLegendaria =
         itemsLegendarios[Math.floor(Math.random() * itemsLegendarios.length)];
-      // Rango legendario extra entre 20,000 y 50,000 monedas
       monedasLegendarias =
         Math.floor(Math.random() * (100000 - 40000 + 1)) + 40000;
     }
 
-    // 3. Guardar en Base de Datos
-    user.lastAdventure = Date.now();
-    user.xp = (user.xp || 0) + xpGanado;
+    // 5. Guardar en Base de Datos (Economía local por grupo y XP global)
+    userEconomy.lastAdventure = Date.now();
+    
+    // XP y Nivel se actualizan en el perfil global
+    userGlobal.xp = (userGlobal.xp || 0) + xpGanado;
+    userGlobal.level = Math.floor(userGlobal.xp / 150) + 1;
+
+    // Monedas se guardan en la economía local del grupo
     const totalAAsignar = monedasGanadas + monedasLegendarias;
     if (totalAAsignar > 0) {
-      user.coins = (user.coins || 0) + totalAAsignar;
+      userEconomy.coins = (userEconomy.coins || 0) + totalAAsignar;
     }
+    
     saveDB(db);
 
-    // 4. Diseño Visual RPG con estructura +=
+    // 6. Diseño Visual RPG con estructura +=
     let menuTexto = `╭〔 🗺️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
     menuTexto += `┃ 𝐌𝐈𝐒𝐈𝐎́𝐍 𝐃𝐄 𝐀𝐕𝐄𝐍𝐓𝐔𝐑𝐀\n`;
     menuTexto += `╰━━━━━━━━━━━━⬣\n\n`;

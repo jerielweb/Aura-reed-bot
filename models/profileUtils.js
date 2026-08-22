@@ -1,7 +1,7 @@
 import { resolveLidToRealJid } from "./utils.js";
-import { getGroupUser } from "./groupDb.js";
+import { getDBSync } from "./db.js";
 import formatter from "../controllers/functions/formatNumbers.js";
-import {fytBold} from "./TextStyle.js"
+import { fytBold } from "./TextStyle.js";
 
 export const GENRES = {
   hombre: "Hombre",
@@ -79,13 +79,14 @@ export function parseBirthday(input) {
   const mm = String(month).padStart(2, "0");
   return year ? `${dd}/${mm}/${year}` : `${dd}/${mm}`;
 }
+
 export function calculateAge(birthdayStr) {
   if (!birthdayStr) return null;
   const parts = birthdayStr.split("/");
-  if (parts.length < 3) return null; // Si no tiene año, no se puede calcular la edad exactas
+  if (parts.length < 3) return null;
 
   const day = parseInt(parts[0], 10);
-  const month = parseInt(parts[1], 10) - 1; // Los meses en JS van de 0 a 11
+  const month = parseInt(parts[1], 10) - 1;
   const year = parseInt(parts[2], 10);
 
   const today = new Date();
@@ -98,7 +99,6 @@ export function calculateAge(birthdayStr) {
 
   return age >= 0 ? age : null;
 }
-
 
 export function formatProfileText(user, pushName, jid) {
   const coins = user.coins || 0;
@@ -140,11 +140,56 @@ export async function getProfilePictureUrl(socket, jid) {
   }
 }
 
+/**
+ * Obtiene de manera híbrida la economía independiente por grupo
+ * y el perfil social (XP, nivel, pareja, etc.) de forma global.
+ */
 export function getProfileUser(db, remoteJid, jid) {
-  return getGroupUser(db, remoteJid, jid, {
-    coins: 0,
-    bank: 0,
-    xp: 0,
-    level: 1,
-  });
+  // 1. Economía aislada por grupo (almacenada en botDb.groups)
+  if (!db.groups) db.groups = {};
+  if (!db.groups[remoteJid]) db.groups[remoteJid] = {};
+  if (!db.groups[remoteJid].users) db.groups[remoteJid].users = {};
+
+  let groupUsers = db.groups[remoteJid].users;
+  if (!groupUsers[jid]) {
+    groupUsers[jid] = { coins: 0, bank: 0 };
+  }
+  let localEconomy = groupUsers[jid];
+
+  // 2. Perfil social 100% global (XP, nivel, género, cumpleaños, matrimonio)
+  const globalDb = getDBSync();
+  if (!globalDb.users[jid]) {
+    globalDb.users[jid] = {
+      xp: 0,
+      level: 1,
+      genre: null,
+      birthday: null,
+      marriedTo: null,
+    };
+  }
+  let globalUser = globalDb.users[jid];
+
+  // Objeto unificado para lectura y escritura directa
+  return {
+    get coins() { return localEconomy.coins; },
+    set coins(val) { localEconomy.coins = val; },
+
+    get bank() { return localEconomy.bank; },
+    set bank(val) { localEconomy.bank = val; },
+
+    get xp() { return globalUser.xp; },
+    set xp(val) { globalUser.xp = val; },
+
+    get level() { return globalUser.level; },
+    set level(val) { globalUser.level = val; },
+
+    get genre() { return globalUser.genre; },
+    set genre(val) { globalUser.genre = val; },
+
+    get birthday() { return globalUser.birthday; },
+    set birthday(val) { globalUser.birthday = val; },
+
+    get marriedTo() { return globalUser.marriedTo; },
+    set marriedTo(val) { globalUser.marriedTo = val; }
+  };
 }

@@ -1,6 +1,8 @@
+import { jidNormalizedUser } from "@whiskeysockets/baileys";
 import formatNumber from "../../controllers/functions/formatNumbers.js";
 import { economyTexts } from "../../models/economyTexts.js";
 import { getGroupUser } from "../../models/groupDb.js";
+import { getDBSync } from "../../models/db.js";
 
 export default {
   name: ["hunt", "cazar", "caza"],
@@ -9,17 +11,30 @@ export default {
     "Entra en combate contra entidades y brawlers para obtener XP, monedas y drops legendarios.",
   execute: async (socket, message, args, { db, saveDB, jidRemitente }) => {
     const remoteJid = message.key.remoteJid;
-    const user = getGroupUser(db, remoteJid, jidRemitente, {
+    const participantJid = jidNormalizedUser(
+      message.key.participant || message.key.remoteJid || jidRemitente
+    );
+
+    // 1. Obtener datos locales de economía del grupo
+    const userEconomy = getGroupUser(db, remoteJid, participantJid, {
       coins: 0,
       bank: 0,
       lastHunt: 0,
-      xp: 0,
     });
+
+    // 2. Obtener datos globales del perfil (XP, nivel)
+    const globalDb = getDBSync();
+    if (!globalDb.users) globalDb.users = {};
+    if (!globalDb.users[participantJid]) {
+      globalDb.users[participantJid] = { xp: 0, level: 1 };
+    }
+    const userGlobal = globalDb.users[participantJid];
+
     const now = Date.now();
     const cooldown = 30 * 60 * 1000; // 30 minutos
 
-    if (user.lastHunt && now - user.lastHunt < cooldown) {
-      const timeLeft = cooldown - (now - user.lastHunt);
+    if (userEconomy.lastHunt && now - userEconomy.lastHunt < cooldown) {
+      const timeLeft = cooldown - (now - userEconomy.lastHunt);
       const minutes = Math.floor(timeLeft / (1000 * 60));
       const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
 
@@ -47,7 +62,6 @@ export default {
     let textoResultado = "";
 
     if (ganoDinero) {
-      // Rango normal: 5,000 a 10,000 monedas
       monedasGanadas = Math.floor(Math.random() * (10000 - 5000 + 1)) + 5000;
 
       const listaExitos = economyTexts.hunt.success;
@@ -71,21 +85,21 @@ export default {
       ];
       recompensaLegendaria =
         itemsLegendarios[Math.floor(Math.random() * itemsLegendarios.length)];
-      // Rango legendario extra: 20,000 a 50,000 monedas
       monedasLegendarias =
         Math.floor(Math.random() * (50000 - 20000 + 1)) + 20000;
     }
 
-    // Guardar tiempo actual de la batalla
-    user.lastHunt = now;
+    // 3. Guardar en Base de Datos (Economía local por grupo y XP global)
+    userEconomy.lastHunt = now;
 
-    // Actualizar XP
-    user.xp = (user.xp || 0) + xpGanado;
+    // XP y Nivel se actualizan en el perfil global
+    userGlobal.xp = (userGlobal.xp || 0) + xpGanado;
+    userGlobal.level = Math.floor(userGlobal.xp / 150) + 1;
 
-    // Sumar las monedas totales obtenidas
+    // Sumar las monedas totales obtenidas a la economía local
     const totalAAsignar = monedasGanadas + monedasLegendarias;
     if (totalAAsignar > 0) {
-      user.coins = (user.coins || 0) + totalAAsignar;
+      userEconomy.coins = (userEconomy.coins || 0) + totalAAsignar;
     }
 
     saveDB(db);

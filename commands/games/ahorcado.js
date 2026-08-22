@@ -1,11 +1,11 @@
+import { jidNormalizedUser } from "@whiskeysockets/baileys";
 import { fytBold } from "../../models/TextStyle.js";
 import { createCanvas } from "canvas";
 import { getGroupUser } from "../../models/groupDb.js";
 import { activeHangmanGames, gameKey } from "../../models/gameState.js";
 import { hangmanWords } from "../../controllers/gameConfig.js";
 
-
-const words = hangmanWords
+const words = hangmanWords;
 
 // ---------- Persistencia en DB ----------
 // La persistencia se guarda por remoteJid+botId dentro de db.hangmanGames,
@@ -142,7 +142,7 @@ async function sendGameState(socket, jid, game, statusMsg, quotedMsg, prefix, is
     text += `┃ > Usa *salir* para rendirte.\n\n`;
   }
 
-  text += `╰━━〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐀𝐂𝐓𝐈𝐕𝐄 〕━━⬣`;
+  text += `╰━━〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐀𝐂𝐓𝐈𝐕𝐄 〕━━\n`;
 
   const imageBuffer = await generateHangmanImage(game);
   const targetQuoted = game.lastMessage || quotedMsg;
@@ -221,10 +221,14 @@ export async function processHangmanGuess(socket, message, rawInput, prefix, db,
     activeHangmanGames.delete(key);
     removePersistedGame(db, saveDB, key);
 
+    const participantJid = jidNormalizedUser(
+      message.key.participant || message.key.remoteJid
+    );
+
     const user = getGroupUser(
       db,
       remoteJid,
-      message.key.participant || message.key.remoteJid,
+      participantJid,
       { xp: 0 }
     );
 

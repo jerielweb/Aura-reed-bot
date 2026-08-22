@@ -1,24 +1,29 @@
+import { jidNormalizedUser } from "@whiskeysockets/baileys";
 import formatNumber from "../../controllers/functions/formatNumbers.js";
-// Database path no longer needed here since we use the unified db parameter
 
 export default {
   name: ["steal", "robar"],
   category: "economy",
   description: "Intenta robarle AuraCoins a otro usuario de su cartera.",
-  execute: async (socket, message, args, { db, saveDB }) => {
+  execute: async (socket, message, args, { db, saveDB, jidRemitente }) => {
     const remoteJid = message.key.remoteJid;
-    const sender = message.key.participant || message.key.remoteJid;
+    const sender = jidNormalizedUser(
+      message.key.participant || message.key.remoteJid || jidRemitente
+    );
 
     // 1. Validar que se haya mencionado a alguien
-    const mencionado =
+    const mencionadoRaw =
       message.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
-    if (!mencionado) {
+    
+    if (!mencionadoRaw) {
       return await socket.sendMessage(
         remoteJid,
         { text: `⚠️ Debes mencionar a un usuario con *@tag* para robarle.` },
         { quoted: message },
       );
     }
+
+    const mencionado = jidNormalizedUser(mencionadoRaw);
 
     if (mencionado === sender) {
       return await socket.sendMessage(
@@ -120,7 +125,7 @@ export default {
         remoteJid,
         {
           text: menuTexto,
-          contextInfo: { mentionedJid: [mencionado] },
+          mentions: [mencionado],
         },
         { quoted: message },
       );

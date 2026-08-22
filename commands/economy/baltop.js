@@ -1,3 +1,4 @@
+import { jidNormalizedUser } from "@whiskeysockets/baileys";
 import { getGroupUsers } from "../../models/groupDb.js";
 import formatter from "../../controllers/functions/formatNumbers.js";
 
@@ -33,10 +34,11 @@ export default {
     }
 
     const usersArr = Object.entries(groupUsers).map(([jid, data]) => {
+      const normalizedJid = jidNormalizedUser(jid);
       const coins = data.coins || 0;
       const bank = data.bank || 0;
       const total = coins + bank;
-      return { jid, coins, bank, total };
+      return { jid: normalizedJid, coins, bank, total };
     });
 
     const allSorted = usersArr
@@ -65,19 +67,10 @@ export default {
 
     const mentions = [];
     top.forEach((u, i) => {
-      const contact =
-        socket.store?.contacts?.get?.(u.jid) ||
-        socket.store?.contacts?.[u.jid] ||
-        {};
-      const name =
-        contact?.notify ||
-        contact?.name ||
-        contact?.formattedName ||
-        u.jid.split("@")[0];
       const rank = startIndex + i + 1;
       const medal = rank <= 3 ? medals[rank - 1] : medals[3];
 
-      text += `┃ ${medal} @${name}\n`;
+      text += `┃ ${medal} @${u.jid.split("@")[0]}\n`;
       text += `┃ ₡ ${formatter(u.total)} AuraCoins\n\n`;
 
       if (i < top.length - 1) {

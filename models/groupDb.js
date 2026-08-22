@@ -1,3 +1,5 @@
+import { getDBSync } from "./db.js";
+
 export const DEFAULT_GROUP = {
   antilink: false,
   warnLimit: 3,
@@ -6,17 +8,16 @@ export const DEFAULT_GROUP = {
   onlyAdmin: false,
   antitoxic: false,
   welcome: false,
-  disabledCategories: [],
+  disabledCategories: ["nsfw"],
   botOn: true,
   prefix: null,
-  users: {},
+  users: {}, // Aquí vivirá únicamente la economía local por grupo
 };
 
+// Solo la economía se aísla por grupo
 const ECONOMY_FIELDS = new Set([
   "coins",
   "bank",
-  "xp",
-  "level",
   "lastWork",
   "lastDaily",
   "lastWeekly",
@@ -30,7 +31,7 @@ const ECONOMY_FIELDS = new Set([
   "lastAdventure",
 ]);
 
-/** Elimina campos de economía del almacén global de usuarios (solo queda data global como Subs). */
+/** Limpia campos de economía viejos del almacén global de usuarios si llegasen a existir. */
 export function stripEconomyFromUsers(users = {}) {
   const cleaned = {};
   for (const [jid, data] of Object.entries(users)) {
@@ -65,6 +66,7 @@ export function getGroupUsers(db, remoteJid) {
   return ensureGroup(db, remoteJid).users;
 }
 
+// Obtiene o inicializa la economía local del usuario en este grupo específico
 export function getGroupUser(
   db,
   remoteJid,
@@ -76,7 +78,7 @@ export function getGroupUser(
   return users[jid];
 }
 
-/** Registra un mensaje del usuario en la actividad mensual del grupo (para topactivos / topinactivos). */
+/** Registra un mensaje del usuario en la actividad del grupo y otorga XP global. */
 export function trackGroupActivity(db, remoteJid, jid) {
   if (!remoteJid?.endsWith("@g.us") || !jid?.endsWith("@s.whatsapp.net"))
     return false;
@@ -94,7 +96,14 @@ export function trackGroupActivity(db, remoteJid, jid) {
   const monthly = group.activity[monthKey];
   monthly[jid] = (monthly[jid] || 0) + 1;
 
-  const user = getGroupUser(db, remoteJid, jid, { xp: 0, level: 1 });
+  // El XP y nivel se suman en la base de datos GLOBAL para que apliquen en todos lados
+  const globalDb = getDBSync();
+  if (!globalDb.users) globalDb.users = {};
+  if (!globalDb.users[jid]) {
+    globalDb.users[jid] = { xp: 0, level: 1 };
+  }
+  
+  const user = globalDb.users[jid];
   user.xp = (user.xp || 0) + 1;
   user.level = Math.floor(user.xp / 150) + 1;
 

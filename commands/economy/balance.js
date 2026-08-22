@@ -1,3 +1,4 @@
+import { jidNormalizedUser } from "@whiskeysockets/baileys";
 import { getGroupUser } from "../../models/groupDb.js";
 import formatter from "../../controllers/functions/formatNumbers.js";
 
@@ -15,9 +16,10 @@ export default {
       message.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
 
     // El usuario objetivo será el mencionado, el citado, o en su defecto, quien ejecuta el comando
-    const targetUser = mencionado || citado || jidRemitente;
+    const rawTarget = mencionado || citado || jidRemitente;
+    const targetUser = jidNormalizedUser(rawTarget);
 
-    // Obtener los datos del usuario objetivo desde la base de datos
+    // Obtener los datos del usuario objetivo desde la base de datos local del grupo
     const user = getGroupUser(db, remoteJid, targetUser, {
       coins: 0,
       bank: 0,

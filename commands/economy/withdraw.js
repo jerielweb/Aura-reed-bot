@@ -1,3 +1,4 @@
+import { jidNormalizedUser } from "@whiskeysockets/baileys";
 import { getGroupUser } from "../../models/groupDb.js";
 import formatter from "../../controllers/functions/formatNumbers.js";
 
@@ -7,7 +8,11 @@ export default {
   description: "Retira monedas de tu cuenta de banco.",
   execute: async (socket, message, args, { db, saveDB, jidRemitente }) => {
     const remoteJid = message.key.remoteJid;
-    const user = getGroupUser(db, remoteJid, jidRemitente, {
+    const participantJid = jidNormalizedUser(
+      message.key.participant || message.key.remoteJid || jidRemitente
+    );
+
+    const user = getGroupUser(db, remoteJid, participantJid, {
       coins: 0,
       bank: 0,
     });
@@ -41,7 +46,7 @@ export default {
       return await socket.sendMessage(
         remoteJid,
         {
-          text: `❌ No tienes suficientes fondos en el banco. Tienes *₡${user.bank || 0}*`,
+          text: `❌ No tienes suficientes fondos en el banco. Tienes *₡${formatter(user.bank || 0)}*`,
         },
         { quoted: message },
       );
@@ -54,15 +59,15 @@ export default {
     let text = `╭〔 🏦 𝐁𝐀𝐍𝐂𝐎 〕⬣\n`;
     text += `┃ 📤 𝐑𝐄𝐓𝐈𝐑𝐎 𝐄𝐗𝐈𝐓𝐎𝐒𝐎\n`;
     text += `╰━━━━━━━━━━━━⬣\n\n`;
-    text += `┃ 👋 *${message.pushName || "Usuario"}*\n`;
-    text += `┃ 📤 𝐑𝐞𝐭𝐢𝐫𝐚𝐬𝐭𝐞: ₡${amount.toLocaleString()}\n`;
+    text += `┃ 👋 Hola *@${participantJid.split("@")[0]}*\n`;
+    text += `┃ 📤 𝐑𝐞𝐭𝐢𝐫𝐚𝐬𝐭𝐞: ₡${formatter(amount)}\n`;
     text += `┃ 💵 𝐍𝐮𝐞𝐯𝐨 𝐒𝐚𝐥𝐝𝐨 𝐂𝐚𝐫𝐭𝐞𝐫𝐚: ₡${formatter(user.coins)}\n`;
     text += `┃ 🏦 𝐅𝐨𝐧𝐝𝐨𝐬 𝐫𝐞𝐬𝐭𝐚𝐧𝐭𝐞𝐬: ₡${formatter(user.bank)}\n\n`;
     text += `╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣`;
 
     await socket.sendMessage(
       remoteJid,
-      { text, mentions: [jidRemitente] },
+      { text, mentions: [participantJid] },
       { quoted: message },
     );
   },

@@ -1,3 +1,4 @@
+import { jidNormalizedUser } from "@whiskeysockets/baileys";
 import formatNumber from "../../controllers/functions/formatNumbers.js";
 import { getGroupUser } from "../../models/groupDb.js";
 
@@ -16,7 +17,11 @@ export default {
     { db, saveDB, jidRemitente, prefix },
   ) => {
     const remoteJid = message.key.remoteJid;
-    const user = getGroupUser(db, remoteJid, jidRemitente, {
+    const participantJid = jidNormalizedUser(
+      message.key.participant || message.key.remoteJid || jidRemitente
+    );
+
+    const user = getGroupUser(db, remoteJid, participantJid, {
       coins: 0,
       bank: 0,
       lastPpt: 0,
