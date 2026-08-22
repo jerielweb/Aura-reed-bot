@@ -4,6 +4,7 @@ import {
   xpToNextLevel,
   resolveTargetJid,
 } from "../../models/profileUtils.js";
+import { jidNormalizedUser } from "@whiskeysockets/baileys";
 
 export default {
   name: ["lvl", "level", "nivel"],
@@ -11,12 +12,13 @@ export default {
   description: "Muestra tu nivel y experiencia en el grupo.",
   execute: async (socket, message, args, { db, jidRemitente }) => {
     const remoteJid = message.key.remoteJid;
-    const targetJid = await resolveTargetJid(
+    let targetJid = await resolveTargetJid(
       message,
       socket,
       remoteJid,
       jidRemitente,
     );
+    targetJid = jidNormalizedUser(targetJid);
     const user = getProfileUser(db, remoteJid, targetJid);
 
     const xp = user.xp || 0;

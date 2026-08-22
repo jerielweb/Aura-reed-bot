@@ -1,5 +1,6 @@
 import { getGroupUser } from "../../models/groupDb.js";
 import { GENRES } from "../../models/profileUtils.js";
+import { jidNormalizedUser } from "@whiskeysockets/baileys";
 
 export default {
   name: ["setgenre", "género", "genero", "setgen", "sg"],
@@ -7,6 +8,7 @@ export default {
   description: "Define tu género en el perfil del grupo.",
   execute: async (socket, message, args, { db, saveDB, jidRemitente }) => {
     const remoteJid = message.key.remoteJid;
+    const normalizedSender = jidNormalizedUser(jidRemitente);
     const choice = args[0]?.toLowerCase();
 
     if (!choice || !GENRES[choice]) {
@@ -22,15 +24,15 @@ export default {
       );
     }
 
-    const user = getGroupUser(db, remoteJid, jidRemitente, {});
+    const user = getGroupUser(db, remoteJid, normalizedSender, {});
     user.genre = choice;
-    saveDB(db);
+    if (typeof saveDB === "function") saveDB(db);
 
     await socket.sendMessage(
       remoteJid,
       {
         text: `╭〔 👤 𝐏𝐄𝐑𝐅𝐈𝐋 〕⬣\n┃ ✅ 𝐆𝐞́𝐧𝐞𝐫𝐨 𝐚𝐜𝐭𝐮𝐚𝐥𝐢𝐳𝐚𝐝𝐨\n╰━━━━━━━━━━━━⬣\n\n┃ > Ahora eres: *${GENRES[choice]}*\n\n╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣`,
-        mentions: [jidRemitente],
+        mentions: [normalizedSender],
       },
       { quoted: message },
     );

@@ -90,7 +90,7 @@ export default {
 
       if (user.marriedTo !== targetJid || partner.marriedTo !== jidRemitente) {
         clearMarriagePending(group);
-        saveDB(db);
+        if (typeof saveDB === "function") saveDB(db);
         let text = `╭〔 ❌ ${fytBold("ERROR")} 〕⬣\n\n`;
         text += `┃ > El matrimonio ya no es válido o no coincide.\n\n`;
         text += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;
@@ -104,7 +104,7 @@ export default {
       user.marriedTo = null;
       partner.marriedTo = null;
       clearMarriagePending(group);
-      saveDB(db);
+      if (typeof saveDB === "function") saveDB(db);
 
       let text = `╭〔 💔 ${fytBold("DIVORCIO")} 〕⬣\n`;
       text += `┃ ✅ ${fytBold("CONFIRMADO")}\n`;
@@ -169,7 +169,7 @@ export default {
     }
 
     setMarriagePending(group, jidRemitente, targetJid, "divorce");
-    saveDB(db);
+    if (typeof saveDB === "function") saveDB(db);
     const left = formatTimeLeft(group.marriagePending.expiresAt);
     let text = `╭〔 💔 ${fytBold("DIVORCIO")} 〕⬣\n`;
     text += `┃ ⏳ ${fytBold("ESPERANDO CONFIRMACIÓN")}\n`;

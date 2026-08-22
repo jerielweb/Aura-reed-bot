@@ -2,6 +2,7 @@ import { getGroupUsers } from "../../models/groupDb.js";
 import { calculateLevel } from "../../models/profileUtils.js";
 import formatter from "../../controllers/functions/formatNumbers.js";
 import { fytBold } from "../../models/TextStyle.js";
+import { jidNormalizedUser } from "@whiskeysockets/baileys";
 
 export default {
   name: ["eboard", "xprank", "levelboard"],
@@ -37,9 +38,10 @@ export default {
     }
 
     const usersArr = Object.entries(groupUsers).map(([jid, data]) => {
+      const normalizedJid = jidNormalizedUser(jid);
       const xp = data.xp || 0;
       const level = calculateLevel(xp);
-      return { jid, xp, level };
+      return { jid: normalizedJid, xp, level };
     });
 
     const allSorted = usersArr
@@ -72,8 +74,8 @@ export default {
       const rank = startIndex + i + 1;
       const medal = rank <= 3 ? medals[rank - 1] : medals[3];
 
-      text += `┃ ${medal} @${u.jid.split("@")[0]}\n`;
-      text += `┃ 📊 Nivel ${u.level} | XP: ${formatter(u.xp)}\n\n`;
+      text += `┃ ${medal} *#${rank}* ➔ @${u.jid.split("@")[0]}\n`;
+      text += `┃ 📊 Nivel *${u.level}* | XP: ${formatter(u.xp)}\n\n`;
 
       mentions.push(u.jid);
     });
