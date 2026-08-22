@@ -170,7 +170,7 @@ export function getProfileUser(db, remoteJid, jid) {
   }
   let globalUser = globalDb.users[jid];
 
-  // Retorna un Proxy/Objeto unificado que lee economía del grupo y lo social global
+  // Retorna un objeto plano directo en lugar de getters para que operadores como += lean y escriban la referencia exacta del grupo y global
   return {
     get coins() { return localEconomy.coins; },
     set coins(val) { localEconomy.coins = val; },
@@ -191,6 +191,10 @@ export function getProfileUser(db, remoteJid, jid) {
     set birthday(val) { globalUser.birthday = val; },
 
     get marriedTo() { return globalUser.marriedTo; },
-    set marriedTo(val) { globalUser.marriedTo = val; }
+    set marriedTo(val) { globalUser.marriedTo = val; },
+
+    // Referencias directas expuestas por si algún comando modifica las propiedades internas
+    _localEconomy: localEconomy,
+    _globalUser: globalUser
   };
 }
