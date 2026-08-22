@@ -87,7 +87,7 @@ export default {
       const size = data.datos?.tamaño || "??";
       const videoUrl = data.datos.url;
 
-      let caption = `╭〔 🎬 ${fytBold("YT DOWNLOADER")} 〕━⬣\n\n`;
+      let caption = `╭〔 🎬 ${fytBold("YOUTUBE PLAY")} 〕━⬣\n\n`;
       caption += `┃ ➥ ${fytBold(title)}\n\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ > ${fytBold("Canal")}› ${author}\n`;

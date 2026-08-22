@@ -74,7 +74,7 @@ export default {
       // Enlace directo corregido
       const audioUrl = res.download.url;
 
-      let caption = `╭〔 🎵 ${fytBold("YT DOWNLOADER")} 〕━⬣\n\n`;
+      let caption = `╭〔 🎵 ${fytBold("YOUTUBE PLAY")} 〕━⬣\n\n`;
       caption += `┃ ➥ ${fytBold(title)}\n\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ > ${fytBold("Canal")} › ${author}\n`;

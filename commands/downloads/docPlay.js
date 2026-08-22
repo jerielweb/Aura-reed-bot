@@ -108,7 +108,7 @@ export default {
       const thumbnail = json.data.thumbnail || videoData.thumbnail || videoData.image || `https://i.ytimg.com/vi/${extractVideoId(finalUrl) || "default"}/hqdefault.jpg`;
       const audioUrl = json.data.dl;
 
-      let caption = `╭〔 🎵 ${fytBold("YT DOWNLOADER")} 〕━⬣\n\n`;
+      let caption = `╭〔 🎵 ${fytBold("YOUTUBE PLAY")} 〕━⬣\n\n`;
       caption += `┃ ➥ ${fytBold(title)}\n\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ > ${fytBold("Canal")} › ${author}\n`;

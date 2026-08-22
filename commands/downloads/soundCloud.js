@@ -127,7 +127,7 @@ export default {
       const audioUrl = streamRes.data.url;
       const thumbnail = track.artwork_url?.replace("large", "t500x500") || null;
 
-      let caption = `╭〔 ${fytBold("SC DOWNLOADER")} 〕━⬣\n\n`;
+      let caption = `╭〔 ${fytBold("SOUNDCLOUD PLAY")} 〕━⬣\n\n`;
       caption += `┃ ➥ ${fytBold(track.title)}\n\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ > ${fytBold("Artista")} › ${track.user?.username || "N/A"}\n`;

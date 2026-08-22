@@ -127,14 +127,14 @@ export default {
       const audioUrl = streamRes.data.url;
       const thumbnail = track.artwork_url?.replace("large", "t500x500") || null;
 
-      let caption = `╭〔 ${fytBold("SC DOWNLOADER")} 〕━⬣\n\n`;
+      let caption = `╭〔 ${fytBold("SOUNDCLOUD PLAY")} 〕━⬣\n\n`;
       caption += `┃ ➥ ${fytBold(track.title)}\n\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ > ${fytBold("Artista")} › ${track.user?.username || "N/A"}\n`;
       caption += `┃ > ${fytBold("Duración")} › ${FomatTime(track.duration)}\n`;
       caption += `┃ > ${fytBold("Vistas")} › ${FornatNumber(FornatNumber(track.playback_count)) || "0"}\n`;
       caption += `┃ > ${fytBold("Likes")} › ${FornatNumber(track.likes_count) || "No se"}\n`;
-      caption += `┃ > ${fytBold("Tipo")} › Audio MP3\n`
+      caption += `┃ > ${fytBold("Tipo")} › Documento MP3\n`
       caption += `┃ > ${fytBold("Url")} › ${track.permalink_url}\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ ⏳ Enviando audio...\n`;

@@ -55,7 +55,7 @@ export default {
       // Se usa la URL retornada por la API o el link limpio en caso de ser directo
       const trackUrl = song.url || (isUrl ? cleanUrl : null);
 
-      let caption = `╭〔 🎵 ${fytBold("SPOTIFY DOWNLOAD")} 〕⬣\n\n`;
+      let caption = `╭〔 🎵 ${fytBold("SPOTIFY PLAY")} 〕⬣\n\n`;
       caption += `┃ ➥ ${fytBold(`${song.title}`)}\n\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ > ${fytBold("Artista")} › ${song.artist}\n`;
