@@ -127,7 +127,6 @@ export function getDBSync() {
     }
   });
 
-  // Config defaults
   const defaults = [
     ["prefix", "."],
     ["owners", []],
@@ -175,4 +174,8 @@ export function saveMainDB() {
   } catch (err) {
     console.error(chalk.red("[Main DB] Error guardando cambios:"), err.message);
   }
+}
+
+export function flushDB() {
+  saveMainDB();
 }
