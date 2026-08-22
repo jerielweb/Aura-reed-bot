@@ -20,6 +20,8 @@ export default {
       normalizedSender,
     );
     if (targetJid) targetJid = jidNormalizedUser(targetJid);
+    
+    // Le pasamos correctamente el remoteJid para que obtenga la economía local de este grupo
     const user = getProfileUser(db, remoteJid, targetJid);
 
     let displayName = targetJid.split("@")[0];

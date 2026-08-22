@@ -1,4 +1,4 @@
-import { getGroupUsers } from "../../models/groupDb.js";
+import { getDBSync } from "../../models/db.js";
 import { calculateLevel } from "../../models/profileUtils.js";
 import formatter from "../../controllers/functions/formatNumbers.js";
 import { fytBold } from "../../models/TextStyle.js";
@@ -10,9 +10,10 @@ export default {
   description: "Muestra el ranking de usuarios por XP y nivel.",
   execute: async (socket, message, args, { db, remoteJid }) => {
     const targetJid = remoteJid || message.key.remoteJid;
-    const groupUsers = getGroupUsers(db, targetJid);
+    const globalDb = getDBSync();
+    const globalUsers = globalDb.users || {};
 
-    if (!groupUsers || Object.keys(groupUsers).length === 0) {
+    if (!globalUsers || Object.keys(globalUsers).length === 0) {
       return await socket.sendMessage(
         targetJid,
         {
@@ -37,7 +38,7 @@ export default {
       page = Math.max(parseInt(args[1], 10) || 1, 1);
     }
 
-    const usersArr = Object.entries(groupUsers).map(([jid, data]) => {
+    const usersArr = Object.entries(globalUsers).map(([jid, data]) => {
       const normalizedJid = jidNormalizedUser(jid);
       const xp = data.xp || 0;
       const level = calculateLevel(xp);
@@ -65,7 +66,7 @@ export default {
 
     const medals = ["🥇", "🥈", "🥉", "🎖️"];
     let text = `╭━━〔 ✨ ${fytBold("XP BOARD")} ✨ 〕━━⬣\n`;
-    text += `┃ 📊 Ranking de niveles y experiencia\n`;
+    text += `┃ 📊 Ranking global de niveles y experiencia\n`;
     text += `┃ 📄 Página: ${currentPage}/${totalPages}\n`;
     text += `╰━━━━━━━━━━━━━━━━⬣\n\n`;
 
