@@ -7,9 +7,7 @@ export default {
   description: "Muestra información sobre cómo funciona la economía del bot.",
   execute: async (socket, message, args, { db, jidRemitente, prefix }) => {
     const remoteJid = message.key.remoteJid;
-    const participantJid = jidNormalizedUser(
-      message.key.participant || message.key.remoteJid || jidRemitente
-    );
+    const participantJid = jidRemitente;
 
     const user = getGroupUser(db, remoteJid, participantJid, {});
 

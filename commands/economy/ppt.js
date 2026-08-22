@@ -17,9 +17,7 @@ export default {
     { db, saveDB, jidRemitente, prefix },
   ) => {
     const remoteJid = message.key.remoteJid;
-    const participantJid = jidNormalizedUser(
-      message.key.participant || message.key.remoteJid || jidRemitente
-    );
+    const participantJid = jidRemitente;
 
     const user = getGroupUser(db, remoteJid, participantJid, {
       coins: 0,

@@ -7,9 +7,7 @@ export default {
   description: "Intenta robarle AuraCoins a otro usuario de su cartera.",
   execute: async (socket, message, args, { db, saveDB, jidRemitente }) => {
     const remoteJid = message.key.remoteJid;
-    const sender = jidNormalizedUser(
-      message.key.participant || message.key.remoteJid || jidRemitente
-    );
+    const sender = jidRemitente;
 
     // 1. Validar que se haya mencionado a alguien
     const mencionadoRaw =

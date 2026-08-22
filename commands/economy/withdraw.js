@@ -8,9 +8,7 @@ export default {
   description: "Retira monedas de tu cuenta de banco.",
   execute: async (socket, message, args, { db, saveDB, jidRemitente }) => {
     const remoteJid = message.key.remoteJid;
-    const participantJid = jidNormalizedUser(
-      message.key.participant || message.key.remoteJid || jidRemitente
-    );
+    const participantJid = jidRemitente;
 
     const user = getGroupUser(db, remoteJid, participantJid, {
       coins: 0,

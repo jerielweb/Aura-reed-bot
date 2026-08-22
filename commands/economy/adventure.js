@@ -10,7 +10,7 @@ export default {
     "Embárcate en una misión RPG para conseguir XP, monedas y botín legendario.",
   execute: async (socket, message, args, { db, saveDB, jidRemitente }) => {
     const remoteJid = message.key.remoteJid;
-    const participantJid = message.key.participant || message.key.remoteJid;
+    const participantJid = jidRemitente;
 
     // 1. Obtener datos de economía locales del grupo
     const userEconomy = getGroupUser(
@@ -68,7 +68,7 @@ export default {
       monedasGanadas = Math.floor(Math.random() * (20000 - 10000 + 1)) + 10000;
       const listaExitos = economyTexts.adventure.success;
       const textoAzar =
-        listaExits[Math.floor(Math.random() * listaExits.length)];
+        listaExitos[Math.floor(Math.random() * listaExitos.length)];
       textoResultado = `┃ ⚔️ ${textoAzar} +${formatNumber(monedasGanadas)} Monedas 💰\n`;
     } else {
       const listaFallos = economyTexts.adventure.fail;

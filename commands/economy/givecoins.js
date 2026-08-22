@@ -9,9 +9,7 @@ export default {
   description: "Transfiere monedas a otro usuario.",
   execute: async (socket, message, args, { db, saveDB, jidRemitente }) => {
     const remoteJid = message.key.remoteJid;
-    const senderJid = jidNormalizedUser(
-      message.key.participant || message.key.remoteJid || jidRemitente
-    );
+    const senderJid = jidRemitente;
 
     const user = getGroupUser(db, remoteJid, senderJid, {
       coins: 0,

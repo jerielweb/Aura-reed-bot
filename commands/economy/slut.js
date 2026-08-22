@@ -10,9 +10,7 @@ export default {
   description: "Vende tu cuerpo por dinero (con riesgo).",
   execute: async (socket, message, args, { db, saveDB, jidRemitente }) => {
     const remoteJid = message.key.remoteJid;
-    const participantJid = jidNormalizedUser(
-      message.key.participant || message.key.remoteJid || jidRemitente
-    );
+    const participantJid = jidRemitente;
 
     // 1. Obtener datos locales de economía del grupo
     const userEconomy = getGroupUser(db, remoteJid, participantJid, {
