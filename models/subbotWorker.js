@@ -14,6 +14,10 @@ export const groupMetadataCache = new LRUCache({
   max: 500,
 });
 
+export function wrapGroupMetadataCache(cache) {
+  return cache;
+}
+
 export async function getSubBotDB(senderId) {
   if (subBotInstances.has(senderId)) {
     return subBotInstances.get(senderId).db;
