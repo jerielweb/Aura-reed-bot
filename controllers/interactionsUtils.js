@@ -13,7 +13,7 @@ import chalk from "chalk";
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 
-const tempDir = path.resolve("./tmp/reactions");
+const tempDir = path.resolve("./tmp");
 ensureDirectory(tempDir);
 
 export const ALLOWED_REACTIONS = new Set([
