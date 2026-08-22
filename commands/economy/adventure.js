@@ -1,4 +1,4 @@
-import Import formatNumber from "../../controllers/functions/formatNumbers.js";
+import formatNumber from "../../controllers/functions/formatNumbers.js";
 import { economyTexts } from "../../models/economyTexts.js";
 import { getGroupUser } from "../../models/groupDb.js";
 import { getDBSync } from "../../models/db.js";
