@@ -179,3 +179,15 @@ export function saveMainDB() {
 export function flushDB() {
   saveMainDB();
 }
+
+export function getDB() {
+  return getDBSync();
+}
+
+export function saveDB() {
+  saveMainDB();
+}
+
+export function initDB() {
+  return getDBSync();
+}
