@@ -159,6 +159,11 @@ async function connectToWhatsApp() {
     printQRInTerminal: false,
     browser: ["Ubuntu", "Chrome", "20.0.04"],
     logger: pino({ level: "silent" }),
+    connectTimeoutMs: 60000,
+    defaultQueryTimeoutMs: 0,
+    keepAliveIntervalMs: 15000,
+    syncFullHistory: false,
+    markOnlineOnConnect: true,
     
     // 🛠️ MANEJADOR DE REINTENTOS PARA DESCRIPTAR "ESPERANDO MENSAJE"
     getMessage: async (key) => {
