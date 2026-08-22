@@ -118,7 +118,6 @@ export async function getSubBotDB(senderId) {
     customBanner: dbData.customBanner ?? null,
     groups: groupsProxy,
     get users() {
-      // Los perfiles globales (XP, nivel, casados) vienen de la BD principal
       return getDBSync().users;
     }
   };
@@ -151,5 +150,11 @@ export function saveSubBotDB(senderId) {
         console.error(chalk.red(`[SubBot DB ${senderId}] Error al guardar grupo ${key}:`), err.message);
       }
     }
+  }
+}
+
+export function flushAllSubBotDBs() {
+  for (const senderId of subBotInstances.keys()) {
+    saveSubBotDB(senderId);
   }
 }
