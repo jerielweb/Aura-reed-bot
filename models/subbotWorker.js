@@ -130,3 +130,22 @@ export async function getSubBotDB(senderId) {
 
   return db;
 }
+
+export function saveSubBotDB(senderId) {
+  const instance = subBotInstances.get(senderId);
+  if (!instance || !instance.groupsCache) return;
+
+  const keys = instance.groupsCache.keys();
+  for (const key of keys) {
+    const value = instance.groupsCache.get(key);
+    if (value !== undefined) {
+      try {
+        instance.conn.prepare(
+          "INSERT INTO groups(jid, data) VALUES(?, ?) ON CONFLICT(jid) DO UPDATE SET data=excluded.data"
+        ).run(key, JSON.stringify(value));
+      } catch (err) {
+        console.error(chalk.red(`[SubBot DB ${senderId}] Error al guardar grupo ${key}:`), err.message);
+      }
+    }
+  }
+}
