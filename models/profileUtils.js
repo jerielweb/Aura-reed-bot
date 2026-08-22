@@ -1,5 +1,6 @@
 import { resolveLidToRealJid } from "./utils.js";
 import { getDBSync } from "./db.js";
+import { getGroupUser } from "./groupDb.js";
 import formatter from "../controllers/functions/formatNumbers.js";
 import { fytBold } from "./TextStyle.js";
 
@@ -141,20 +142,12 @@ export async function getProfilePictureUrl(socket, jid) {
 }
 
 /**
- * Obtiene de manera híbrida la economía local por grupo
+ * Obtiene de manera híbrida la economía local por grupo (usando getGroupUser)
  * y unifica el perfil social de forma 100% global.
  */
 export function getProfileUser(db, remoteJid, jid) {
-  // 1. Economía aislada por grupo
-  if (!db.groups) db.groups = {};
-  if (!db.groups[remoteJid]) db.groups[remoteJid] = {};
-  if (!db.groups[remoteJid].users) db.groups[remoteJid].users = {};
-
-  let groupUsers = db.groups[remoteJid].users;
-  if (!groupUsers[jid]) {
-    groupUsers[jid] = { coins: 0, bank: 0 };
-  }
-  let localEconomy = groupUsers[jid];
+  // 1. Economía local sincronizada exactamente con los comandos de economía y wallet
+  let localEconomy = getGroupUser(db, remoteJid, jid, { coins: 0, bank: 0 });
 
   // 2. Perfil social global (obtenido desde getDBSync())
   const globalDb = getDBSync();
@@ -170,12 +163,12 @@ export function getProfileUser(db, remoteJid, jid) {
   }
   let globalUser = globalDb.users[jid];
 
-  // Retorna un objeto plano directo en lugar de getters para que operadores como += lean y escriban la referencia exacta del grupo y global
+  // 3. Retorna un objeto unificado que conecta la economía local y los datos sociales globales
   return {
-    get coins() { return localEconomy.coins; },
+    get coins() { return localEconomy.coins || 0; },
     set coins(val) { localEconomy.coins = val; },
 
-    get bank() { return localEconomy.bank; },
+    get bank() { return localEconomy.bank || 0; },
     set bank(val) { localEconomy.bank = val; },
 
     get xp() { return globalUser.xp; },
@@ -193,7 +186,6 @@ export function getProfileUser(db, remoteJid, jid) {
     get marriedTo() { return globalUser.marriedTo; },
     set marriedTo(val) { globalUser.marriedTo = val; },
 
-    // Referencias directas expuestas por si algún comando modifica las propiedades internas
     _localEconomy: localEconomy,
     _globalUser: globalUser
   };
