@@ -1,5 +1,6 @@
 ﻿import { resolveLidToRealJid } from "../../models/utils.js";
-import { ensureGroup, getGroupUser } from "../../models/groupDb.js";
+import { getProfileUser } from "../../models/profileUtils.js";
+import { ensureGroup } from "../../models/groupDb.js";
 import { fytBold } from "../../models/TextStyle.js";
 import {
   getMarriagePending,
@@ -40,7 +41,7 @@ export default {
 
     const normalizedSender = jidNormalizedUser(jidRemitente);
     const group = ensureGroup(db, remoteJid);
-    const user = getGroupUser(db, remoteJid, normalizedSender, {});
+    const user = getProfileUser(db, remoteJid, normalizedSender);
     let targetJid = await resolveTargetFromMessage(message, socket, remoteJid);
     if (targetJid) targetJid = jidNormalizedUser(targetJid);
     const pending = getMarriagePending(group);
@@ -78,7 +79,7 @@ export default {
       return await socket.sendMessage(remoteJid, { text }, { quoted: message });
     }
 
-    const partner = getGroupUser(db, remoteJid, targetJid, {});
+    const partner = getProfileUser(db, remoteJid, targetJid);
 
     if (pending && pending.to === normalizedSender && pending.from === targetJid) {
       if (pending.type !== "marry") {
@@ -98,7 +99,7 @@ export default {
         let text = `╭〔 ❌ ${fytBold("OPERACIÓN NO PERMITIDA")} 〕⬣\n`;
         text += `${fytBold("YA ESTAS CASAD@")}\n`;
         text += `╰━━━━━━━━━━━━⬣\n\n`;
-        text += `┃ > No puedes casarte: ya estás casado/a en este grupo.\n\n`;
+        text += `┃ > No puedes casarte: ya estás casado/a.\n\n`;
         text += `╰〔 ⚡ ${fytBold("SYSTEM ALERT")} 〕⬣`;
         return await socket.sendMessage(
           remoteJid,
@@ -115,7 +116,7 @@ export default {
       text += `┃ 💕 ¡${fytBold("CONFIRMADO")}!\n`;
       text += `╰━━━━━━━━━━━━⬣\n\n`;
       text += `┃ @${normalizedSender.split("@")[0]} 💕 @${targetJid.split("@")[0]}\n`;
-      text += `┃ Se han casado en este grupo.\n`;
+      text += `┃ Se han casado.\n`;
       text += `┃ Los declaro marido y mujer, ¡felicidades! 🎉\n\n`;
       text += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;
       return await socket.sendMessage(
@@ -179,7 +180,7 @@ export default {
 
     if (partner.marriedTo) {
       let text = `╭〔 ❌ ${fytBold("YA CASADO/A")} 〕⬣\n\n`;
-      text += `┃ > Esa persona ya está casada en este grupo.\n\n`;
+      text += `┃ > Esa persona ya está casada.\n\n`;
       text += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;
       return await socket.sendMessage(remoteJid, { text }, { quoted: message });
     }
