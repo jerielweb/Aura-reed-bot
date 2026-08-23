@@ -84,10 +84,10 @@ async function processVideoFile(inputP, outP) {
 
   const targetSizeBits = MAX_SIZE_MB * 8 * 1024 * 1024 * 0.85;
   const audioBitrate = 96;
-  const videoBitrate = Math.max(450, Math.floor(targetSizeBits / duration / 1000) - audioBitrate);
+  const videoBitrate = Math.max(330, Math.floor(targetSizeBits / duration / 1000) - audioBitrate);
 
   await execAsync(
-    `ffmpeg -i "${inputP}" -vf "scale='min(1920,iw)':-2" -threads 2 -c:v libx264 -preset ultrafast ` +
+    `ffmpeg -i "${inputP}" -vf "scale='min(1920,iw)':-2" -threads 2 -c:v libx264 -preset veryfast ` +
     `-b:v ${videoBitrate}k -maxrate ${Math.floor(videoBitrate * 1.5)}k -bufsize ${videoBitrate * 2}k ` +
     `-c:a aac -b:a ${audioBitrate}k -movflags +faststart "${outP}" -y`
   );
@@ -146,7 +146,7 @@ export default {
         try { fs.unlinkSync(inputP); } catch {}
         return await socket.sendMessage(
           remoteJid,
-          { text: `😦 !Mae Ponete serio! 💀🙏\n Este video pesa mas que una vieja de Kilos Mortales.\nMejor descargatelo de otra forma.` },
+          { text: `😦 !Mae Ponete serio! 💀🙏\n Este video pesa mas que una vieja de Kilos Mortales.\nMekor ` },
           { quoted: message }
         );
       }
