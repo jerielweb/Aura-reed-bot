@@ -6,7 +6,7 @@ async function testVideo() {
     console.log("Obteniendo video...");
     
     // La librería usa yt.ytmp4 para videos
-    Tiktok.Downloader(url, {
+    TikTok.Downloader(url, {
       version: "v1",
       showOriginalResponse: true
     }).then((result) => console.log(result))
