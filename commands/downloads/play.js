@@ -1,5 +1,6 @@
 import yts from "yt-search";
 import yt from "@vreden/youtube_scraper";
+import axios from "axios";
 import { fytBold } from "../../models/TextStyle.js";
 import formatter from "../../controllers/functions/formatNumbers.js";
 
@@ -68,10 +69,9 @@ export default {
       const author = videoData.author?.name || res.metadata?.author?.name || "Desconocido";
       const duration = videoData.duration?.timestamp || res.metadata?.timestamp || "??";
       const views = typeof videoData.views === "number" ? videoData.views : (res.metadata?.views || 0);
-      const ytURL = `https://youtu.be/${videoData.videoId}`
+      const ytURL = `https://youtu.be/${videoData.videoId || extractVideoId(finalUrl)}`
       const thumbnail = videoData.thumbnail || videoData.image || res.metadata?.thumbnail || `https://i.ytimg.com/vi/${extractVideoId(finalUrl)}/hqdefault.jpg`;
       
-      // Enlace directo corregido
       const audioUrl = res.download.url;
 
       let caption = `╭〔 🎵 ${fytBold("YOUTUBE PLAY")} 〕━⬣\n\n`;
@@ -83,7 +83,7 @@ export default {
       caption += `┃ > ${fytBold("Calidad")} › 320 kbps\n`;
       caption += `┃ > ${fytBold("Url")} › ${ytURL}\n`
       caption += `┣━━━━━━━━━━━━⬣\n`;
-      caption += `┃ > ⌛ Enviando audio...\n`;
+      caption += `┃ > ⌛ Descargando audio...\n`;
       caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
 
       await socket.sendMessage(
@@ -92,10 +92,16 @@ export default {
         { quoted: message },
       );
 
+      // Descargamos el archivo a un Buffer mediante axios asegurando el tipo arraybuffer
+      const audio = await axios.get(audioUrl, {
+        responseType: "arraybuffer",
+      });
+      const audioBuffer = Buffer.from(audio.data);
+
       await socket.sendMessage(
         remoteJid,
         {
-          audio: { url: audioUrl },
+          audio: audioBuffer,
           mimetype: "audio/mpeg",
           fileName: `${title.replace(/[<>:"/\\|?*]/g, "")}.mp3`,
         },
