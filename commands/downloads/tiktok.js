@@ -82,16 +82,17 @@ async function processVideoFile(inputP, outP) {
   );
   const duration = parseFloat(stdout.trim());
 
-  const targetSizeBits = MAX_SIZE_MB * 8 * 1024 * 1024 * 0.9;
-  const audioBitrate = 128;
-  const videoBitrate = Math.max(300, Math.floor(targetSizeBits / duration / 1000) - audioBitrate);
+  const targetSizeBits = MAX_SIZE_MB * 8 * 1024 * 1024 * 0.85;
+  const audioBitrate = 96; // Bajamos un pelo el audio para regalarle más espacio al video sin perder calidad
+  const videoBitrate = Math.max(400, Math.floor(targetSizeBits / duration / 1000) - audioBitrate);
 
   await execAsync(
-    `ffmpeg -i "${inputP}" -vf "scale='min(1920,iw)':-2" -threads 1 -c:v libx264 -preset ultrafast ` +
-    `-b:v ${videoBitrate}k -maxrate ${videoBitrate}k -bufsize ${videoBitrate * 2}k ` +
+    `ffmpeg -i "${inputP}" -vf "scale='min(1920,iw)':-2" -threads 2 -c:v libx264 -preset veryfast ` +
+    `-b:v ${videoBitrate}k -maxrate ${Math.floor(videoBitrate * 1.5)}k -bufsize ${videoBitrate * 2}k ` +
     `-c:a aac -b:a ${audioBitrate}k -movflags +faststart "${outP}" -y`
   );
 }
+
 
 const MAX_INPUT_MB = 500;
 
