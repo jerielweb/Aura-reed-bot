@@ -9,7 +9,7 @@ async function testVideo() {
     TikTok.Downloader(url, {
       version: "v1",
       showOriginalResponse: true
-    }).then((result) => console.log(result.video))
+    }).then((result) => console.log(result.resultNotParsed.content.video))
   } catch(error) {
     console.error(error)
   }
