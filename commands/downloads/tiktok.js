@@ -156,7 +156,7 @@ export default {
         });
         await socket.sendMessage(
           remoteJid,
-          { text: `¡Uy mae! Este video pesa mucho, voy a tener que hacerlo más liviano. Dame chance....` },
+          { text: `¡🫪 Uy mae! Este video pesa mucho 😬, voy a tener que hacerlo más liviano. Dame chance ....` },
           { quoted: message }
         );
       }
@@ -183,14 +183,14 @@ export default {
       caption += `┃ > ✅ Video listo\n`;
       caption += `╰〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕⬣`;
 
-      // Envio en Buffer
-      const videoBuffer = fs.readFileSync(finalPath);
+      // Se usa la ruta directa ({ url: finalPath }) para evitar saturar la memoria RAM con Buffers gigantes
       await socket.sendMessage(
         remoteJid,
         {
-          video: videoBuffer,
+          video: { url: finalPath },
           caption: caption,
           mimetype: "video/mp4",
+          fileName: "tiktok.mp4"
         },
         { quoted: message },
       );
@@ -203,10 +203,17 @@ export default {
       await socket.sendMessage(remoteJid, {
         react: { text: "❌", key: message.key },
       });
+
+      // Condición específica para cuando el servidor se queda sin espacio o disco lleno
+      let errorMsg = error.message || "Ocurrió un error inesperado.";
+      if (error.code === 'ENOSPC' || errorMsg.includes('no space left on device')) {
+        errorMsg = "El servidor se quedó sin espacio temporal en disco para procesar este video.";
+      }
+
       await socket.sendMessage(
         remoteJid,
         {
-          text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("ERROR DE DESCARGA")}\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message || "Ocurrió un error inesperado."}\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
+          text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("ERROR DE DESCARGA")}\n╰━━━━━━━━━━━━⬣\n\n┃ > ${errorMsg}\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
         },
         { quoted: message },
       );
