@@ -11,7 +11,7 @@ import { fytBold } from "../../models/TextStyle.js";
 
 const execAsync = promisify(exec);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const tmp = path.join(__dirname, "./tmp");
+const tmp = path.join(__dirname, "../../tmp");
 
 if (!fs.existsSync(tmp)) fs.mkdirSync(tmp, { recursive: true });
 
