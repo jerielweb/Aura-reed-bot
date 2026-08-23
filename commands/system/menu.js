@@ -36,7 +36,7 @@ export default {
     textoMenu += `┃ > ${fytBold("Prefix:")} [ ${prefix} ]\n`;
     textoMenu += `┃ > ${fytBold("Fecha:")} ${new Date().toLocaleDateString("es-CR")}\n`;
     textoMenu += `┃ > ${fytBold("Url:")} ${chanellink}\n`;
-    textoMenu += `╰━━━━━━━━━━━━━━━━━━⬣\n\n`;
+    textoMenu += `╰━━━━━━━━━━━━━━━━⬣\n\n`;
 
     const catsToShow = requestedCategory ? [requestedCategory] : categories;
 
