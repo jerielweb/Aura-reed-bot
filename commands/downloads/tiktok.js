@@ -12,6 +12,7 @@ function validateTikTokUrl(url) {
 async function DL_TIKTOK(url) {
   try {
     const URL_TIKTOK = `https://www.tikwm.com/api/?url=${encodeURIComponent(url)}`;
+    const dateCreate = (ts) => new Date(Number(ts) * 1000).toLocaleDateString('es-ES');
     const { data } = await axios.get(URL_TIKTOK, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -32,7 +33,8 @@ async function DL_TIKTOK(url) {
         views: formatter(r.play_count || 0),
         shares: formatter(r.share_count || 0),
         collect: formatter(r.collect_count || 0),
-        comments: formatter(r.comment_count || 0)
+        comments: formatter(r.comment_count || 0),
+        time: dateCreate(r.create_time || 0)
       };
     }
     throw new Error("No se encontraron los datos del video.");
@@ -81,16 +83,18 @@ export default {
       let caption = `╭〔 🎥 ${fytBold("TIKTOK DOWNLOAD")} 〕━⬣\n\n`;
       caption += `┃ ➥ ${fytBold(result.title)}\n\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
-      caption += `┃ > ${fytBold("Autor")} › ${result.authorNick}\n`;
-      caption += `┃ > ${fytBold("Vistas")} › ${result.views}\n`;
-      caption += `┃ > ${fytBold("Likes")} › ${result.likes}\n`;
-      caption += `┃ > ${fytBold("Comentarios")} › ${result.comments}\n`;
-      caption += `┃ > ${fytBold("Compartidos")} › ${result.shares}\n`;
+      caption += `┃ > 👤 › ${result.authorNick}\n`;
+      caption += `┃ > ⏱️ › ${result.create_time}\n` 
+      caption += `┃ > 👁️ › ${result.views}\n`;
+      caption += `┃ > ❤️ › ${result.likes}\n`;
+      caption += `┃ > 💬 › ${result.comments}\n`;
+      caption += `┃ > 📁 › ${result.collect}\n`;
+      caption += `┃ > 📎 › ${result.shares}\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ > ⌛ Enviando video...\n`;
-      caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
+      caption += `╰〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕⬣`;
 
-      // Descargamos el video a un Buffer para mayor estabilidad
+      // Descarga en Buffer
       const videoResponse = await axios.get(result.video_dl, {
         responseType: "arraybuffer",
       });
