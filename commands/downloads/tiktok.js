@@ -15,13 +15,6 @@ const tmp = path.join(__dirname, "../../tmp");
 
 if (!fs.existsSync(tmp)) fs.mkdirSync(tmp, { recursive: true });
 
-function validateTikTokUrl(url) {
-  if (!url) return null;
-  const regex = /^(https?:\/\/)?(www\.|vm\.|vt\.)?tiktok\.com\/[\w\d@?=&/.-]+/i;
-  const match = url.match(regex);
-  return match ? match[0] : null;
-}
-
 async function DL_TIKTOK(url) {
   try {
     const URL_TIKTOK = `https://www.tikwm.com/api/?url=${encodeURIComponent(url)}`;
@@ -109,23 +102,12 @@ export default {
       return await socket.sendMessage(
         remoteJid,
         {
-          text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("FALTA BÚSQUEDA")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, proporciona un\n┃ > enlace válido de TikTok.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
+          text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("FALTA BÚSQUEDA")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, proporciona una búsqueda o\n┃ > un enlace válido de TikTok.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
         },
         { quoted: message },
       );
     }
     
-    const validUrl = validateTikTokUrl(text);
-    if (!validUrl) {
-      return await socket.sendMessage(
-        remoteJid,
-        {
-          text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("ENLACE INVÁLIDO")}\n╰━━━━━━━━━━━━⬣\n\n┃ > El enlace proporcionado\n┃ > no corresponde a TikTok.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
-        },
-        { quoted: message },
-      );
-    }
-
     await socket.sendMessage(remoteJid, {
       react: { text: "⏳", key: message.key },
     });
