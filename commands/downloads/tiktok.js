@@ -69,7 +69,7 @@ async function descargarAArchivo(url, destPath) {
 }
 
 async function processVideoFile(inputP, outP) {
-  const MAX_SIZE_MB = 60;
+  const MAX_SIZE_MB = 50;
   const originalSizeMB = fs.statSync(inputP).size / (1024 * 1024);
 
   if (originalSizeMB <= MAX_SIZE_MB) {
@@ -83,7 +83,7 @@ async function processVideoFile(inputP, outP) {
   const duration = parseFloat(stdout.trim());
 
   const targetSizeBits = MAX_SIZE_MB * 8 * 1024 * 1024 * 0.85;
-  const audioBitrate = 96; // Bajamos un pelo el audio para regalarle más espacio al video sin perder calidad
+  const audioBitrate = 96;
   const videoBitrate = Math.max(400, Math.floor(targetSizeBits / duration / 1000) - audioBitrate);
 
   await execAsync(
@@ -146,19 +146,18 @@ export default {
         try { fs.unlinkSync(inputP); } catch {}
         return await socket.sendMessage(
           remoteJid,
-          { text: `❌ El video pesa ${sizeMB.toFixed(0)}MB, demasiado grande para procesar (límite: ${MAX_INPUT_MB}MB).` },
+          { text: `😦 !Mae Ponete serio! 💀🙏\n Este video pesa mas que una vieja de Kilos Mortales.\nMejor descargatelo de otra forma.` },
           { quoted: message }
         );
       }
 
-      if (sizeMB > 60) {
+      if (sizeMB > 50) {
         await socket.sendMessage(remoteJid, {
           react: { text: "⚠️", key: message.key },
         });
         await socket.sendMessage(
           remoteJid,
-          { text: `¡Uy mae! Este video pesa mucho, voy a tener que hacerlo más liviano.
-          Dame chance ....` },
+          { text: `¡Uy mae! Este video pesa mucho, voy a tener que hacerlo más liviano.\nDame chance ....` },
           { quoted: message }
         );
       }
