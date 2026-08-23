@@ -15,10 +15,34 @@ const tmp = path.join(__dirname, "../../tmp");
 
 if (!fs.existsSync(tmp)) fs.mkdirSync(tmp, { recursive: true });
 
-async function DL_TIKTOK(url) {
+function validateTikTokUrl(url) {
+  if (!url) return null;
+  const regex = /^(https?:\/\/)?(www\.|vm\.|vt\.)?tiktok\.com\/[\w\d@?=&/.-]+/i;
+  const match = url.match(regex);
+  return match ? match[0] : null;
+}
+
+// Función principal: si es texto busca el enlace con Alya en data[0].url, luego descarga con TikWM
+async function DL_TIKTOK(input) {
   try {
-    const URL_TIKTOK = `https://www.tikwm.com/api/?url=${encodeURIComponent(url)}`;
+    let targetUrl = validateTikTokUrl(input);
+
+    if (!targetUrl) {
+      const alyaUrl = `https://api.alyacore.xyz/search/tiktok?query=${encodeURIComponent(input)}&key=oboe`;
+      const { data: alyaData } = await axios.get(alyaUrl, { timeout: 15000 });
+
+      if (alyaData.status && Array.isArray(alyaData.data) && alyaData.data.length > 0) {
+        targetUrl = alyaData.data[0].url;
+      }
+    }
+
+    if (!targetUrl) {
+      throw new Error("No se encontró ningún enlace válido para la búsqueda.");
+    }
+
+    const URL_TIKTOK = `https://www.tikwm.com/api/?url=${encodeURIComponent(targetUrl)}`;
     const dateCreate = (ts) => new Date(Number(ts) * 1000).toLocaleDateString('es-ES');
+    
     const { data } = await axios.get(URL_TIKTOK, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -43,9 +67,9 @@ async function DL_TIKTOK(url) {
         time: dateCreate(r.create_time || 0)
       };
     }
-    throw new Error("No se encontraron los datos del video.");
+    throw new Error("No se pudieron extraer los datos del video con TikWM.");
   } catch (error) {
-    throw new Error(`TikWM API error: ${error.message}`);
+    throw new Error(`TikTok DL error: ${error.message}`);
   }
 }
 
@@ -86,7 +110,6 @@ async function processVideoFile(inputP, outP) {
   );
 }
 
-
 const MAX_INPUT_MB = 500;
 
 export default {
@@ -117,7 +140,7 @@ export default {
     const outP = path.join(tmp, `tt_${id}_out.mp4`);
     
     try {
-      const result = await DL_TIKTOK(validUrl);
+      const result = await DL_TIKTOK(text);
 
       await descargarAArchivo(result.video_dl, inputP);
 
@@ -128,7 +151,7 @@ export default {
         try { fs.unlinkSync(inputP); } catch {}
         return await socket.sendMessage(
           remoteJid,
-          { text: `😦 !Mae Ponete serio! 💀🙏\n Este video pesa mas que una vieja de Kilos Mortales.\nMekor ` },
+          { text: `😦 !Mae Ponete serio! 💀🙏\n Este video pesa mas que una vieja de Kilos Mortales.` },
           { quoted: message }
         );
       }
@@ -166,7 +189,6 @@ export default {
       caption += `┃ > ✅ Video listo\n`;
       caption += `╰〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕⬣`;
 
-      // Se usa la ruta directa ({ url: finalPath }) para evitar saturar la memoria RAM con Buffers gigantes
       await socket.sendMessage(
         remoteJid,
         {
@@ -187,7 +209,6 @@ export default {
         react: { text: "❌", key: message.key },
       });
 
-      // Condición específica para cuando el servidor se queda sin espacio o disco lleno
       let errorMsg = error.message || "Ocurrió un error inesperado.";
       if (error.code === 'ENOSPC' || errorMsg.includes('no space left on device')) {
         errorMsg = "El servidor se quedó sin espacio temporal en disco para procesar este video.";
