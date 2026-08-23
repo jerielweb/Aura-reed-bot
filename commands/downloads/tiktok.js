@@ -84,7 +84,7 @@ async function processVideoFile(inputP, outP) {
 
   const targetSizeBits = MAX_SIZE_MB * 8 * 1024 * 1024 * 0.85;
   const audioBitrate = 96;
-  const videoBitrate = Math.max(310, Math.floor(targetSizeBits / duration / 1000) - audioBitrate);
+  const videoBitrate = Math.max(320, Math.floor(targetSizeBits / duration / 1000) - audioBitrate);
 
   await execAsync(
     `ffmpeg -i "${inputP}" -vf "scale='min(1920,iw)':-2" -threads 2 -c:v libx264 -preset veryfast ` +
