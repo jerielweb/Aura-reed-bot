@@ -1,10 +1,10 @@
 import yts from "yt-search";
+import yt from "@vreden/youtube_scraper";
+import axios from "axios";
 import { fytBold } from "../../models/TextStyle.js";
 import formatter from "../../controllers/functions/formatNumbers.js";
 
 const YT_REGEX = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
-const API_URL = "https://api.alyacore.xyz/dl/youtubeplayv2";
-const API_KEY = "oboe";
 
 function extractVideoId(url) {
   const patterns = [
@@ -20,9 +20,9 @@ function extractVideoId(url) {
 }
 
 export default {
-  name: ["docytmp3", "docplay", "docplayaudio", "dmp3", "dyta", "docaudio"],
+  name: ["ytmp3", "play", "playaudio", "mp3", "yta", "audio"],
   category: "downloads",
-  description: "Busca y descarga audio de YouTube.",
+  description: "Busca y descarga audio de YouTube",
   execute: async (socket, message, args) => {
     const remoteJid = message.key.remoteJid;
     const text = args.join(" ").trim();
@@ -31,7 +31,7 @@ export default {
       return await socket.sendMessage(
         remoteJid,
         {
-          text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("FALTA BUSQUEDA")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, proporciona un\n┃ > nombre o enlace de cancion.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
+          text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("FALTA BUSQUEDA")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, proporciona un\n┃ > nombre o enlace de canción.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
         },
         { quoted: message },
       );
@@ -47,66 +47,32 @@ export default {
 
       if (!YT_REGEX.test(text)) {
         const search = await yts(text);
-        if (!search.videos?.length) {
-          await socket.sendMessage(remoteJid, {
-            react: { text: "❌", key: message.key },
-          });
-          return await socket.sendMessage(
-            remoteJid,
-            {
-              text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("SIN RESULTADOS")}\n╰━━━━━━━━━━━━⬣\n\n┃ > No se encontro ningun video.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
-            },
-            { quoted: message },
-          );
-        }
+        if (!search.videos?.length) throw new Error("No se encontró ningún video.");
         videoData = search.videos[0];
         finalUrl = videoData.url;
       } else {
         const videoId = extractVideoId(text);
         if (!videoId) throw new Error("URL de YouTube no válida");
         finalUrl = `https://youtube.com/watch?v=${videoId}`;
-
-        try {
-          const searchById = await yts({ videoId });
-          if (searchById?.title) {
-            videoData = searchById;
-          }
-        } catch {}
-
-        if (!videoData) {
-          try {
-            const searchFallback = await yts(videoId);
-            if (searchFallback.videos?.length) {
-              videoData =
-                searchFallback.videos.find((v) => v.videoId === videoId) ||
-                searchFallback.videos[0];
-            }
-          } catch {}
-        }
-
-        if (!videoData) {
-          videoData = {
-            title: "Video de YouTube",
-            author: { name: "Desconocido" },
-            duration: { timestamp: "??" },
-            views: 0,
-            thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
-            url: finalUrl,
-          };
-        }
+        videoData = await yts({ videoId });
       }
 
-      const response = await fetch(`${API_URL}?query=${encodeURIComponent(finalUrl)}&type=mp3&quality=auto&key=${API_KEY}`);
-      const json = await response.json();
+      // Solicitud a máxima calidad según la librería
+      const res = await yt.ytmp3(finalUrl, 320);
       
-      if (!json.status || !json.data) throw new Error("La API no pudo procesar el audio.");
+      // Validación corregida para acceder a res.download.url
+      if (!res || !res.status || !res.download || !res.download.url) {
+        throw new Error("El servicio de descarga no respondió correctamente.");
+      }
 
-      const title = json.data.title || videoData.title || "Video de YouTube";
-      const author = json.data.author || videoData.author?.name || videoData.author || "Desconocido";
-      const duration = json.data.duration || videoData.duration?.timestamp || "??";
-      const views = typeof videoData.views === "number" ? videoData.views : 0;
-      const thumbnail = json.data.thumbnail || videoData.thumbnail || videoData.image || `https://i.ytimg.com/vi/${extractVideoId(finalUrl) || "default"}/hqdefault.jpg`;
-      const audioUrl = json.data.dl;
+      const title = videoData.title || res.metadata?.title || "Video de YouTube";
+      const author = videoData.author?.name || res.metadata?.author?.name || "Desconocido";
+      const duration = videoData.duration?.timestamp || res.metadata?.timestamp || "??";
+      const views = typeof videoData.views === "number" ? videoData.views : (res.metadata?.views || 0);
+      const ytURL = `https://youtu.be/${videoData.videoId || extractVideoId(finalUrl)}`
+      const thumbnail = videoData.thumbnail || videoData.image || res.metadata?.thumbnail || `https://i.ytimg.com/vi/${extractVideoId(finalUrl)}/hqdefault.jpg`;
+      
+      const audioUrl = res.download.url;
 
       let caption = `╭〔 🎵 ${fytBold("YOUTUBE PLAY")} 〕━⬣\n\n`;
       caption += `┃ ➥ ${fytBold(title)}\n\n`;
@@ -114,8 +80,8 @@ export default {
       caption += `┃ > ${fytBold("Canal")} › ${author}\n`;
       caption += `┃ > ${fytBold("Duración")} › ${duration}\n`;
       caption += `┃ > ${fytBold("Vistas")} › ${formatter(views)}\n`;
-      caption += `┃ > ${fytBold("Tipo")} › Documento MP3\n`
-      caption += `┃ > ${fytBold("Url")} › ${finalUrl}\n`;
+      caption += `┃ > ${fytBold("Calidad")} › 320 kbps\n`;
+      caption += `┃ > ${fytBold("Url")} › ${ytURL}\n`
       caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ > ⌛ Descargando audio...\n`;
       caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
@@ -126,10 +92,16 @@ export default {
         { quoted: message },
       );
 
+      // Descargamos el archivo a un Buffer mediante axios asegurando el tipo arraybuffer
+      const audio = await axios.get(audioUrl, {
+        responseType: "arraybuffer",
+      });
+      const audioBuffer = Buffer.from(audio.data);
+
       await socket.sendMessage(
         remoteJid,
         {
-          document: { url: audioUrl },
+          document: audioBuffer,
           mimetype: "audio/mpeg",
           fileName: `${title.replace(/[<>:"/\\|?*]/g, "")}.mp3`,
         },
@@ -147,7 +119,7 @@ export default {
       await socket.sendMessage(
         remoteJid,
         {
-          text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("ERROR DE DESCARGA")}\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message || "Ocurrio un error inesperado."}\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
+          text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("ERROR DE DESCARGA")}\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message || "Ocurrió un error inesperado."}\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
         },
         { quoted: message },
       );
