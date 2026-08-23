@@ -1,6 +1,19 @@
 import axios from "axios";
+import { exec } from "child_process";
+import { promisify } from "util";
+import fs from "fs";
+import path from "path";
+import crypto from "crypto";
+import { fileURLToPath } from "url";
+import { pipeline } from "stream/promises";
 import formatter from "../../controllers/functions/formatNumbers.js";
 import { fytBold } from "../../models/TextStyle.js";
+
+const execAsync = promisify(exec);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const tmp = path.join(__dirname, "../../tmp");
+
+if (!fs.existsSync(tmp)) fs.mkdirSync(tmp, { recursive: true });
 
 function validateTikTokUrl(url) {
   if (!url) return null;
@@ -43,6 +56,45 @@ async function DL_TIKTOK(url) {
   }
 }
 
+async function descargarAArchivo(url, destPath) {
+  const response = await axios.get(url, {
+    responseType: 'stream',
+    timeout: 60000,
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+    }
+  });
+
+  await pipeline(response.data, fs.createWriteStream(destPath));
+}
+
+async function processVideoFile(inputP, outP) {
+  const MAX_SIZE_MB = 60;
+  const originalSizeMB = fs.statSync(inputP).size / (1024 * 1024);
+
+  if (originalSizeMB <= MAX_SIZE_MB) {
+    await execAsync(`ffmpeg -i "${inputP}" -c copy -movflags +faststart "${outP}" -y`);
+    return;
+  }
+
+  const { stdout } = await execAsync(
+    `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${inputP}"`
+  );
+  const duration = parseFloat(stdout.trim());
+
+  const targetSizeBits = MAX_SIZE_MB * 8 * 1024 * 1024 * 0.9;
+  const audioBitrate = 128;
+  const videoBitrate = Math.max(300, Math.floor(targetSizeBits / duration / 1000) - audioBitrate);
+
+  await execAsync(
+    `ffmpeg -i "${inputP}" -vf "scale='min(1920,iw)':-2" -threads 1 -c:v libx264 -preset ultrafast ` +
+    `-b:v ${videoBitrate}k -maxrate ${videoBitrate}k -bufsize ${videoBitrate * 2}k ` +
+    `-c:a aac -b:a ${audioBitrate}k -movflags +faststart "${outP}" -y`
+  );
+}
+
+const MAX_INPUT_MB = 500;
+
 export default {
   name: ["tk", "tt", "tta", "tiktok", "tkmp4"],
   category: "downloads",
@@ -76,9 +128,46 @@ export default {
     await socket.sendMessage(remoteJid, {
       react: { text: "⏳", key: message.key },
     });
+
+    const id = crypto.randomBytes(8).toString('hex');
+    const inputP = path.join(tmp, `tt_${id}.mp4`);
+    const outP = path.join(tmp, `tt_${id}_out.mp4`);
     
     try {
       const result = await DL_TIKTOK(validUrl);
+
+      await descargarAArchivo(result.video_dl, inputP);
+
+      const sizeMB = fs.statSync(inputP).size / (1024 * 1024);
+
+      if (sizeMB > MAX_INPUT_MB) {
+        await socket.sendMessage(remoteJid, { react: { text: "❌", key: message.key } });
+        try { fs.unlinkSync(inputP); } catch {}
+        return await socket.sendMessage(
+          remoteJid,
+          { text: `❌ El video pesa ${sizeMB.toFixed(0)}MB, demasiado grande para procesar (límite: ${MAX_INPUT_MB}MB).` },
+          { quoted: message }
+        );
+      }
+
+      if (sizeMB > 60) {
+        await socket.sendMessage(remoteJid, {
+          react: { text: "⚠️", key: message.key },
+        });
+        await socket.sendMessage(
+          remoteJid,
+          { text: `¡Uy mae! Este video pesa mucho, voy a tener que hacerlo más liviano. Dame chance....` },
+          { quoted: message }
+        );
+      }
+
+      let finalPath = inputP;
+      try {
+        await processVideoFile(inputP, outP);
+        finalPath = outP;
+      } catch (e) {
+        console.error('No se pudo procesar el video, se manda el original:', e.message);
+      }
 
       let caption = `╭〔 🎥 ${fytBold("TIKTOK DOWNLOAD")} 〕━⬣\n\n`;
       caption += `┃ ➥ ${fytBold(result.title)}\n\n`;
@@ -91,15 +180,11 @@ export default {
       caption += `┃ > ${fytBold("Favoritos")} › ${result.collect}\n`;
       caption += `┃ > ${fytBold("Compartidos")} › ${result.shares}\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
-      caption += `┃ > ⌛ Enviando video...\n`;
+      caption += `┃ > ✅ Video listo\n`;
       caption += `╰〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕⬣`;
 
-      // Descarga en Buffer
-      const videoResponse = await axios.get(result.video_dl, {
-        responseType: "arraybuffer",
-      });
-      const videoBuffer = Buffer.from(videoResponse.data);
-
+      // Envio en Buffer
+      const videoBuffer = fs.readFileSync(finalPath);
       await socket.sendMessage(
         remoteJid,
         {
@@ -125,6 +210,9 @@ export default {
         },
         { quoted: message },
       );
+    } finally {
+      try { fs.unlinkSync(inputP); } catch {}
+      try { fs.unlinkSync(outP); } catch {}
     }
   },
 };
