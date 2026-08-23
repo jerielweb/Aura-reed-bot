@@ -116,16 +116,16 @@ export function formatProfileText(user, pushName, jid) {
   let text = `╭〔 👤 𝐏𝐄𝐑𝐅𝐈𝐋 〕⬣\n`;
   text += `┃ 📋 𝐃𝐀𝐓𝐎𝐒 𝐃𝐄 𝐔𝐒𝐔𝐀𝐑𝐈𝐎\n`;
   text += `╰━━━━━━━━━━━━⬣\n\n`;
-  text += `┃ 👤 𝐍𝐨𝐦𝐛𝐫𝐞 › *${`@${pushName}` || "Usuario"}*\n`;
-  text += `┃ 🆔 𝐈𝐃 › ${jid.split("@")[0]}\n\n`;
-  text += `┃ ⚧️ 𝐆𝐞́𝐧𝐞𝐫𝐨 › ${genre}\n`;
-  text += `┃ 🎂 𝐂𝐮𝐦𝐩𝐥𝐞𝐚𝐧̃𝐨𝐬 › ${birthday}\n`;
-  text += `┃ 🎈 ${fytBold('Edad › ')}${yearsOld !== null ? yearsOld : "Indefinido"}\n\n`;
-  text += `┃ 💍 𝐄𝐬𝐭𝐚𝐝𝐨 › ${married}\n`;
-  text += `┃ 📊 𝐍𝐢𝐯𝐞𝐥 › ${level}\n`;
-  text += `┃ ✨ 𝐗𝐏 › ${formatter(xp)}\n`;
-  text += `┃ 💵 𝐂𝐚𝐫𝐭𝐞𝐫𝐚 › ₡${formatter(coins)}\n`;
-  text += `┃ 🏦 𝐁𝐚𝐧𝐜𝐨 › ₡${formatter(bank)}\n\n`;
+  text += `┃ 👤 ${fytBold("Nombre")} › *${`@${pushName}` || "Usuario"}*\n`;
+  text += `┃ 🆔 ${fytBold("ID")} › ${jid.split("@")[0]}\n\n`;
+  text += `┃ ⚧️ ${fytBold("Género")} › ${genre}\n`;
+  text += `┃ 🎂 ${fytBold("Cumpleaños")} › ${birthday}\n`;
+  text += `┃ 🎈 ${fytBold("Edad")} › ${yearsOld !== null ? yearsOld : "Indefinido"}\n\n`;
+  text += `┃ 💍 ${fytBold("Pareja")} › ${married}\n`;
+  text += `┃ 📊 ${fytBold("Nivel")} › ${level}\n`;
+  text += `┃ ✨ ${fytBold("XP")} › ${formatter(xp)}\n`;
+  text += `┃ 💵 ${fytBold("Cartera")} › ₡${formatter(coins)}\n`;
+  text += `┃ 🏦 ${fytBold("Banco")} › ₡${formatter(bank)}\n\n`;
   text += `╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣`;
   return text;
 }
