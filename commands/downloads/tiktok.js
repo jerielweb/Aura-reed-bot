@@ -5,7 +5,6 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { fileURLToPath } from "url";
-import { pipeline } from "stream/promises";
 import formatter from "../../controllers/functions/formatNumbers.js";
 import { fytBold } from "../../models/TextStyle.js";
 
@@ -73,16 +72,21 @@ async function DL_TIKTOK(input) {
   }
 }
 
+// Usamos fetch nativo para evitar bloqueos y falsos ENOSPC con streams de Axios
 async function descargarAArchivo(url, destPath) {
-  const response = await axios.get(url, {
-    responseType: 'stream',
-    timeout: 60000,
+  const response = await fetch(url, {
     headers: {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     }
   });
 
-  await pipeline(response.data, fs.createWriteStream(destPath));
+  if (!response.ok) {
+    throw new Error(`Error al descargar el archivo: ${response.statusText}`);
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+  fs.writeFileSync(destPath, buffer);
 }
 
 async function processVideoFile(inputP, outP) {
@@ -217,7 +221,7 @@ export default {
       await socket.sendMessage(
         remoteJid,
         {
-          text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("ERROR REAL")}\n╰━━━━━━━━━━━━⬣\n\n┃ > ${errorMsg}\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
+          text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("ERROR REAL")}🍳\n╰━━━━━━━━━━━━⬣\n\n┃ > ${errorMsg}\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
         },
         { quoted: message },
       );
