@@ -105,7 +105,7 @@ async function descargarAArchivo(url, destPath) {
 async function processVideoFile(inputP, outP) {
   // Comando limpio de una sola pasada, sin conflictos de moov atom y con audio/video totalmente normalizado
   await execAsync(
-    `ffmpeg -y -i "${inputP}" -vf "scale='min(1920,iw)':-2" -c:v libx264 -preset ultrafast -crf 28 -c:a aac -b:a 96k "${outP}"`,
+    `ffmpeg -y -i "${inputP}" -vf "scale='min(720,iw)':-2" -c:v libx264 -preset ultrafast -crf 28 -c:a aac -b:a 96k "${outP}"`,
     { maxBuffer: 1024 * 1024 * 10 }
   );
 }
