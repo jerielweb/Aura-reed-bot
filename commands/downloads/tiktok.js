@@ -65,6 +65,7 @@ async function DL_TIKTOK(input) {
         collect: formatter(r.collect_count || 0),
         comments: formatter(r.comment_count || 0),
         time: dateCreate(r.create_time || 0)
+        tk_url: `https://www.tiktok.com/@${r.author.unique_id}/video/${r.id}`
       };
     }
     throw new Error("No se pudieron extraer los datos del video con TikWM.");
@@ -185,6 +186,7 @@ export default {
       caption += `┃ > ${fytBold("Comentarios")} › ${result.comments}\n`;
       caption += `┃ > ${fytBold("Favoritos")} › ${result.collect}\n`;
       caption += `┃ > ${fytBold("Compartidos")} › ${result.shares}\n`;
+      caption += `┃ > ${fytBold("Url")} › ${result.tk_url}`
       caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ > ✅ Video listo\n`;
       caption += `╰〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕⬣`;
