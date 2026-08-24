@@ -90,20 +90,29 @@ async function processVideoFile(inputP, outP) {
   const MAX_SIZE_MB = 50;
   const originalSizeMB = fs.statSync(inputP).size / (1024 * 1024);
 
-  if (originalSizeMB <= 40) {
-    try {
-      await execAsync(`ffmpeg -i "${inputP}" -c copy -movflags +faststart "${outP}" -y`);
-      if (fs.statSync(outP).size / (1024 * 1024) <= MAX_SIZE_MB) return;
-    } catch {}
+  if (originalSizeMB <= MAX_SIZE_MB) {
+    await execAsync(`ffmpeg -i "${inputP}" -c copy -movflags +faststart "${outP}" -y`);
+    return;
   }
 
-  // CRF 28 para mantener mejor calidad conservando los FPS originales
+  const { stdout } = await execAsync(
+    `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${inputP}"`
+  );
+  const duration = parseFloat(stdout.trim()) || 1; // Evita división por 0 si falla
+
+  const targetSizeBits = MAX_SIZE_MB * 8 * 1024 * 1024 * 0.85;
+  const audioBitrate = 96;
+  
+  // Forzamos un bitrate mínimo sensato (ej. 500k) para que FFmpeg nunca reciba valores inválidos
+  const calculatedBitrate = Math.floor(targetSizeBits / duration / 1000) - audioBitrate;
+  const videoBitrate = Math.max(350, calculatedBitrate);
+
   await execAsync(
-    `ffmpeg -i "${inputP}" -vf "scale='min(1280,iw)':-2" -threads 3 -c:v libx264 -preset veryfast -crf 28 ` +
-    `-c:a aac -b:a 96k -movflags +faststart "${outP}" -y`
+    `ffmpeg -i "${inputP}" -vf "scale='min(1280,iw)':-2" -threads 3 -c:v libx264 -preset veryfast ` +
+    `-b:v ${videoBitrate}k -maxrate ${Math.floor(videoBitrate * 1.5)}k -bufsize ${videoBitrate * 2}k ` +
+    `-c:a aac -b:a ${audioBitrate}k -movflags +faststart "${outP}" -y`
   );
 }
-
 
 
 const MAX_INPUT_MB = 500;

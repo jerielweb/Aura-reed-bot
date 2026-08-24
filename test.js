@@ -1,18 +1,13 @@
-import TikTok from "@tobyg74/tiktok-api-dl";
+import fs from "fs";
 
-async function testVideo() {
+function getFreeSpaceMB(dirPath) {
   try {
-    const url = "https://vt.tiktok.com/ZSVHkGC1n/"; // Puedes cambiar el enlace aquí
-    console.log("Obteniendo video...");
-    
-    // La librería usa yt.ytmp4 para videos
-    TikTok.Downloader(url, {
-      version: "v1",
-      showOriginalResponse: true
-    }).then((result) => console.log(result.resultNotParsed.content.video))
-  } catch(error) {
-    console.error(error)
+    const stats = fs.statfsSync(dirPath);
+    // Multiplicamos los bloques libres por el tamaño de cada bloque, y lo pasamos a MB
+    const freeSpaceMB = (stats.bfree * stats.bsize) / (1024 * 1024);
+    return freeSpaceMB;
+  } catch (error) {
+    // Si por permisos o compatibilidad del sistema operativo falla, devolvemos un número alto para que no bloquee
+    return 999999; 
   }
 }
-
-testVideo();
