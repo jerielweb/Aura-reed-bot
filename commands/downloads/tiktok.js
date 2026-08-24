@@ -164,6 +164,8 @@ export default {
         );
       }
 
+      let finalPath = inputP;
+      
       if (sizeMB > 50) {
         await socket.sendMessage(remoteJid, {
           react: { text: "⚠️", key: message.key },
@@ -173,16 +175,16 @@ export default {
           { text: `¡Uy mae! Este video pesa mucho, voy a tener que hacerlo más liviano.\nDame chance ....` },
           { quoted: message }
         );
+
+        try {
+          await processVideoFile(inputP, outP);
+          finalPath = outP;
+        } catch (e) {
+          console.error('No se pudo procesar el video, se manda el original:', e.message);
+          finalPath = inputP;
+        }
       }
 
-      let finalPath = inputP;
-      try {
-        await processVideoFile(inputP, outP);
-        finalPath = outP;
-      } catch (e) {
-        console.error('No se pudo procesar el video, se manda el original:', e.message);
-        finalPath = inputP;
-      }
 
       let caption = `╭〔 🎥 ${fytBold("TIKTOK VIDEO")} 〕━⬣\n\n`;
       caption += `┃ ➥ ${fytBold(result.title)}\n\n`;
