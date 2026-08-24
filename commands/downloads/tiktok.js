@@ -90,7 +90,7 @@ async function processVideoFile(inputP, outP) {
   const MAX_SIZE_MB = 50;
   const originalSizeMB = fs.statSync(inputP).size / (1024 * 1024);
 
-  if (originalSizeMB <= MAX_SIZE_MB) {
+  if (originalSizeMB <= 40) {
     await execAsync(`ffmpeg -i "${inputP}" -c copy -movflags +faststart "${outP}" -y`);
     return;
   }
@@ -98,12 +98,11 @@ async function processVideoFile(inputP, outP) {
   const { stdout } = await execAsync(
     `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${inputP}"`
   );
-  const duration = parseFloat(stdout.trim()) || 1; // Evita división por 0 si falla
+  const duration = parseFloat(stdout.trim()) || 1;
 
   const targetSizeBits = MAX_SIZE_MB * 8 * 1024 * 1024 * 0.85;
   const audioBitrate = 96;
   
-
   const calculatedBitrate = Math.floor(targetSizeBits / duration / 1000) - audioBitrate;
   const videoBitrate = Math.max(350, calculatedBitrate);
 
