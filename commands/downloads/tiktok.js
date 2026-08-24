@@ -113,7 +113,7 @@ async function descargarAArchivo(url, destPath) {
 async function processVideoFile(inputP, outP) {
   // Mantenemos escala de 1080p máximo para conservar nitidez y compresión eficiente en una pasada
   await execAsync(
-    `ffmpeg -y -i "${inputP}" -vf "scale='min(1080,iw)':-2" -c:v libx264 -preset ultrafast -crf 28 -c:a aac -b:a 96k "${outP}"`,
+    `ffmpeg -y -i "${inputP}" -vf "scale='min(1920,iw)':-2" -c:v libx264 -preset ultrafast -crf 28 -c:a aac -b:a 96k "${outP}"`,
     { maxBuffer: 1024 * 1024 * 10 }
   );
 }
@@ -166,7 +166,7 @@ export default {
 
       let finalPath = inputP;
       
-      if (sizeMB > 50) {
+      if (sizeMB > 60) {
         await socket.sendMessage(remoteJid, {
           react: { text: "⚠️", key: message.key },
         });
