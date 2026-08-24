@@ -176,7 +176,7 @@ export default {
         console.error('No se pudo procesar el video, se manda el original:', e.message);
       }
 
-      let caption = `╭〔 🎥 ${fytBold("TIKTOK DOWNLOAD")} 〕━⬣\n\n`;
+      let caption = `╭〔 🎥 ${fytBold("TIKTOK VIDEO")} 〕━⬣\n\n`;
       caption += `┃ ➥ ${fytBold(result.title)}\n\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ > ${fytBold("Autor")} › ${result.authorNick}\n`;
