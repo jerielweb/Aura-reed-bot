@@ -11,7 +11,7 @@ import { fytBold } from "../../models/TextStyle.js";
 
 const execAsync = promisify(exec);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const tmp = path.join(__dirname, "../../tmp");
+const tmp = path.join(__dirname, "../../temp");
 
 if (!fs.existsSync(tmp)) fs.mkdirSync(tmp, { recursive: true });
 
@@ -22,7 +22,6 @@ function validateTikTokUrl(url) {
   return match ? match[0] : null;
 }
 
-// Función principal: si es texto busca el enlace con Alya en data[0].url, luego descarga con TikWM
 async function DL_TIKTOK(input) {
   try {
     let targetUrl = validateTikTokUrl(input);
@@ -98,12 +97,11 @@ async function processVideoFile(inputP, outP) {
   const { stdout } = await execAsync(
     `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${inputP}"`
   );
-  const duration = parseFloat(stdout.trim()) || 1; // Evita división por 0 si falla
+  const duration = parseFloat(stdout.trim()) || 1;
 
   const targetSizeBits = MAX_SIZE_MB * 8 * 1024 * 1024 * 0.85;
   const audioBitrate = 96;
   
-  // Forzamos un bitrate mínimo sensato (ej. 500k) para que FFmpeg nunca reciba valores inválidos
   const calculatedBitrate = Math.floor(targetSizeBits / duration / 1000) - audioBitrate;
   const videoBitrate = Math.max(350, calculatedBitrate);
 
@@ -113,7 +111,6 @@ async function processVideoFile(inputP, outP) {
     `-c:a aac -b:a ${audioBitrate}k -movflags +faststart "${outP}" -y`
   );
 }
-
 
 const MAX_INPUT_MB = 500;
 
@@ -210,20 +207,17 @@ export default {
         react: { text: "✅", key: message.key },
       });
     } catch (error) {
-      console.error("Error en tiktok:", error);
+      console.error("Error detallado en tiktok:", error);
       await socket.sendMessage(remoteJid, {
         react: { text: "❌", key: message.key },
       });
 
-      let errorMsg = error.message || "Ocurrió un error inesperado.";
-      if (error.code === 'ENOSPC' || errorMsg.includes('no space left on device')) {
-        errorMsg = "El servidor se quedó sin espacio temporal en disco para procesar este video.";
-      }
+      const errorMsg = error.message || JSON.stringify(error) || "Ocurrió un error inesperado.";
 
       await socket.sendMessage(
         remoteJid,
         {
-          text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("ERROR DE DESCARGA")}\n╰━━━━━━━━━━━━⬣\n\n┃ > ${errorMsg}\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
+          text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("ERROR REAL")}\n╰━━━━━━━━━━━━⬣\n\n┃ > ${errorMsg}\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
         },
         { quoted: message },
       );
