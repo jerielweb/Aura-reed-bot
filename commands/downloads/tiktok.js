@@ -1,16 +1,25 @@
+import os from 'os';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const customTemp = path.join(__dirname, "../../temp");
+
+// Forzamos al sistema de Node a usar la carpeta local y evitar el /tmp del sistema
+process.env.TMPDIR = customTemp;
+process.env.TEMP = customTemp;
+process.env.TMP = customTemp;
+
 import axios from "axios";
 import { exec } from "child_process";
 import { promisify } from "util";
 import fs from "fs";
-import path from "path";
 import crypto from "crypto";
-import { fileURLToPath } from "url";
 import formatter from "../../controllers/functions/formatNumbers.js";
 import { fytBold } from "../../models/TextStyle.js";
 
 const execAsync = promisify(exec);
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const tmp = path.join(__dirname, "../../temp");
+const tmp = customTemp;
 
 if (!fs.existsSync(tmp)) fs.mkdirSync(tmp, { recursive: true });
 
@@ -72,7 +81,6 @@ async function DL_TIKTOK(input) {
   }
 }
 
-// Descarga segura con fetch nativo optimizada con manejo de errores de escritura
 async function descargarAArchivo(url, destPath) {
   const response = await fetch(url, {
     headers: {
@@ -87,7 +95,6 @@ async function descargarAArchivo(url, destPath) {
   const arrayBuffer = await response.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
   
-  // Limpiamos si ya existía un archivo basura previo con el mismo nombre
   if (fs.existsSync(destPath)) {
     try { fs.unlinkSync(destPath); } catch {}
   }
