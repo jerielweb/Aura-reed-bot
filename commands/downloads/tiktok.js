@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const customTemp = path.join(__dirname, "../../temp");
 
-// Forzamos sistema a usar temp
+// Forzamos al sistema de Node a usar la carpeta local y evitar el /tmp del sistema
 process.env.TMPDIR = customTemp;
 process.env.TEMP = customTemp;
 process.env.TMP = customTemp;
@@ -103,12 +103,21 @@ async function descargarAArchivo(url, destPath) {
 }
 
 async function processVideoFile(inputP, outP) {
-  // Forzamos un reencodeo limpio para evitar errores con framerates raros (como 120fps) y WhatsApp
-  await execAsync(
-    `ffmpeg -i "${inputP}" -vf "scale='min(1280,iw)':-2" -threads 3 -c:v libx264 -preset veryfast ` +
-    `-crf 23 -c:a aac -b:a 128k -movflags +faststart "${outP}" -y`,
-    { maxBuffer: 1024 * 1024 * 10 } // Ampliamos el búfer a 10MB para que no salte el error de maxBuffer
-  );
+  // Usamos -err_detect ignore_err para saltarnos los errores de streams de audio corruptos de TikTok
+  try {
+    await execAsync(
+      `ffmpeg -err_detect ignore_err -i "${inputP}" -vf "scale='min(1280,iw)':-2" -threads 3 -c:v libx264 -preset veryfast ` +
+      `-crf 23 -c:a aac -b:a 128k -movflags +faststart "${outP}" -y`,
+      { maxBuffer: 1024 * 1024 * 10 }
+    );
+  } catch (err) {
+    // Si el audio viene totalmente destruido, reintentamos eliminando el audio (-an) para salvar el video
+    console.warn("Fallo el reencodeo con audio, intentando limpiar sin audio o forzando formato:", err.message);
+    await execAsync(
+      `ffmpeg -err_detect ignore_err -i "${inputP}" -vf "scale='min(1280,iw)':-2" -threads 3 -c:v libx264 -preset veryfast -an -movflags +faststart "${outP}" -y`,
+      { maxBuffer: 1024 * 1024 * 10 }
+    );
+  }
 }
 
 const MAX_INPUT_MB = 500;
@@ -157,13 +166,24 @@ export default {
         );
       }
 
-      // Procesamos siempre el video para asegurar compatibilidad total con WhatsApp
-      let finalPath = outP;
+      if (sizeMB > 50) {
+        await socket.sendMessage(remoteJid, {
+          react: { text: "⚠️", key: message.key },
+        });
+        await socket.sendMessage(
+          remoteJid,
+          { text: `¡Uy mae! Este video pesa mucho, voy a tener que hacerlo más liviano.\nDame chance ....` },
+          { quoted: message }
+        );
+      }
+
+      let finalPath = inputP;
       try {
         await processVideoFile(inputP, outP);
+        finalPath = outP;
       } catch (e) {
-        console.error('No se pudo procesar el video, usando original:', e.message);
-        finalPath = inputP; // Respaldo por si acaso
+        console.error('No se pudo procesar el video, se manda el original:', e.message);
+        finalPath = inputP;
       }
 
       let caption = `╭〔 🎥 ${fytBold("TIKTOK VIDEO")} 〕━⬣\n\n`;
