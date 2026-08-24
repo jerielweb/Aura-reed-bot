@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const customTemp = path.join(__dirname, "../../temp");
 
-// Forzamos al sistema de Node a usar la carpeta local y evitar el /tmp del sistema
+// Forzamos sistema a usar temp
 process.env.TMPDIR = customTemp;
 process.env.TEMP = customTemp;
 process.env.TMP = customTemp;
@@ -103,29 +103,11 @@ async function descargarAArchivo(url, destPath) {
 }
 
 async function processVideoFile(inputP, outP) {
-  const MAX_SIZE_MB = 50;
-  const originalSizeMB = fs.statSync(inputP).size / (1024 * 1024);
-
-  if (originalSizeMB <= MAX_SIZE_MB) {
-    await execAsync(`ffmpeg -i "${inputP}" -c copy -movflags +faststart "${outP}" -y`);
-    return;
-  }
-
-  const { stdout } = await execAsync(
-    `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${inputP}"`
-  );
-  const duration = parseFloat(stdout.trim()) || 1;
-
-  const targetSizeBits = MAX_SIZE_MB * 8 * 1024 * 1024 * 0.85;
-  const audioBitrate = 96;
-  
-  const calculatedBitrate = Math.floor(targetSizeBits / duration / 1000) - audioBitrate;
-  const videoBitrate = Math.max(350, calculatedBitrate);
-
+  // Forzamos un reencodeo limpio para evitar errores con framerates raros (como 120fps) y WhatsApp
   await execAsync(
     `ffmpeg -i "${inputP}" -vf "scale='min(1280,iw)':-2" -threads 3 -c:v libx264 -preset veryfast ` +
-    `-b:v ${videoBitrate}k -maxrate ${Math.floor(videoBitrate * 1.5)}k -bufsize ${videoBitrate * 2}k ` +
-    `-c:a aac -b:a ${audioBitrate}k -movflags +faststart "${outP}" -y`
+    `-crf 23 -c:a aac -b:a 128k -movflags +faststart "${outP}" -y`,
+    { maxBuffer: 1024 * 1024 * 10 } // Ampliamos el búfer a 10MB para que no salte el error de maxBuffer
   );
 }
 
@@ -175,23 +157,13 @@ export default {
         );
       }
 
-      if (sizeMB > 50) {
-        await socket.sendMessage(remoteJid, {
-          react: { text: "⚠️", key: message.key },
-        });
-        await socket.sendMessage(
-          remoteJid,
-          { text: `¡Uy mae! Este video pesa mucho, voy a tener que hacerlo más liviano.\nDame chance ....` },
-          { quoted: message }
-        );
-      }
-
-      let finalPath = inputP;
+      // Procesamos siempre el video para asegurar compatibilidad total con WhatsApp
+      let finalPath = outP;
       try {
         await processVideoFile(inputP, outP);
-        finalPath = outP;
       } catch (e) {
-        console.error('No se pudo procesar el video, se manda el original:', e.message);
+        console.error('No se pudo procesar el video, usando original:', e.message);
+        finalPath = inputP; // Respaldo por si acaso
       }
 
       let caption = `╭〔 🎥 ${fytBold("TIKTOK VIDEO")} 〕━⬣\n\n`;
