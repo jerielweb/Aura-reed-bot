@@ -7,7 +7,7 @@ const customTemp = path.join(__dirname, "../../temp");
 
 // Forzamos al sistema de Node a usar la carpeta local y evitar el /tmp del sistema
 process.env.TMPDIR = customTemp;
-process.env.TEMP = customTemp;
+process.env.TMP = customTemp;
 process.env.TMP = customTemp;
 
 import axios from "axios";
@@ -103,7 +103,7 @@ async function descargarAArchivo(url, destPath) {
 }
 
 async function processVideoFile(inputP, outP) {
-  // Compresión inteligente + recodificación de audio AAC obligatoria + metadatos y duración estables (-fps_mode cfr)
+  // Comando blindado: repara errores de flujo, escala correctamente, transcodifica audio a AAC limpio y asegura compatibilidad total con WhatsApp
   await execAsync(
     `ffmpeg -err_detect ignore_err -i "${inputP}" -vf "scale='min(1280,iw)':-2" -threads 3 ` +
     `-c:v libx264 -preset veryfast -crf 23 -c:a aac -b:a 128k -fps_mode cfr ` +
