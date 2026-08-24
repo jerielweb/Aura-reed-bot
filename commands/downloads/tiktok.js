@@ -103,11 +103,9 @@ async function descargarAArchivo(url, destPath) {
 }
 
 async function processVideoFile(inputP, outP) {
-  // Comando de FFmpeg blindado y sin errores de timestamps para compatibilidad total con WhatsApp
+  // Comando limpio de una sola pasada, sin conflictos de moov atom y con audio/video totalmente normalizado
   await execAsync(
-    `ffmpeg -err_detect ignore_err -i "${inputP}" -vf "scale='min(1280,iw)':-2" -threads 3 ` +
-    `-c:v libx264 -preset veryfast -crf 23 -c:a aac -b:a 128k ` +
-    `-movflags +faststart "${outP}" -y`,
+    `ffmpeg -y -i "${inputP}" -vf "scale='min(1280,iw)':-2" -c:v libx264 -preset ultrafast -crf 26 -c:a aac -b:a 128k "${outP}"`,
     { maxBuffer: 1024 * 1024 * 10 }
   );
 }
