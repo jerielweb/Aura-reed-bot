@@ -72,7 +72,7 @@ async function DL_TIKTOK(input) {
   }
 }
 
-// Usamos fetch nativo para evitar bloqueos y falsos ENOSPC con streams de Axios
+// Descarga segura con fetch nativo optimizada con manejo de errores de escritura
 async function descargarAArchivo(url, destPath) {
   const response = await fetch(url, {
     headers: {
@@ -86,6 +86,12 @@ async function descargarAArchivo(url, destPath) {
 
   const arrayBuffer = await response.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
+  
+  // Limpiamos si ya existía un archivo basura previo con el mismo nombre
+  if (fs.existsSync(destPath)) {
+    try { fs.unlinkSync(destPath); } catch {}
+  }
+  
   fs.writeFileSync(destPath, buffer);
 }
 
@@ -221,13 +227,13 @@ export default {
       await socket.sendMessage(
         remoteJid,
         {
-          text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("ERROR REAL")}🍳\n╰━━━━━━━━━━━━⬣\n\n┃ > ${errorMsg}\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
+          text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("ERROR REAL")}\n╰━━━━━━━━━━━━⬣\n\n┃ > ${errorMsg}\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
         },
         { quoted: message },
       );
     } finally {
-      try { fs.unlinkSync(inputP); } catch {}
-      try { fs.unlinkSync(outP); } catch {}
+      try { if (fs.existsSync(inputP)) fs.unlinkSync(inputP); } catch {}
+      try { if (fs.existsSync(outP)) fs.unlinkSync(outP); } catch {}
     }
   },
 };
