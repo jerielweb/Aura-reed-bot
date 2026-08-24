@@ -103,20 +103,13 @@ async function descargarAArchivo(url, destPath) {
 }
 
 async function processVideoFile(inputP, outP) {
-  try {
-    // Primer intento: copia limpia del stream de audio original para evitar pérdida de calidad y silencios
-    await execAsync(
-      `ffmpeg -err_detect ignore_err -i "${inputP}" -vf "scale='min(1280,iw)':-2" -threads 3 -c:v libx264 -preset veryfast -crf 23 -c:a copy -movflags +faststart "${outP}" -y`,
-      { maxBuffer: 1024 * 1024 * 10 }
-    );
-  } catch (err) {
-    // Segundo intento de respaldo: si el audio viene dañado, forzamos transcodificación a AAC estándar para rescatar el sonido sí o sí
-    console.warn("Fallo la copia de audio, forzando transcodificación a AAC:", err.message);
-    await execAsync(
-      `ffmpeg -err_detect ignore_err -i "${inputP}" -vf "scale='min(1280,iw)':-2" -threads 3 -c:v libx264 -preset veryfast -crf 23 -c:a aac -b:a 128k -movflags +faststart "${outP}" -y`,
-      { maxBuffer: 1024 * 1024 * 10 }
-    );
-  }
+  // Compresión inteligente + recodificación de audio AAC obligatoria + metadatos y duración estables (-fps_mode cfr)
+  await execAsync(
+    `ffmpeg -err_detect ignore_err -i "${inputP}" -vf "scale='min(1280,iw)':-2" -threads 3 ` +
+    `-c:v libx264 -preset veryfast -crf 23 -c:a aac -b:a 128k -fps_mode cfr ` +
+    `-movflags +faststart "${outP}" -y`,
+    { maxBuffer: 1024 * 1024 * 10 }
+  );
 }
 
 const MAX_INPUT_MB = 500;
