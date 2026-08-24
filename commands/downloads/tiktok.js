@@ -1,6 +1,13 @@
 import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import axios from "axios";
+import { exec } from "child_process";
+import { promisify } from "util";
+import fs from "fs";
+import crypto from "crypto";
+import formatter from "../../controllers/functions/formatNumbers.js";
+import { fytBold } from "../../models/TextStyle.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const customTemp = path.join(__dirname, "../../temp");
@@ -9,14 +16,6 @@ const customTemp = path.join(__dirname, "../../temp");
 process.env.TMPDIR = customTemp;
 process.env.TEMP = customTemp;
 process.env.TMP = customTemp;
-
-import axios from "axios";
-import { exec } from "child_process";
-import { promisify } from "util";
-import fs from "fs";
-import crypto from "crypto";
-import formatter from "../../controllers/functions/formatNumbers.js";
-import { fytBold } from "../../models/TextStyle.js";
 
 const execAsync = promisify(exec);
 const tmp = customTemp;
@@ -92,20 +91,29 @@ async function descargarAArchivo(url, destPath) {
     throw new Error(`Error al descargar el archivo: ${response.statusText}`);
   }
 
-  const arrayBuffer = await response.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-  
-  if (fs.existsSync(destPath)) {
-    try { fs.unlinkSync(destPath); } catch {}
-  }
-  
-  fs.writeFileSync(destPath, buffer);
+  // Descarga optimizada haciendo streaming directo al archivo sin saturar la RAM con buffers gigantes
+  const fileStream = fs.createWriteStream(destPath);
+  await new Promise((resolve, reject) => {
+    const reader = response.body.getReader();
+    function pump() {
+      reader.read().then(({ done, value }) => {
+        if (done) {
+          fileStream.end();
+          resolve();
+          return;
+        }
+        fileStream.write(Buffer.from(value));
+        pump();
+      }).catch(reject);
+    }
+    pump();
+  });
 }
 
 async function processVideoFile(inputP, outP) {
-  // Comando limpio de una sola pasada, sin conflictos de moov atom y con audio/video totalmente normalizado
+  // Mantenemos escala de 1080p máximo para conservar nitidez y compresión eficiente en una pasada
   await execAsync(
-    `ffmpeg -y -i "${inputP}" -vf "scale='min(720,iw)':-2" -c:v libx264 -preset ultrafast -crf 28 -c:a aac -b:a 96k "${outP}"`,
+    `ffmpeg -y -i "${inputP}" -vf "scale='min(1080,iw)':-2" -c:v libx264 -preset ultrafast -crf 28 -c:a aac -b:a 96k "${outP}"`,
     { maxBuffer: 1024 * 1024 * 10 }
   );
 }
