@@ -127,7 +127,7 @@ export default {
               mimetype: "image/gif",
               caption: ` ${fytBold("Aqui tienes mi compa")}`,
             },
-            { quoted: quotedObject },
+            { quoted: message },
           );
         } else {
           const pngBuffer = await sharp(buffer).png().toBuffer();
@@ -137,7 +137,7 @@ export default {
               image: pngBuffer,
               caption: ` ${fytBold("Aqui tienes mi compa")}`,
             },
-            { quoted: quotedObject },
+            { quoted: message },
           );
         }
       } else if (target.imageMessage) {
@@ -147,7 +147,7 @@ export default {
             image: buffer,
             caption: ` ${fytBold("Aqui tienes mi compa")}`,
           },
-          { quoted: quotedObject },
+          { quoted: message },
         );
       } else if (
         target.documentMessage &&
@@ -160,7 +160,7 @@ export default {
             mimetype: "image/gif",
             caption: ` ${fytBold("Aqui tienes mi compa")}`,
           },
-          { quoted: quotedObject },
+          { quoted: message },
         );
       } else {
         throw new Error("Tipo de medio no soportado. Solo stickers o gifs.");

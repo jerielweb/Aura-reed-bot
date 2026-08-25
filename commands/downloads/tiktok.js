@@ -111,7 +111,6 @@ async function descargarAArchivo(url, destPath) {
 }
 
 async function processVideoFile(inputP, outP) {
-  // Mantenemos escala de 1080p máximo para conservar nitidez y compresión eficiente en una pasada
   await execAsync(
     `ffmpeg -y -i "${inputP}" -vf "scale='min(1920,iw)':-2" -c:v libx264 -preset ultrafast -crf 28 -c:a aac -b:a 128k "${outP}"`,
     { maxBuffer: 1024 * 1024 * 10 }
@@ -121,7 +120,7 @@ async function processVideoFile(inputP, outP) {
 const MAX_INPUT_MB = 500;
 
 export default {
-  name: ["tk", "tt", "tta", "tiktok", "tkmp4"],
+  name: ["tk", "tt", "ttv", "tiktok", "tkmp4"],
   category: "downloads",
   description: "Busca y descarga videos de TikTok.",
   
