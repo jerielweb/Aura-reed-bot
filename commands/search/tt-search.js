@@ -67,7 +67,7 @@ export default {
       try {
         console.log("[TikTok API] Intentando Delirius...");
         const res = await axios.get(
-          "https://api.delirius.store/search/tiktoksearch",
+          "https://api.delirius.online/search/tiktoksearch",
           {
             params: {
               query: query,

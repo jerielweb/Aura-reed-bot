@@ -1,34 +1,32 @@
 import { downloadMediaMessage } from "@whiskeysockets/baileys";
 import sharp from "sharp";
-import ffmpeg from "fluent-ffmpeg";
-import ffmpegPath from "ffmpeg-static";
-import ffprobePath from "@ffprobe-installer/ffprobe";
+import { exec } from "child_process";
+import { promisify } from "util";
+import ffmpegStatic from "ffmpeg-static";
 import fs from "fs";
 import os from "os";
 import path from "path";
 import { fytBold } from "../../models/TextStyle.js";
 import { ffmpegSemaphore } from "../../controllers/downloadUtils.js";
 
-ffmpeg.setFfmpegPath(ffmpegPath);
-ffmpeg.setFfprobePath(ffprobePath.path);
+const execAsync = promisify(exec);
+
+const customTemp = path.join(path.dirname(new URL(import.meta.url).pathname), "../../temp");
+if (!fs.existsSync(customTemp)) fs.mkdirSync(customTemp, { recursive: true });
 
 async function convertWebpToGif(buffer) {
   const tempId = Date.now();
-  const tempIn = path.join(os.tmpdir(), `aura-webp-${tempId}.webp`);
-  const tempOut = path.join(os.tmpdir(), `aura-webp-${tempId}.gif`);
+  const tempIn = path.join(customTemp, `aura-webp-${tempId}.webp`);
+  const tempOut = path.join(customTemp, `aura-webp-${tempId}.gif`);
 
   await fs.promises.writeFile(tempIn, buffer);
 
   await ffmpegSemaphore.run(
     () =>
-      new Promise((resolve, reject) => {
-        ffmpeg(tempIn)
-          .outputOptions(["-y", "-filter_complex", "fps=15", "-loop", "0"])
-          .toFormat("gif")
-          .save(tempOut)
-          .on("error", reject)
-          .on("end", resolve);
-      }),
+      execAsync(
+        `"${ffmpegStatic}" -y -i "${tempIn}" -filter_complex "fps=15" -loop 0 -f gif "${tempOut}"`,
+        { maxBuffer: 1024 * 1024 * 10 }
+      )
   );
 
   const gifBuffer = await fs.promises.readFile(tempOut);

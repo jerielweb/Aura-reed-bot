@@ -1,12 +1,15 @@
 import axios from "axios";
 import fs from "fs";
 import path from "path";
-import os from "os";
-import ffmpeg from "fluent-ffmpeg";
-import ffmpegPath from "ffmpeg-static";
+import { exec } from "child_process";
+import { promisify } from "util";
+import ffmpegStatic from "ffmpeg-static";
 import { ffmpegSemaphore } from "../../controllers/downloadUtils.js";
 
-ffmpeg.setFfmpegPath(ffmpegPath);
+const execAsync = promisify(exec);
+
+const customTemp = path.join(path.dirname(new URL(import.meta.url).pathname), "../../temp");
+if (!fs.existsSync(customTemp)) fs.mkdirSync(customTemp, { recursive: true });
 
 function buildUrl(base, path) {
   return `${base.replace(/\/+$|\s+$/, "")}/${path.replace(/^\/+/, "")}`;
@@ -153,31 +156,19 @@ export default {
     try {
       const stickerBuffer = await raceStickerApis(apis);
       const tempId = Date.now();
-      const inputPath = path.join(os.tmpdir(), `aura-brat-input-${tempId}`);
+      const inputPath = path.join(customTemp, `aura-brat-input-${tempId}`);
       const outputPath = path.join(
-        os.tmpdir(),
+        customTemp,
         `aura-brat-output-${tempId}.webp`,
       );
 
       await fs.promises.writeFile(inputPath, stickerBuffer);
 
-      await ffmpegSemaphore.run(
-        () =>
-          new Promise((resolve, reject) => {
-            ffmpeg(inputPath)
-              .outputOptions([
-                "-vcodec libwebp",
-                "-vf scale=512:512:force_original_aspect_ratio=decrease,fps=15",
-                "-loop 0",
-                "-preset default",
-                "-an",
-                "-vsync 0",
-              ])
-              .toFormat("webp")
-              .save(outputPath)
-              .on("end", resolve)
-              .on("error", reject);
-          }),
+      const filtroVideo = `format=rgba,scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(512-iw)/2:(512-ih)/2:color=0x000000@0,fps=15`;
+      const cmd = `"${ffmpegStatic}" -y -i "${inputPath}" -vcodec libwebp -vf "${filtroVideo}" -loop 0 -preset default -an -vsync 0 -f webp "${outputPath}"`;
+
+      await ffmpegSemaphore.run(() =>
+        execAsync(cmd, { maxBuffer: 1024 * 1024 * 10 })
       );
 
       const webpStickerBuffer = await fs.promises.readFile(outputPath);

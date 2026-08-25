@@ -6,12 +6,10 @@ const badWordsData = JSON.parse(
 );
 
 for (const level of Object.values(badWordsData.levels)) {
-  level.normalizedWords = level.words
-    .filter((w) => w.trim().length > 2)
-    .map((w) => ({
-      full: normalizeText(w),
-      noVowels: normalizeText(w, true),
-    }));
+  level.normalizedWords = level.words.map((w) => ({
+    full: normalizeText(w),
+    noVowels: normalizeText(w, true),
+  }));
 }
 
 export default {
@@ -122,29 +120,17 @@ export default {
           normalizedText.includes(wordObj.full) ||
           reversedText.includes(wordObj.full)
         ) {
-          if (
-            wordObj.full.length <= 3 &&
-            normalizedText.length > wordObj.full.length + 2
-          )
-            continue;
-
           console.log(
             `[ANTITOXIC] Detectado: "${wordObj.full}" en "${text}" (Nivel: ${level.reason})`,
           );
-          await handleToxic(socket, m, level, db, saveDB);
+          await handleToxic(socket, m, level, db, saveDB, text);
           return;
         }
-        if (
-          wordObj.noVowels.length >= 4 &&
-          noVowelsText.includes(wordObj.noVowels)
-        ) {
-          if (wordObj.noVowels.length === 4 && noVowelsText.length > 6)
-            continue;
-
+        if (noVowelsText.includes(wordObj.noVowels)) {
           console.log(
             `[ANTITOXIC] Detectado Sigla: "${wordObj.noVowels}" en "${text}" (Nivel: ${level.reason})`,
           );
-          await handleToxic(socket, m, level, db, saveDB);
+          await handleToxic(socket, m, level, db, saveDB, text);
           return;
         }
       }
@@ -190,11 +176,10 @@ function normalizeText(text, removeVowels = false) {
   return normalized;
 }
 
-async function handleToxic(socket, m, level, db, saveDB) {
+async function handleToxic(socket, m, level, db, saveDB, userMessage) {
   const remoteJid = m.key.remoteJid;
   const user = m.key.participant || remoteJid;
   const reason = level.reason;
-  const userMessage = text; // Captura el mensaje que envió el usuario
 
   try {
     await socket.sendMessage(remoteJid, { delete: m.key });
@@ -223,12 +208,10 @@ async function handleToxic(socket, m, level, db, saveDB) {
   text += `┃ 💬 Dijo: "${userMessage}"\n`;
   text += `┃ 🛡️ Admin: 𝐒𝐘𝐒𝐓𝐄𝐌 ⚡\n`;
   text += `┃ 📌 Acción: Advertencia agregada\n`;
-  text += `┃ 📊 Warns: [ ${count}/${limit} ]\n`;
   text += `┃ 📝 Razón: ${reason}\n`;
   text += `┃ ⏰ Fecha: ${date}\n\n`;
   text += `┣━━━━━━━━━━━━━━━━⬣\n\n`;
-  text += `┃ ⚠️ Se ha añadido una\n`;
-  text += `┃ ⚠️ advertencia al usuario.\n`;
+  text += `┃ ⚠️ Ten cuidado con lo que dices\n`;
   text += `┣━━━━━━━━━━━━━━━━⬣\n\n`;
   text += `┃ ❗ El mensaje infractor\n`;
   text += `┃ ❗ ha sido eliminado.\n\n`;

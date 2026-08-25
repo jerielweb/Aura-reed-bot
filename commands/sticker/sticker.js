@@ -1,15 +1,16 @@
 import { downloadMediaMessage } from "@whiskeysockets/baileys";
 import { fytBold } from "../../models/TextStyle.js";
-import ffmpeg from "fluent-ffmpeg";
-import ffmpegPath from "ffmpeg-static";
-import ffprobePath from "@ffprobe-installer/ffprobe";
+import { exec } from "child_process";
+import { promisify } from "util";
+import ffmpegStatic from "ffmpeg-static";
 import fs from "fs";
 import path from "path";
-import os from "os";
 import { ffmpegSemaphore } from "../../controllers/downloadUtils.js";
 
-ffmpeg.setFfmpegPath(ffmpegPath);
-ffmpeg.setFfprobePath(ffprobePath.path);
+const execAsync = promisify(exec);
+
+const customTemp = path.join(path.dirname(new URL(import.meta.url).pathname), "../../temp");
+if (!fs.existsSync(customTemp)) fs.mkdirSync(customTemp, { recursive: true });
 
 // Función para desempaquetar el mensaje multimedia
 function unwrapMessage(msg) {
@@ -34,61 +35,50 @@ function unwrapMessage(msg) {
   return null;
 }
 
-// Convertidor con parámetros para FFmpeg (solo imágenes, videos o GIFs)
+// Convertidor usando ffmpeg-static con comandos directos vía execAsync
 async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
-  return new Promise((resolve, reject) => {
-    let fps = 60;
-    let quality = 90;
-    let duration = 20;
-    let scale = 512;
+  let fps = 60;
+  let quality = 90;
+  let duration = 20;
+  let scale = 512;
 
-    if (attempt === 2) {
-      fps = 30;
-      quality = 60;
-      duration = 10;
-      scale = 512;
-    } else if (attempt === 3) {
-      fps = 15;
-      quality = 40;
-      duration = 8;
-      scale = 384;
-    } else if (attempt >= 4) {
-      fps = 10;
-      quality = 30;
-      duration = 5;
-      scale = 320;
-    }
+  if (attempt === 2) {
+    fps = 30;
+    quality = 60;
+    duration = 10;
+    scale = 512;
+  } else if (attempt === 3) {
+    fps = 15;
+    quality = 40;
+    duration = 8;
+    scale = 384;
+  } else if (attempt >= 4) {
+    fps = 10;
+    quality = 30;
+    duration = 5;
+    scale = 320;
+  }
 
-    const options = ["-an", "-vsync", "0"];
+  let optionsStr = `-an -vsync 0`;
 
-    if (isVideo) {
-      options.push(
-        "-loop", "0",
-        "-t", String(duration),
-        "-q:v", String(quality),
-        "-preset", "default",
-        "-compression_level", "6"
-      );
-    } else {
-      options.push("-q:v", "80");
-    }
+  if (isVideo) {
+    optionsStr += ` -loop 0 -t ${duration} -q:v ${quality} -preset default -compression_level 6`;
+  } else {
+    optionsStr += ` -q:v 80`;
+  }
 
-    const filtroVideo = isVideo
-      ? `format=rgba,scale=${scale}:${scale}:force_original_aspect_ratio=decrease,fps=${fps},pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x000000@0`
-      : `format=rgba,scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x000000@0`;
+  // Filtro inteligente: Mantiene el tamaño proporcional exacto (sin estirar ni deformar) 
+  // respetando los límites de ${scale}x${scale}, y rellena el espacio sobrante del cuadro de 512x512 
+  // con un fondo completamente transparente (0x000000@0).
+  const filtroVideo = isVideo
+    ? `format=rgba,scale=${scale}:${scale}:force_original_aspect_ratio=decrease,fps=${fps},pad=512:512:(512-iw)/2:(512-ih)/2:color=0x000000@0`
+    : `format=rgba,scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(512-iw)/2:(512-ih)/2:color=0x000000@0`;
 
-    ffmpeg(inputPath)
-      .outputOptions(options)
-      .videoFilters(filtroVideo)
-      .toFormat("webp")
-      .save(outputPath)
-      .on("end", resolve)
-      .on("error", (err) => {
-        console.error("[FFmpeg Error Details]:", err);
-        reject(err);
-      });
-  });
+  const cmd = `"${ffmpegStatic}" -y -i "${inputPath}" ${optionsStr} -vf "${filtroVideo}" -f webp "${outputPath}"`;
+
+  await execAsync(cmd, { maxBuffer: 1024 * 1024 * 10 });
 }
+
 
 export default {
   name: ["s", "sticker", "stiker"],
@@ -118,9 +108,9 @@ export default {
     });
 
     const tempId = Date.now();
-    const tempInPath = path.join(os.tmpdir(), `aura-sticker-in-${tempId}`);
+    const tempInPath = path.join(customTemp, `aura-sticker-in-${tempId}`);
     const tempOutPath = path.join(
-      os.tmpdir(),
+      customTemp,
       `aura-sticker-out-${tempId}.webp`,
     );
 
