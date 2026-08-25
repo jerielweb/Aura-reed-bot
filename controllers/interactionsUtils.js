@@ -162,6 +162,26 @@ export async function getReactionUrl(type) {
       console.log(`[Reactions] Ganador: Alyacore`);
       return url;
     })(),
+    // API 3 Delirius
+    (async () => {
+      const res = await axios.get(
+        `https://api.delirius.online/reactions/${reactionType}`,
+        {
+          timeout: 10000,
+          headers: {
+            "User-Agent":
+              "AuraReedBot/2.2.0 (https://github.com/this-xys/baileys)",
+          },
+        },
+      );
+      const url = res.data?.data?.url;
+      if (!url || res.data?.status !== true) {
+        throw new Error("Delirius no devolvió URL");
+      }
+      console.log(`[Reactions] Ganador: Delirius`);
+      return url;
+    })()
+
   ];
 
   try {

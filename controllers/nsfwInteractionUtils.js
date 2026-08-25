@@ -52,7 +52,7 @@ export const ALLOWED_NSFW_REACTIONS = new Set([
 ]);
 
 /**
- * Obtiene la URL de la interacción NSFW desde AlyaCore.
+ * Obtiene la URL de la interacción NSFW desde AlyaCore o Delirius (en paralelo).
  * @param {string} type Tipo de interacción NSFW (spank, fuck, blowjob, etc.)
  * @returns {Promise<string>} URL del gif/video
  */
@@ -62,25 +62,57 @@ export async function getNsfwReactionUrl(type) {
     throw new Error(`La interacción NSFW "${type}" no está soportada.`);
   }
 
-  const key = global.Apis?.apiAiya?.apikey || "oboe";
-  const res = await axios.get(
-    `https://api.alyacore.xyz/nsfw/interaction?inter=${reactionType}&key=${key}`,
-    {
-      timeout: 10000,
-      headers: {
-        "User-Agent":
-          "AuraReedBot/2.2.0 (https://github.com/this-xys/baileys)",
-      },
-    },
-  );
+  const apis = [
+    // API 1: AlyaCore
+    (async () => {
+      const key = global.Apis?.apiAiya?.apikey || "oboe";
+      const res = await axios.get(
+        `https://api.alyacore.xyz/nsfw/interaction?inter=${reactionType}&key=${key}`,
+        {
+          timeout: 10000,
+          headers: {
+            "User-Agent":
+              "AuraReedBot/2.2.0 (https://github.com/this-xys/baileys)",
+          },
+        },
+      );
+      const url = res.data?.result;
+      if (!url || res.data?.status !== true) {
+        throw new Error("AlyaCore no devolvió URL válida");
+      }
+      console.log(`[NSFW Reactions] Ganador: AlyaCore (${reactionType})`);
+      return url;
+    })(),
+    // API 2: Delirius
+    (async () => {
+      const res = await axios.get(
+        `https://api.delirius.online/nsfw/${reactionType}`,
+        {
+          timeout: 10000,
+          headers: {
+            "User-Agent":
+              "AuraReedBot/2.2.0 (https://github.com/this-xys/baileys)",
+          },
+        },
+      );
+      const url = res.data?.data?.url;
+      if (!url || res.data?.status !== true) {
+        throw new Error("Delirius no devolvió URL válida");
+      }
+      console.log(`[NSFW Reactions] Ganador: Delirius (${reactionType})`);
+      return url;
+    })(),
+  ];
 
-  const url = res.data?.result;
-  if (!url || res.data?.status !== true) {
-    throw new Error(res.data?.message || "AlyaCore no devolvió una URL válida");
+  try {
+    return await Promise.any(apis);
+  } catch (e) {
+    console.error(
+      `[NSFW Reactions] Todas las APIs fallaron para "${reactionType}":`,
+      e.message,
+    );
+    throw new Error("No se pudo obtener la reacción NSFW. Intenta de nuevo.");
   }
-
-  console.log(`[NSFW Reactions] Éxito: AlyaCore (${reactionType})`);
-  return url;
 }
 
 /**
