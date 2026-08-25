@@ -1,7 +1,7 @@
 import { fytBold } from "./../../models/TextStyle.js";
 
 export default {
-  name: ["infogroup", "infogp", "ingp"],
+  name: ["infogroup", "infogp", "ingp", "gp"],
   category: "group",
   description: "Muestra la información detallada del grupo.",
   execute: async (socket, message, args, { groupMetadata }) => {
