@@ -31,7 +31,7 @@ global.Apis = {
   },
   deliriusApi: {
     apikey: null,
-    url: "https://api.delirius.store/",
+    url: "https://api.delirius.online/",
   },
 };
 
