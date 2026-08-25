@@ -9,7 +9,7 @@ import { ffmpegSemaphore } from "../../controllers/downloadUtils.js";
 
 const execAsync = promisify(exec);
 
-const customTemp = path.join(path.dirname(new URL(import.meta.url).pathname), "../../temp");
+const customTemp = path.join(path.dirname(new URL(import.meta.url).pathname), "../../tmp");
 if (!fs.existsSync(customTemp)) fs.mkdirSync(customTemp, { recursive: true });
 
 // Función para desempaquetar el mensaje multimedia
