@@ -10,7 +10,7 @@ import formatter from "../../controllers/functions/formatNumbers.js";
 import { fytBold } from "../../models/TextStyle.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const customTemp = path.join(__dirname, "../../temp");
+const customTemp = path.join(__dirname, "../../tmp");
 
 // Forzamos al sistema de Node a usar la carpeta local y evitar el /tmp del sistema
 process.env.TMPDIR = customTemp;
