@@ -35,7 +35,7 @@ async function DL_TIKTOK(input) {
 
     if (!targetUrl) {
       const APIKEY = global.Apis.apiAiya.apikey
-      const alyaUrl = `https://api.alyacore.xyz/search/tiktok?query=${encodeURIComponent(input)}&key=oboe`;
+      const alyaUrl = `https://api.alyacore.xyz/search/tiktok?query=${encodeURIComponent(input)}&key=${APIKEY}`;
       const { data: alyaData } = await axios.get(alyaUrl, { timeout: 15000 });
 
       if (alyaData.status && Array.isArray(alyaData.data) && alyaData.data.length > 0) {
