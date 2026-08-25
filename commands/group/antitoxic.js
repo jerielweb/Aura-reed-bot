@@ -105,6 +105,8 @@ export default {
     if (!remoteJid.endsWith("@g.us") || !db.groups[remoteJid]?.antitoxic)
       return;
 
+    if (m.key.fromMe || m.key.participant === socket.user?.id) return;
+
     const prefix = db.groups?.[remoteJid]?.prefix || db.prefix;
     if (!text || text.startsWith(prefix)) return;
 
@@ -140,32 +142,10 @@ export default {
 
 function normalizeText(text, removeVowels = false) {
   if (!text) return "";
-  const charMap = {
-    4: "a",
-    "@": "a",
-    3: "e",
-    1: "i",
-    "!": "i",
-    0: "o",
-    7: "t",
-    5: "s",
-    $: "s",
-    8: "b",
-    9: "g",
-    "|": "l",
-    2: "z",
-  };
   let normalized = text
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .split("")
-    .map((char) => charMap[char] || char)
-    .join("")
-    .replace(/h/g, "")
-    .replace(/[v]/g, "b")
-    .replace(/[zc]/g, "s")
-    .replace(/[k]/g, "g")
     .replace(/[^a-z0-9]/g, "")
     .replace(/\s+/g, "");
 
@@ -203,19 +183,21 @@ async function handleToxic(socket, m, level, db, saveDB, userMessage) {
   const count = db.groups[remoteJid].warns[user].length;
   const botJid = socket.user.id.split(":")[0] + "@s.whatsapp.net";
 
-  let text = `╭〔 ⚠️ ${fytBold("ANTI-TOXIC SYSTEM")} 〕⬣\n`;
-  text += `┃ 👤 Usuario: @${user.split("@")[0]}\n`;
-  text += `┃ 💬 Dijo: "${userMessage}"\n`;
-  text += `┃ 🛡️ Admin: 𝐒𝐘𝐒𝐓𝐄𝐌 ⚡\n`;
-  text += `┃ 📌 Acción: Advertencia agregada\n`;
-  text += `┃ 📝 Razón: ${reason}\n`;
-  text += `┃ ⏰ Fecha: ${date}\n\n`;
-  text += `┣━━━━━━━━━━━━━━━━⬣\n\n`;
-  text += `┃ ⚠️ Ten cuidado con lo que dices\n`;
-  text += `┣━━━━━━━━━━━━━━━━⬣\n\n`;
-  text += `┃ ❗ El mensaje infractor\n`;
-  text += `┃ ❗ ha sido eliminado.\n\n`;
-  text += `╰〔 ${fytBold("SYSTEM ACTIVE")} 〕⬣`;
+  let responseText = `╭〔 ⚠️ ${fytBold("ANTI-TOXIC SYSTEM")} 〕⬣\n`;
+  responseText += `┃ 👤 Usuario: @${user.split("@")[0]}\n`;
+  responseText += `┃ 💬 Dijo: "${userMessage || ""}"\n`;
+  responseText += `┃ 🛡️ Admin: 𝐒𝐘𝐒𝐓𝐄𝐌 ⚡\n`;
+  responseText += `┃ 📌 Acción: Advertencia agregada\n`;
+  responseText += `┃ 📊 Warns: [ ${count}/${limit} ]\n`;
+  responseText += `┃ 📝 Razón: ${reason}\n`;
+  responseText += `┃ ⏰ Fecha: ${date}\n\n`;
+  responseText += `┣━━━━━━━━━━━━━━━━⬣\n\n`;
+  responseText += `┃ ⚠️ Se ha añadido una\n`;
+  responseText += `┃ ⚠️ advertencia al usuario.\n`;
+  responseText += `┣━━━━━━━━━━━━━━━━⬣\n\n`;
+  responseText += `┃ ❗ El mensaje infractor\n`;
+  responseText += `┃ ❗ ha sido eliminado.\n\n`;
+  responseText += `╰〔 ${fytBold("SYSTEM ACTIVE")} 〕⬣`;
 
-  await socket.sendMessage(remoteJid, { text, mentions: [user, botJid] });
+  await socket.sendMessage(remoteJid, { text: responseText, mentions: [user, botJid] });
 }

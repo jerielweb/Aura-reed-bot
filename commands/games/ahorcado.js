@@ -1,7 +1,7 @@
 import { jidNormalizedUser } from "@whiskeysockets/baileys";
 import { fytBold } from "../../models/TextStyle.js";
 import { createCanvas } from "canvas";
-import { getGroupUser } from "../../models/groupDb.js";
+import { getDBSync } from "../../models/db.js";
 import { activeHangmanGames, gameKey } from "../../models/gameState.js";
 import { hangmanWords } from "../../controllers/gameConfig.js";
 
@@ -124,12 +124,10 @@ async function sendGameState(socket, jid, game, statusMsg, quotedMsg, prefix, is
   const triesLeft = game.maxMistakes - game.mistakes;
   const hearts = "❤️".repeat(triesLeft) + "🖤".repeat(game.mistakes);
 
-  let text = `╭〔 🎮 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
-  text += `┃ 🔤 𝐉𝐔𝐄𝐆𝐎 𝐀𝐇𝐎𝐑𝐂𝐀𝐃𝐎\n`;
-  text += `╰━━━━━━━━━━━━⬣\n\n`;
+  let text = `╭〔 🎮 ${fytBold("AHORCADO")} 〕⬣\n`;
   text += `┃ 📌 ${statusMsg}\n`;
   text += `┃ 🩸 ${fytBold("Vidas")} › ${hearts}\n`;
-
+  text += `┣━━━━━━━━━━━━⬣\n\n`;
   if (game.guessedLetters.size > 0 && !isOver) {
     const usedLetters = Array.from(game.guessedLetters).map((l) => l.toUpperCase()).join(", ");
     text += `┃ 🔤 ${fytBold("Letras usadas")} › ${usedLetters}\n`;
@@ -138,7 +136,7 @@ async function sendGameState(socket, jid, game, statusMsg, quotedMsg, prefix, is
   text += `\n┣━━━━━━━━━━━━⬣\n\n`;
 
   if (!isOver) {
-    text += `┃ > Responde a este mensaje con una letra o usa *${prefix}ahorcado [letra]*.\n`;
+    text += `┃ > Responde a este mensaje con una letra.\n`;
     text += `┃ > Usa *salir* para rendirte.\n\n`;
   }
 
@@ -225,16 +223,17 @@ export async function processHangmanGuess(socket, message, rawInput, prefix, db,
       message.key.participant || message.key.remoteJid
     );
 
-    const user = getGroupUser(
-      db,
-      remoteJid,
-      participantJid,
-      { xp: 0 }
-    );
+    // Otorgar XP al sistema global de usuarios
+    const globalDb = getDBSync();
+    if (!globalDb.users) globalDb.users = {};
+    if (!globalDb.users[participantJid]) {
+      globalDb.users[participantJid] = { xp: 0, level: 1 };
+    }
 
     let earnedXp = 200;
+    const user = globalDb.users[participantJid];
     user.xp = (user.xp || 0) + earnedXp;
-    saveDB(db);
+    user.level = Math.floor(user.xp / 150) + 1;
 
     await sendGameState(socket, remoteJid, game, `¡Felicidades! Has ganado el juego. 🎉\n┃ 🎁 Recompensa: +${earnedXp} XP`, message, prefix, true);
   } else if (isLose) {
@@ -254,9 +253,9 @@ export async function processHangmanGuess(socket, message, rawInput, prefix, db,
 // ---------- Comando ----------
 
 export default {
-  name: ["ahorcado", "juego-ahorcado", "hangman"],
+  name: ["ahorcado", "hangman"],
   category: "games",
-  description: "Juega al juego del ahorcado con tablero interactivo.",
+  description: "Juega ahorcado",
   execute: async (socket, message, args, { prefix, db, saveDB }) => {
     const remoteJid = message.key.remoteJid;
     const key = gameKey(socket, remoteJid);
@@ -288,6 +287,6 @@ export default {
       return await processHangmanGuess(socket, message, input, prefix, db, saveDB);
     }
 
-    return sendGameState(socket, remoteJid, game, "¡Juego iniciado! Escribe una letra o responde a la imagen.", message, prefix);
+    return sendGameState(socket, remoteJid, game, "¡Juego iniciado!", message, prefix);
   },
 };
