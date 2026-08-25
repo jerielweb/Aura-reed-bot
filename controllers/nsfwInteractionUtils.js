@@ -2,8 +2,9 @@ import axios from "axios";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-import ffmpeg from "fluent-ffmpeg";
-import ffmpegPath from "ffmpeg-static";
+import { exec } from "child_process";
+import { promisify } from "util";
+import ffmpegStatic from "ffmpeg-static";
 import {
   downloadStreamToFile,
   ensureDirectory,
@@ -11,7 +12,7 @@ import {
 } from "./downloadUtils.js";
 import chalk from "chalk";
 
-ffmpeg.setFfmpegPath(ffmpegPath);
+const execAsync = promisify(exec);
 
 const tempDir = path.resolve("./tmp");
 ensureDirectory(tempDir);
@@ -138,7 +139,7 @@ export async function getNsfwReactionPath(videoUrl) {
 }
 
 /**
- * Convierte cualquier GIF o imagen animada a MP4 para compatibilidad con WhatsApp.
+ * Convierte cualquier GIF o imagen animada a MP4 para compatibilidad con WhatsApp usando ffmpeg-static con execAsync.
  * @param {string} inputPath Ruta del archivo de entrada
  * @returns {Promise<string>} Ruta del MP4 resultante
  */
@@ -160,21 +161,10 @@ async function ensureMp4(inputPath) {
   console.log(chalk.gray(`[NSFW FFmpeg] Convirtiendo ${ext} → MP4 ...`));
   await ffmpegSemaphore.run(
     () =>
-      new Promise((resolve, reject) => {
-        ffmpeg(inputPath)
-          .videoFilters("scale=trunc(iw/2)*2:trunc(ih/2)*2")
-          .outputOptions([
-            "-c:v libx264",
-            "-preset ultrafast",
-            "-crf 23",
-            "-pix_fmt yuv420p",
-            "-an",
-          ])
-          .toFormat("mp4")
-          .on("end", resolve)
-          .on("error", reject)
-          .save(mp4Path);
-      }),
+      execAsync(
+        `"${ffmpegStatic}" -y -i "${inputPath}" -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -an "${mp4Path}"`,
+        { maxBuffer: 1024 * 1024 * 10 }
+      )
   );
 
   return mp4Path;

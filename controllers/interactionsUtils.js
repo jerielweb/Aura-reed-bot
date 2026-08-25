@@ -2,8 +2,9 @@ import axios from "axios";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
-import ffmpeg from "fluent-ffmpeg";
-import ffmpegPath from "ffmpeg-static";
+import { exec } from "child_process";
+import { promisify } from "util";
+import ffmpegStatic from "ffmpeg-static";
 import {
   downloadStreamToFile,
   ensureDirectory,
@@ -11,7 +12,7 @@ import {
 } from "./downloadUtils.js";
 import chalk from "chalk";
 
-ffmpeg.setFfmpegPath(ffmpegPath);
+const execAsync = promisify(exec);
 
 const tempDir = path.resolve("./tmp");
 ensureDirectory(tempDir);
@@ -218,7 +219,7 @@ export async function getReactionPath(videoUrl) {
 }
 
 /**
- * Convierte cualquier gif o imagen animada a un MP4 real compatible con WhatsApp usando FFmpeg.
+ * Convierte cualquier gif o imagen animada a un MP4 real compatible con WhatsApp usando FFmpeg con comandos directos.
  * Si ya existe el MP4 cacheado, lo retorna al instante.
  * @param {string} inputPath Ruta del archivo de entrada
  * @returns {Promise<string>} Ruta del MP4 resultante
@@ -240,25 +241,14 @@ async function ensureMp4(inputPath) {
     return mp4Path;
   }
 
-  // Convertir a MP4 con FFmpeg (compatible con WhatsApp: H.264 + YUV420p)
+  // Convertir a MP4 con FFmpeg estático mediante execAsync (compatible con WhatsApp: H.264 + YUV420p)
   console.log(chalk.gray(`[Reactions FFmpeg] Convirtiendo ${ext} → MP4 ...`));
   await ffmpegSemaphore.run(
     () =>
-      new Promise((resolve, reject) => {
-        ffmpeg(inputPath)
-          .videoFilters("scale=trunc(iw/2)*2:trunc(ih/2)*2")
-          .outputOptions([
-            "-c:v libx264",
-            "-preset ultrafast", // Máxima velocidad de codificación
-            "-crf 23", // Buena calidad
-            "-pix_fmt yuv420p", // Perfil compatible con móviles
-            "-an", // Sin audio para GIFs
-          ])
-          .toFormat("mp4")
-          .on("end", resolve)
-          .on("error", reject)
-          .save(mp4Path);
-      }),
+      execAsync(
+        `"${ffmpegStatic}" -y -i "${inputPath}" -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -an "${mp4Path}"`,
+        { maxBuffer: 1024 * 1024 * 10 }
+      )
   );
 
   return mp4Path;
