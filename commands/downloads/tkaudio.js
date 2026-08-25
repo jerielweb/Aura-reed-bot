@@ -175,9 +175,8 @@ export default {
       caption += `┃ > ${fytBold("Comentarios")} › ${result.comments}\n`;
       caption += `┃ > ${fytBold("Favoritos")} › ${result.collect}\n`;
       caption += `┃ > ${fytBold("Compartidos")} › ${result.shares}\n`;
-      caption += `┃ > ${fytBold("Url")} › ${result.tk_url}\n`
       caption += `┣━━━━━━━━━━━━⬣\n`;
-      caption += `┃ > ⌛ Conviendo Audio...\n`;
+      caption += `┃ > ${fytBold("Url")} › ${result.tk_url}\n`
       caption += `╰〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕⬣`;
 
       await socket.sendMessage(
