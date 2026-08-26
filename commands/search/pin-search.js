@@ -89,7 +89,8 @@ export default {
         throw new Error("Sin resultados");
       }
 
-      const items = res.data.slice(0, 10);
+      // Limitado a 5 para mantener el álbum estable sin sobrecargar el servidor
+      const items = res.data.slice(0, 5);
       
       let captionText = `╭━━〔 ${fytBold("PINTEREST SEARCH")} 〕━━⬣\n`;
       captionText += `┃ 🔍 Pin: ${query}\n`;
@@ -125,14 +126,20 @@ export default {
         react: { text: "✅", key: message.key },
       });
     } catch (error) {
-      console.error("Error en Pinterest API:", error);
+      console.error("Error en Pinterest API:", error.message);
       await socket.sendMessage(remoteJid, {
         react: { text: "❌", key: message.key },
       });
+      
+      const isRateLimit = error.message.includes("429") || error.message.includes("rate-overlimit");
+      const errorMsg = isRateLimit 
+        ? "El servicio de Pinterest está saturado temporalmente." 
+        : `No se encontraron resultados para "${query}".`;
+
       await socket.sendMessage(
         remoteJid,
         {
-          text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("SIN RESULTADOS")}\n╰━━━━━━━━━━━━⬣\n\n┃ > No se encontraron resultados para "${query}".\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
+          text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("ERROR")} \n╰━━━━━━━━━━━━⬣\n\n┃ > ${errorMsg}\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
         },
         { quoted: message },
       );
