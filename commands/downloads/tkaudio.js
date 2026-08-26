@@ -185,7 +185,6 @@ export default {
         remoteJid,
         {
           image: { url: result.cover },
-          mimetype: "image/jpg",
           caption: caption
         },
         { quoted: message },
