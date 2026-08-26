@@ -1,4 +1,4 @@
-import { search, info, lyrics, related, download, extractVideoId } from './youtube-downloader-mp3-mp4.js'; // Ajusta si tu archivo tiene otro nombre
+import { search, info, lyrics, related, download } from './youtube-downloader-mp3-mp4.js';
 
 async function runTests() {
   console.log("🎵 Iniciando pruebas del módulo de YouTube Music...\n");
