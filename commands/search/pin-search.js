@@ -90,7 +90,7 @@ export default {
       }
 
       // Limitado a 5 para mantener el álbum estable sin sobrecargar el servidor
-      const items = res.data.slice(0, 5);
+      const items = res.data.slice(0, 10);
       
       let captionText = `╭━━〔 ${fytBold("PINTEREST SEARCH")} 〕━━⬣\n`;
       captionText += `┃ 🔍 Pin: ${query}\n`;
