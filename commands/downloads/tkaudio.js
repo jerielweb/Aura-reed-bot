@@ -183,7 +183,7 @@ export default {
       await socket.sendMessage(
         remoteJid,
         {
-          image: { url: cover },
+          image: { url: result.cover },
           mimetype: "image/jpg",
           caption: caption
         },
