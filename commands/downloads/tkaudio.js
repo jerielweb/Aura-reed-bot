@@ -62,6 +62,7 @@ async function DL_TIKTOK_AUDIO(input) {
       const r = data.data;
       return {
         video_dl: r.play,
+        cover: r.cover
         title: r.title || "Audio de TikTok",
         authorNick: r.author?.nickname || 'Desconocido',
         likes: formatter(r.digg_count || 0),
@@ -119,7 +120,7 @@ async function processAudioFile(inputP, outP) {
 const MAX_INPUT_MB = 500;
 
 export default {
-  name: ["tka", "ttaudio", "tkmusic", "tiktokaudio"],
+  name: ["tka", "ttaudio", "tkmusic", "tiktokaudio", "tta"],
   category: "downloads",
   description: "Descarga el audio de un video de TikTok manteniendo metadatos y formato de audio.",
   
@@ -178,7 +179,16 @@ export default {
       caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ > ${fytBold("Url")} › ${result.tk_url}\n`
       caption += `╰〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕⬣`;
-
+      
+      await socket.sendMessage(
+        remoteJid,
+        {
+          image: { url: cover },
+          mimetype: "image/jpg",
+          caption: caption
+        },
+        { quoted: message },
+      );
       await socket.sendMessage(
         remoteJid,
         {
