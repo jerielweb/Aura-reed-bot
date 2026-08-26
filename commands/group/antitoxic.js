@@ -8,7 +8,6 @@ const badWordsData = JSON.parse(
 for (const level of Object.values(badWordsData.levels)) {
   level.normalizedWords = level.words.map((w) => ({
     full: normalizeText(w),
-    noVowels: normalizeText(w, true),
   }));
 }
 
@@ -114,7 +113,6 @@ export default {
 
     const normalizedText = normalizeText(text);
     const reversedText = normalizedText.split("").reverse().join("");
-    const noVowelsText = normalizeText(text, true);
 
     for (const level of Object.values(badWordsData.levels)) {
       for (const wordObj of level.normalizedWords) {
@@ -128,19 +126,12 @@ export default {
           await handleToxic(socket, m, level, db, saveDB, text);
           return;
         }
-        if (noVowelsText.includes(wordObj.noVowels)) {
-          console.log(
-            `[ANTITOXIC] Detectado Sigla: "${wordObj.noVowels}" en "${text}" (Nivel: ${level.reason})`,
-          );
-          await handleToxic(socket, m, level, db, saveDB, text);
-          return;
-        }
       }
     }
   },
 };
 
-function normalizeText(text, removeVowels = false) {
+function normalizeText(text) {
   if (!text) return "";
   let normalized = text
     .toLowerCase()
@@ -148,10 +139,6 @@ function normalizeText(text, removeVowels = false) {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]/g, "")
     .replace(/\s+/g, "");
-
-  if (removeVowels) {
-    normalized = normalized.replace(/[aeiou]/g, "");
-  }
 
   return normalized;
 }
