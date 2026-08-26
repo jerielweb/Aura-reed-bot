@@ -6,9 +6,7 @@ const badWordsData = JSON.parse(
 );
 
 for (const level of Object.values(badWordsData.levels)) {
-  level.normalizedWords = level.words.map((w) => ({
-    full: normalizeText(w),
-  }));
+  level.rawWords = level.words.map((w) => w.toLowerCase());
 }
 
 export default {
@@ -72,7 +70,7 @@ export default {
       saveDB(db);
 
       let text = `╭〔 ❌ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
-      text += `┃ 🛡️ 𝐒𝐈𝐒𝐓𝐄𝐌𝐀 𝐀𝐍𝐓𝐈𝐓𝐎𝐗𝐈𝐂\n`;
+      text += `┃ 🛡️ 𝐒𝐈𝐒𝐓𝐄𝐌𝐀 𝐀𝐍𝐓𝐈Ｔ𝐎𝐗𝐈𝐂\n`;
       text += `╰━━━━━━━━━━━━⬣\n\n`;
       text += `┃ > El sistema Antitoxic ha\n`;
       text += `┃ > sido desactivado con éxito.\n\n`;
@@ -111,17 +109,13 @@ export default {
 
     if (isAdmin || !isBotAdmin) return;
 
-    const normalizedText = normalizeText(text);
-    const reversedText = normalizedText.split("").reverse().join("");
+    const lowerText = text.toLowerCase();
 
     for (const level of Object.values(badWordsData.levels)) {
-      for (const wordObj of level.normalizedWords) {
-        if (
-          normalizedText.includes(wordObj.full) ||
-          reversedText.includes(wordObj.full)
-        ) {
+      for (const word of level.rawWords) {
+        if (lowerText.includes(word)) {
           console.log(
-            `[ANTITOXIC] Detectado: "${wordObj.full}" en "${text}" (Nivel: ${level.reason})`,
+            `[ANTITOXIC] Detectado: "${word}" en "${text}" (Nivel: ${level.reason})`,
           );
           await handleToxic(socket, m, level, db, saveDB, text);
           return;
@@ -130,18 +124,6 @@ export default {
     }
   },
 };
-
-function normalizeText(text) {
-  if (!text) return "";
-  let normalized = text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]/g, "")
-    .replace(/\s+/g, "");
-
-  return normalized;
-}
 
 async function handleToxic(socket, m, level, db, saveDB, userMessage) {
   const remoteJid = m.key.remoteJid;
@@ -174,8 +156,8 @@ async function handleToxic(socket, m, level, db, saveDB, userMessage) {
   responseText += `┃ 👤 Usuario: @${user.split("@")[0]}\n`;
   responseText += `┃ 💬 Dijo: "${userMessage || ""}"\n`;
   responseText += `┃ 🛡️ Admin: 𝐒𝐘𝐒𝐓𝐄𝐌 ⚡\n`;
-  responseText += `┃ 📌 Acción: Advertencia agregada\n`;
-  responseText += `┃ 📊 Warns: [ ${count}/${limit} ]\n`;
+  responseText += `┃ 📌 Acción: Llamada de atención\n`;
+  responseText += `┃ 📊 Warns: [ ${count} ]\n`;
   responseText += `┃ 📝 Razón: ${reason}\n`;
   responseText += `┃ ⏰ Fecha: ${date}\n\n`;
   responseText += `┣━━━━━━━━━━━━━━━━⬣\n\n`;
