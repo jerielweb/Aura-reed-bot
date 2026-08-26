@@ -97,7 +97,7 @@ export default {
     }
   },
 
-    middleware: async (socket, m, { db, saveDB, isAdmin, isBotAdmin, text }) => {
+  middleware: async (socket, m, { db, saveDB, isAdmin, isBotAdmin, text }) => {
     const remoteJid = m.key.remoteJid;
     if (!remoteJid.endsWith("@g.us") || !db.groups[remoteJid]?.antitoxic)
       return;
@@ -110,13 +110,10 @@ export default {
     if (isAdmin || !isBotAdmin) return;
 
     const lowerText = text.toLowerCase();
-    // Dividimos el mensaje en un array de palabras individuales para evitar que detecte sub-cadenas
     const wordsInMessage = lowerText.split(/\s+/);
 
     for (const level of Object.values(badWordsData.levels)) {
       for (const word of level.rawWords) {
-        // Si la palabra del JSON tiene espacios (ej: "hijo de puta"), usamos .includes() en todo el texto.
-        // Si es una sola palabra, validamos que coincida exactamente con alguna palabra del mensaje para evitar falsos positivos.
         const isMatch = word.includes(" ") 
           ? lowerText.includes(word) 
           : wordsInMessage.includes(word);
@@ -131,7 +128,7 @@ export default {
       }
     }
   },
-
+};
 
 async function handleToxic(socket, m, level, db, saveDB, userMessage) {
   const remoteJid = m.key.remoteJid;
