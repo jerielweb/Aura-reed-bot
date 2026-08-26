@@ -180,6 +180,7 @@ export default {
       caption += `┃ > ${fytBold("Url")} › ${result.tk_url}\n`
       caption += `╰〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕⬣`;
       
+      // 1. Enviamos la imagen con los detalles completos
       await socket.sendMessage(
         remoteJid,
         {
@@ -189,17 +190,19 @@ export default {
         },
         { quoted: message },
       );
+
+      // 2. Enviamos el archivo de audio limpio (sin caption problemático)
       await socket.sendMessage(
         remoteJid,
         {
           audio: { url: outP },
           mimetype: "audio/mp4",
-          fileName: "tiktok.mp3",
-          ptt: false,
-          caption: caption
+          fileName: `${result.authorNick} - ${result.title}.mp3`.replace(/[/\\?%*:|"<>]/g, ''),
+          ptt: false
         },
         { quoted: message },
       );
+
 
       await socket.sendMessage(remoteJid, {
         react: { text: "✅", key: message.key },
