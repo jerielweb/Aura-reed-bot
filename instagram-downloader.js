@@ -92,25 +92,33 @@ async function parse(url) {
 function collectFormats(data) {
   const map = new Map()
   const push = (raw, type) => {
-    const token = raw?.resource_content
+    const token = raw?.resource_content || raw?.download_url
     if (!token) return
-    const kind = type || raw.type
+    const kind = type || raw.type || 'video'
     const entry = {
       type: kind,
       quality: raw.quality || '',
       format: raw.format,
       size: Number(raw.size) || 0,
-      token,
+      token: raw?.resource_content || '',
       directUrl: raw.download_url || ''
     }
-    const key = `${entry.type}:${entry.quality}:${entry.size}`
+    const key = `${entry.type}:${entry.quality}:${entry.size}:${entry.directUrl}`
     const existing = map.get(key)
     if (!existing || (!existing.directUrl && entry.directUrl)) map.set(key, entry)
   }
   for (const r of data.resources || []) push(r)
-  for (const group of data.media || []) for (const r of group.resources || []) push(r, group.type)
+  for (const group of data.media || []) {
+    // Si el grupo contiene recursos internos (carruseles)
+    if (group.resources && Array.isArray(group.resources)) {
+      for (const r of group.resources) push(r, group.type || r.type)
+    } else {
+      push(group, group.type)
+    }
+  }
   return [...map.values()]
 }
+
 
 function qualityValue(q) {
   const n = parseInt(String(q).replace(/\D/g, ''), 10)
@@ -196,12 +204,29 @@ async function downloadInstagram(url) {
   if (!IG_REGEX.test(url)) throw new Error('Enlace de Instagram inválido')
   const info = await parse(url)
 
-  const videos = info.formats.filter(f => f.type === 'video')
+    const videos = info.formats.filter(f => f.type === 'video')
   if (!videos.length) {
-    const images = info.formats.filter(f => f.type === 'image' && f.directUrl).map(f => f.directUrl)
-    if (!images.length) throw new Error('No hay video ni imágenes disponibles')
-    return { type: 'images', title: info.title, thumbnail: info.thumbnail, images: images.slice(0, 10) }
+    const imageFormats = info.formats.filter(f => f.type === 'image' || f.type === 'photo')
+    if (!imageFormats.length) throw new Error('No hay video ni imágenes disponibles')
+    
+    const images = []
+    for (const imgF of imageFormats.slice(0, 10)) {
+      if (imgF.directUrl) {
+        images.push(imgF.directUrl)
+      } else if (imgF.token) {
+        try {
+          const resolved = await resolveDownload(imgF.token)
+          if (resolved.link) images.push(resolved.link)
+        } catch (e) {
+          if (imgF.directUrl) images.push(imgF.directUrl)
+        }
+      }
+    }
+
+    if (!images.length) throw new Error('No se pudieron resolver los enlaces de las imágenes')
+    return { type: 'images', title: info.title, thumbnail: info.thumbnail, images }
   }
+
 
   const target = pickBestVideo(videos)
   let downloadUrl = null
