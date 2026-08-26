@@ -1,388 +1,88 @@
-import axios from "axios";
 import fs from "fs";
 import path from "path";
 import os from "os";
-import { fytBold } from "../../models/TextStyle.js";
-import {
-  fetchJson,
-  downloadStreamToFile,
-  firstSuccessfulPromise,
-} from "../../controllers/downloadUtils.js";
+import { fetchJson, downloadStreamToFile } from "../../controllers/downloadUtils.js";
 
-const IG_REGEX =
-  /^(https?:\/\/)?(www\.)?(instagram\.com)\/(p|reel|reels|tv|stories)\/.*$/i;
+const IG_REGEX = /^(https?:\/\/)?(www\.)?(instagram\.com|instagr\.am)\/.*$/i;
 
 function normalizeAlyacore(res) {
-  if (!res || !res.status || !res.data) {
-    throw new Error("Alyacore no devolvió resultados válidos");
+  if (!res || !res.status || !res.data || !res.data.dl) {
+    throw new Error("Alyacore no devolvió datos válidos para Instagram");
   }
-  const downloadUrl = res.data.dl;
-  if (!downloadUrl)
-    throw new Error("Alyacore: No se encontró enlace de descarga");
 
+  const dl = res.data.dl;
+  const type = (res.data.type || "video").toLowerCase();
   return {
-    url: downloadUrl,
-    type: res.data.type || "video",
+    url: dl,
+    type,
     title: res.data.title || null,
     username: res.data.username || null,
     motor: "Alyacore",
   };
 }
 
-function normalizeDelirius(res) {
-  if (!res || !res.status) {
-    throw new Error("Delirius no devolvió datos válidos");
-  }
-  // Delirius might return it in data.download, data.url, or a list/result
-  const dataObj = res.data;
-  const downloadUrl =
-    dataObj?.download ||
-    dataObj?.url ||
-    (dataObj?.list && dataObj.list[0]?.url) ||
-    res.result;
-  if (!downloadUrl)
-    throw new Error("Delirius: No se encontró enlace de descarga");
-
-  let type = "video";
-  if (dataObj?.type) {
-    type = dataObj.type;
-  } else if (
-    downloadUrl.includes(".jpg") ||
-    downloadUrl.includes(".jpeg") ||
-    downloadUrl.includes(".png") ||
-    downloadUrl.includes(".webp")
-  ) {
-    type = "image";
-  }
-
-  return {
-    url: downloadUrl,
-    type,
-    title: dataObj?.title || null,
-    username: dataObj?.username || null,
-    motor: "Delirius",
-  };
-}
-
-function normalizeStellar(res) {
-  if (!res || !res.status) {
-    throw new Error("StellarWA no devolvió resultados válidos");
-  }
-  const dataObj = res.data || res.resultado || res.result;
-  if (!dataObj) throw new Error("StellarWA: No se encontraron datos");
-
-  const downloadUrl =
-    dataObj.dl ||
-    dataObj.download ||
-    dataObj.url ||
-    (dataObj.resultados && dataObj.resultados[0]?.url);
-  if (!downloadUrl)
-    throw new Error("StellarWA: No se encontró enlace de descarga");
-
-  return {
-    url: downloadUrl,
-    type: dataObj.type || "video",
-    title: dataObj.title || null,
-    username: dataObj.username || null,
-    motor: "StellarWA",
-  };
-}
-
 export default {
-  name: ["ig", "instagram", "igdl", "reels", "igtv"],
+  name: ["ig", "instagram", "igdl", "instadl", "reel", "instareel"],
   category: "downloads",
-  description: "Descarga videos, fotos, reels o historias de Instagram.",
+  description: "Descarga posts y reels de Instagram usando Alyacore.",
   execute: async (socket, message, args) => {
     const remoteJid = message.key.remoteJid;
-    let url = args[0] ? args[0].trim() : "";
+    const url = args[0] ? args[0].trim() : "";
 
-    if (!url) {
-      return await socket.sendMessage(
-        remoteJid,
-        {
-          text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("FALTA ENLACE")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, proporciona un enlace\n┃ > de Instagram (Post, Reel, Historia o IGTV).\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
-        },
-        { quoted: message },
-      );
+    if (!url || !IG_REGEX.test(url)) {
+      return await socket.sendMessage(remoteJid, {
+        text: `╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐅𝐀𝐋𝐓𝐀 𝐄𝐍𝐋𝐀𝐂𝐄\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, proporciona un enlace\n┃ > válido de Instagram (post o reel).\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`,
+      }, { quoted: message });
     }
 
-    // Normalizar /reels/ a /reel/ para que las APIs externas (que no soportan plural en su regex) no fallen
-    url = url.replace(/\/reels\//i, "/reel/");
-
-    await socket.sendMessage(remoteJid, {
-      react: { text: "⏳", key: message.key },
-    });
+    await socket.sendMessage(remoteJid, { react: { text: "⏳", key: message.key } });
 
     const tempId = Date.now();
+    const tempDir = os.tmpdir();
+    const tempPath = path.join(tempDir, `aura-igdl-${tempId}.mp4`);
 
     try {
-      console.log(`[IG Downloader] Buscando contenido para la URL: ${url}`);
+      console.log(`[IG Downloader] Usando Alyacore para: ${url}`);
+      const apiUrl = `${global.Apis.apiAiya.url}/dl/instagram?url=${encodeURIComponent(url)}&key=${global.Apis.apiAiya.apikey}`;
+      const res = await fetchJson(apiUrl, 30000);
+      const meta = normalizeAlyacore(res);
 
-      // Consultar las APIs de metadatos en paralelo usando allSettled para conservar todas las respuestas exitosas
-      const results = await Promise.allSettled([
-        (async () => {
-          const res = await fetchJson(
-            `https://api.alyacore.xyz/dl/instagram?url=${encodeURIComponent(url)}&key=oboe`,
-          );
-          return normalizeAlyacore(res);
-        })(),
-        (async () => {
-          const res = await fetchJson(
-            `https://api.delirius.store/download/instagram?url=${encodeURIComponent(url)}`,
-          );
-          return normalizeDelirius(res);
-        })(),
-        (async () => {
-          const res = await fetchJson(
-            `https://api.stellarwa.xyz/dl/instagram?url=${encodeURIComponent(url)}&key=api-7dSKm`,
-          );
-          return normalizeStellar(res);
-        })(),
-      ]);
+      const { url: mediaUrl, type, title, motor } = meta;
 
-      // Filtrar las respuestas exitosas
-      const successfulMetadata = results
-        .filter((r) => r.status === "fulfilled" && r.value)
-        .map((r) => r.value);
+      let caption = `╭〔 📸 𝐈𝐍𝐒𝐓𝐀𝐆𝐑𝐀𝐌 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃𝐄𝐑 〕━⬣\n\n`;
+      caption += `┃ ➥ ${title || "Sin título"}\n\n`;
+      caption += `┣━━━━━━━━━━━━⬣\n`;
+      caption += `┃ > 𝐌𝐨𝐝𝐨 › ${type === "image" ? "Imagen" : "Video (MP4)"}\n`;
+      caption += `┃ > 𝐌𝐨𝐭𝐨𝐫 › ${motor}\n\n`;
+      caption += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
 
-      if (successfulMetadata.length === 0) {
-        throw new Error(
-          "Todos los servidores de metadatos fallaron o no devolvieron resultados válidos.",
-        );
-      }
-
-      console.log(
-        `[IG Downloader] Servidores disponibles para descargar: ${successfulMetadata.map((s) => s.motor).join(", ")}`,
-      );
-
-      let downloaded = false;
-      let tempPath = "";
-      let finalMetadata = null;
-
-      // Intentar descargar de los servidores exitosos secuencialmente si alguno da error
-      for (const metadata of successfulMetadata) {
-        const { url: downloadUrl, type, title, username, motor } = metadata;
-        console.log(
-          `[IG Downloader] Intentando descargar contenido del servidor: ${motor}...`,
-        );
-
-        // Detectar si es una imagen, un Reel o un video común
-        const isReelAttempt =
-          url.includes("/reel/") || url.includes("/reels/") || type === "reel";
-        const isImageAttempt =
-          !isReelAttempt &&
-          (type === "image" ||
-            type === "photo" ||
-            downloadUrl.includes(".jpg") ||
-            downloadUrl.includes(".jpeg") ||
-            downloadUrl.includes(".png"));
-
-        const fileExt = isImageAttempt ? "jpg" : "mp4";
-        const attemptTempPath = path.join(
-          os.tmpdir(),
-          `aura-igdl-${tempId}.${fileExt}`,
-        );
-
-        try {
-          try {
-            await downloadStreamToFile(downloadUrl, attemptTempPath, {
-              timeout: 45000,
-            });
-            if (
-              fs.existsSync(attemptTempPath) &&
-              fs.statSync(attemptTempPath).size > 0
-            ) {
-              downloaded = true;
-              tempPath = attemptTempPath;
-              finalMetadata = {
-                ...metadata,
-                isReel: isReelAttempt,
-                isImage: isImageAttempt,
-              };
-              console.log(
-                `[IG Downloader] Descarga local exitosa usando Axios con motor: ${motor}`,
-              );
-              break;
-            }
-          } catch (streamError) {
-            console.error(
-              `[IG Downloader] Falló la descarga por stream para ${motor}: ${streamError.message}`,
-            );
-            try {
-              if (fs.existsSync(attemptTempPath))
-                fs.unlinkSync(attemptTempPath);
-            } catch {}
-            throw streamError;
-          }
-        } catch (dlError) {
-          console.error(
-            `[IG Downloader] Falló Axios para ${motor} (${dlError.message}). Intentando con fetch...`,
-          );
-          try {
-            if (fs.existsSync(attemptTempPath)) fs.unlinkSync(attemptTempPath);
-          } catch {}
-
-          try {
-            const fetchRes = await fetch(downloadUrl, {
-              headers: {
-                "User-Agent":
-                  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-              },
-            });
-            if (fetchRes.ok) {
-              const arrayBuffer = await fetchRes.arrayBuffer();
-              fs.writeFileSync(attemptTempPath, Buffer.from(arrayBuffer));
-
-              if (
-                fs.existsSync(attemptTempPath) &&
-                fs.statSync(attemptTempPath).size > 0
-              ) {
-                downloaded = true;
-                tempPath = attemptTempPath;
-                finalMetadata = {
-                  ...metadata,
-                  isReel: isReelAttempt,
-                  isImage: isImageAttempt,
-                };
-                console.log(
-                  `[IG Downloader] Descarga local exitosa usando fetch con motor: ${motor}`,
-                );
-                break;
-              }
-            } else {
-              throw new Error(`HTTP ${fetchRes.status}`);
-            }
-          } catch (fetchError) {
-            console.error(
-              `[IG Downloader] Falló fetch para ${motor}: ${fetchError.message}`,
-            );
-            try {
-              if (fs.existsSync(attemptTempPath))
-                fs.unlinkSync(attemptTempPath);
-            } catch {}
-          }
-        }
-      }
-
-      // Si ningún servidor pudo descargarse localmente
-      if (!downloaded) {
-        console.log(
-          `[IG Downloader] Advertencia: Todos los intentos de descarga local fallaron. Intentando envío directo.`,
-        );
-        const fallbackMeta = successfulMetadata[0];
-        finalMetadata = {
-          ...fallbackMeta,
-          isReel:
-            url.includes("/reel/") ||
-            url.includes("/reels/") ||
-            fallbackMeta.type === "reel",
-          isImage:
-            !(
-              url.includes("/reel/") ||
-              url.includes("/reels/") ||
-              fallbackMeta.type === "reel"
-            ) &&
-            (fallbackMeta.type === "image" ||
-              fallbackMeta.type === "photo" ||
-              fallbackMeta.url.includes(".jpg") ||
-              fallbackMeta.url.includes(".jpeg")),
-        };
-      }
-
-      const {
-        url: finalUrl,
-        title,
-        username,
-        motor: finalMotor,
-        isReel,
-        isImage,
-      } = finalMetadata;
-      const typeLabel = isImage
-        ? "Imagen (JPG)"
-        : isReel
-          ? "Reel (MP4)"
-          : "Video (MP4)";
-
-      // Enviar mensaje de carga
-      let caption = `╭〔 📸 ${fytBold("INSTAGRAM DOWNLOADER")} 〕━⬣\n\n`;
-      caption += `┃ 📥 ${fytBold("DESCARGANDO ARCHIVO")}\n`;
-      caption += `┃ ⏳ Espere un momento...\n\n`;
-      caption += `┣━━━━━━━━━━━━⬣\n\n`;
-      if (title)
-        caption += `┃ > Titulo › ${title.slice(0, 50)}${title.length > 50 ? "..." : ""}\n`;
-      if (username) caption += `┃ > Usuario › @${username}\n`;
-      caption += `┃ > Tipo › ${typeLabel}\n`;
-      caption += `┃ > Motor › ${finalMotor}\n\n`;
-      caption += `┣━━━━━━━━━━━━⬣\n\n`;
-      caption += `┃ > El archivo se esta\n`;
-      caption += `┃ > enviando, espera un momento...\n\n`;
-      caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
-
-      await socket.sendMessage(
-        remoteJid,
-        { text: caption },
-        { quoted: message },
-      );
-
-      // Enviar el archivo (imagen o video/reel) a WhatsApp
-      await socket.sendMessage(remoteJid, {
-        react: { text: "✅", key: message.key },
-      });
-
-      const mediaSource = downloaded ? { url: tempPath } : { url: finalUrl };
-      console.log(
-        `[IG Downloader] Enviando contenido a WhatsApp desde: ${downloaded ? "Archivo Local" : "URL Remota"}`,
-      );
-
-      if (isImage) {
-        await socket.sendMessage(
-          remoteJid,
-          {
-            image: mediaSource,
-            caption: `📸 *𝐈𝐧𝐬𝐭𝐚𝐠𝐫𝐚𝐦 𝐏𝐡𝐨𝐭𝐨*\n⚡ *𝐀𝐮𝐫𝐚 𝐑𝐞𝐞𝐝 𝐖𝐚𝐁𝐨𝐭*`,
-          },
-          { quoted: message },
-        );
+      if (type === "image") {
+        // Para imágenes, enviar directamente la URL como imagen (WhatsApp soporta enlaces remotos).
+        await socket.sendMessage(remoteJid, { image: { url: mediaUrl }, caption }, { quoted: message });
       } else {
-        await socket.sendMessage(
-          remoteJid,
-          {
-            video: mediaSource,
-            mimetype: "video/mp4",
-            fileName: isReel
-              ? `instagram_reel_${tempId}.mp4`
-              : `instagram_video_${tempId}.mp4`,
-            caption: isReel
-              ? `🎬 *𝐈𝐧𝐬𝐭𝐚𝐠𝐫𝐚𝐦 𝐑𝐞𝐞𝐥*\n *𝐀𝐮𝐫𝐚 𝐑𝐞𝐞𝐝 𝐖𝐚𝐁𝐨𝐭*`
-              : `🎬 *𝐈𝐧𝐬𝐭𝐚𝐠𝐫𝐚𝐦 𝐕𝐢𝐝𝐞𝐨*\n⚡ *𝐀𝐮𝐫𝐚 𝐑𝐞𝐞𝐝 𝐖𝐚𝐁𝐨𝐭*`,
-          },
-          { quoted: message },
-        );
+        // Para video, descargar antes de enviar para asegurar compatibilidad
+        await socket.sendMessage(remoteJid, { text: caption }, { quoted: message });
+        await downloadStreamToFile(mediaUrl, tempPath, { timeout: 120000 });
+
+        await socket.sendMessage(remoteJid, { react: { text: "✅", key: message.key } });
+        await socket.sendMessage(remoteJid, {
+          video: { url: tempPath },
+          mimetype: "video/mp4",
+          fileName: `instagram_${tempId}.mp4`,
+          caption: `🎬 *Instagram Video*\n${title || ""}`,
+        }, { quoted: message });
       }
 
-      // Limpieza del archivo temporal (solo si se descargó localmente)
-      try {
-        if (downloaded && fs.existsSync(tempPath)) {
-          fs.unlinkSync(tempPath);
-        }
-      } catch (err) {
-        console.error(
-          "[IG Downloader] Error al limpiar archivo temporal:",
-          err,
-        );
-      }
     } catch (error) {
       console.error("Error en Instagram Downloader:", error);
-      await socket.sendMessage(remoteJid, {
-        react: { text: "❌", key: message.key },
-      });
-      await socket.sendMessage(
-        remoteJid,
-        {
-          text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("ERROR DE DESCARGA")}\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message || "Ocurrio un error inesperado al procesar la descarga de Instagram."}\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
-        },
-        { quoted: message },
-      );
+      await socket.sendMessage(remoteJid, { react: { text: "❌", key: message.key } });
+      await socket.sendMessage(remoteJid, { text: `╭〔 ❌ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ⚠️ 𝐄𝐑𝐑𝐎𝐑 𝐃𝐄 𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message || "Ocurrió un error al procesar el enlace de Instagram."}\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣` }, { quoted: message });
+    } finally {
+      try {
+        if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+      } catch (e) {
+        // Ignorar errores de limpieza
+      }
     }
   },
 };
