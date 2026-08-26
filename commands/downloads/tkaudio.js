@@ -62,7 +62,7 @@ async function DL_TIKTOK_AUDIO(input) {
       const r = data.data;
       return {
         video_dl: r.play,
-        cover: r.cover
+        cover: r.cover,
         title: r.title || "Audio de TikTok",
         authorNick: r.author?.nickname || 'Desconocido',
         likes: formatter(r.digg_count || 0),
