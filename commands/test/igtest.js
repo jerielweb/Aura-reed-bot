@@ -8,7 +8,7 @@ import fetch from 'node-fetch';
 export default {
   name: ["igtest", "instagramtest"],
   category: "downloads",
-  description: "Prueba el módulo de descarga de Instagram descargando localmente para evitar expiración.",
+  description: "Prueba el módulo de descarga de Instagram descargando localmente tanto videos como imágenes.",
   
   execute: async (socket, message, args) => {
     const remoteJid = message.key.remoteJid;
@@ -33,14 +33,15 @@ export default {
       fs.mkdirSync(tempDir, { recursive: true });
     }
 
-    let filePath = null;
+    const tempFiles = [];
 
     try {
       const result = await downloadInstagram(text);
 
       if (result.type === 'video') {
         const fileName = `ig_${Date.now()}.mp4`;
-        filePath = path.join(tempDir, fileName);
+        const filePath = path.join(tempDir, fileName);
+        tempFiles.push(filePath);
 
         const response = await fetch(result.downloadUrl);
         if (!response.ok) throw new Error(`Falló la descarga del archivo (HTTP ${response.status})`);
@@ -68,15 +69,29 @@ export default {
         await socket.sendMessage(
           remoteJid,
           {
-            text: `╭〔 📸 ${fytBold("INSTAGRAM")} 〕⬣\n┃ Se detectaron ${result.images.length} imágenes.\n╰━━━━━━━━━━━━⬣`
+            text: `╭〔 📸 ${fytBold("INSTAGRAM")} 〕⬣\n┃ Descargando ${result.images.length} imágenes... \n╰━━━━━━━━━━━━⬣`
           },
           { quoted: message }
         );
 
-        for (const imgUrl of result.images) {
+        for (let i = 0; i < result.images.length; i++) {
+          const imgUrl = result.images[i];
+          const fileName = `ig_img_${Date.now()}_${i}.jpg`;
+          const filePath = path.join(tempDir, fileName);
+          tempFiles.push(filePath);
+
+          const response = await fetch(imgUrl);
+          if (!response.ok) continue;
+
+          const fileStream = fs.createWriteStream(filePath);
+          await pipeline(response.body, fileStream);
+
           await socket.sendMessage(
             remoteJid,
-            { image: { url: imgUrl } },
+            { 
+              image: fs.readFileSync(filePath),
+              caption: i === 0 ? fytBold(result.title || "") : ""
+            },
             { quoted: message }
           );
         }
@@ -99,11 +114,13 @@ export default {
         { quoted: message },
       );
     } finally {
-      if (filePath && fs.existsSync(filePath)) {
-        try {
-          fs.unlinkSync(filePath);
-        } catch (e) {
-          // Ignorar error al limpiar archivo temporal
+      for (const filePath of tempFiles) {
+        if (fs.existsSync(filePath)) {
+          try {
+            fs.unlinkSync(filePath);
+          } catch (e) {
+            // Ignorar errores de limpieza
+          }
         }
       }
     }
