@@ -1,124 +1,122 @@
-import fs from "fs";
-import path from "path";
-import os from "os";
-import { fetchJson, downloadStreamToFile } from "../../controllers/downloadUtils.js";
+import { fytBold } from '../../models/TextStyle.js';
+import fetch from 'node-fetch';
 
-const IG_REGEX = /^(https?:\/\/)?(www\.)?(instagram\.com|instagr\.am)\/.*$/i;
+const IG_REGEX = /(?:instagram\.com|instagr\.am)\/(?:(?:reels?|p|tv)\/([A-Za-z0-9_-]+)|stories\/[^/]+\/(\d+))/;
 
-function normalizeAlyacore(res) {
-  if (!res || !res.status || !res.data || !res.data.dl) {
-    throw new Error("Alyacore no devolvió datos válidos para Instagram");
+async function downloadInstagram(url) {
+  if (!IG_REGEX.test(url)) throw new Error('Enlace de Instagram inválido.');
+
+  const apiRes = await fetch(`https://api.delirius.online/download/instagramv2?url=${encodeURIComponent(url)}`);
+  const apiJson = await apiRes.json();
+
+  if (!apiJson || !apiJson.status || !apiJson.data || !apiJson.data.download) {
+    throw new Error('No se pudo procesar el enlace con el servicio de descarga.');
   }
 
-  const dl = res.data.dl;
-  const type = (res.data.type || "video").toLowerCase();
-  return {
-    urls: [dl],
-    type,
-    title: res.data.title || null,
-    username: res.data.username || null,
-    motor: "Alyacore",
-  };
-}
+  const data = apiJson.data;
+  const downloadItems = data.download;
 
-function normalizeDelirius(res) {
-  if (!res || !res.status || !Array.isArray(res.data) || res.data.length === 0) {
-    throw new Error("Delirius no devolvió datos válidos para Instagram");
+  const images = downloadItems
+    .filter(item => item.type === 'image' && item.url)
+    .map(item => item.url);
+
+  if (images.length > 0) {
+    return {
+      type: 'images',
+      title: data.caption || '',
+      images: images
+    };
   }
 
-  // Delirius devuelve un array de objetos { type, url }
-  const items = res.data.filter((d) => d && d.url);
-  if (items.length === 0) throw new Error("Delirius: no hay URLs válidas");
+  const videoItem = downloadItems.find(item => item.type === 'video' && item.url);
+  if (videoItem) {
+    return {
+      type: 'video',
+      title: data.caption || 'Sin título',
+      downloadUrl: videoItem.url
+    };
+  }
 
-  const type = (items[0].type || "video").toLowerCase();
-  const urls = items.map((i) => i.url);
-
-  return {
-    urls,
-    type,
-    title: null,
-    username: null,
-    motor: "Delirius",
-  };
+  throw new Error('No se encontró contenido multimedia disponible en este enlace.');
 }
 
 export default {
-  name: ["ig", "instagram", "igdl", "instadl", "reel", "instareel"],
+  name: ["ig", "instagram"],
   category: "downloads",
-  description: "Descarga posts y reels de Instagram usando Delirius (fallback Alyacore).",
+  description: "Descarga videos, reels o imágenes de Instagram.",
+
   execute: async (socket, message, args) => {
     const remoteJid = message.key.remoteJid;
-    const url = args[0] ? args[0].trim() : "";
+    const text = args.join(" ").trim();
 
-    if (!url || !IG_REGEX.test(url)) {
-      return await socket.sendMessage(remoteJid, {
-        text: `╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐅𝐀𝐋𝐓𝐀 𝐄𝐍𝐋𝐀𝐂𝐄\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, proporciona un enlace\n┃ > válido de Instagram (post o reel).\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`,
-      }, { quoted: message });
+    if (!text || !IG_REGEX.test(text)) {
+      return await socket.sendMessage(
+        remoteJid,
+        {
+          text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("FALTA ENLACE")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, proporciona un enlace\n┃ > válido de Instagram.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
+        },
+        { quoted: message },
+      );
     }
-
-    await socket.sendMessage(remoteJid, { react: { text: "⏳", key: message.key } });
-
-    const tempId = Date.now();
-    const tempDir = os.tmpdir();
-    const tempPath = path.join(tempDir, `aura-igdl-${tempId}.mp4`);
+    
+    await socket.sendMessage(remoteJid, {
+      react: { text: "⏳", key: message.key },
+    });
 
     try {
-      console.log(`[IG Downloader] Intentando Delirius para: ${url}`);
-      let meta;
+      const result = await downloadInstagram(text);
 
-      try {
-        const delApi = `https://api.delirius.online/download/instagram?url=${encodeURIComponent(url)}`;
-        const delRes = await fetchJson(delApi, 30000);
-        meta = normalizeDelirius(delRes);
-        console.log(`[IG Downloader] Delirius respondió correctamente`);
-      } catch (delErr) {
-        console.warn(`[IG Downloader] Delirius falló: ${delErr.message}. Intentando Alyacore...`);
-        // Intentar Alyacore como fallback
-        const apiUrl = `${global.Apis.apiAiya.url}/dl/instagram?url=${encodeURIComponent(url)}&key=${global.Apis.apiAiya.apikey}`;
-        const alyRes = await fetchJson(apiUrl, 30000);
-        meta = normalizeAlyacore(alyRes);
-      }
+      if (result.type === 'video') {
+        const caption = `╭〔 📸 ${fytBold("INSTAGRAM VIDEO")} 〕━⬣\n\n┃ ➥ ${fytBold(result.title || "Sin título")}\n\n╰〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕⬣`;
 
-      const { urls, type, title, motor } = meta;
+        await socket.sendMessage(
+          remoteJid,
+          {
+            video: { url: result.downloadUrl },
+            mimetype: "video/mp4",
+            caption: caption
+          },
+          { quoted: message }
+        );
+      } else if (result.type === 'images') {
+        await socket.sendMessage(
+          remoteJid,
+          {
+            text: `╭〔 📸 ${fytBold("INSTAGRAM")} 〕⬣\n┃ Descargando ${result.images.length} imágenes... \n╰━━━━━━━━━━━━⬣`
+          },
+          { quoted: message }
+        );
 
-      let caption = `╭〔 📸 𝐈𝐍𝐒𝐓𝐀𝐆𝐑𝐀𝐌 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃𝐄𝐑 〕━⬣\n\n`;
-      caption += `┃ ➥ ${title || "Sin título"}\n\n`;
-      caption += `┣━━━━━━━━━━━━⬣\n`;
-      caption += `┃ > 𝐌𝐨𝐝𝐨 › ${type === "image" ? "Imagen(es)" : "Video (MP4)"}\n`;
-      caption += `┃ > 𝐌𝐨𝐭𝐨𝐫 › ${motor}\n\n`;
-      caption += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
+        for (let i = 0; i < result.images.length; i++) {
+          const imgUrl = result.images[i];
 
-      if (type === "image") {
-        // Enviar cada imagen (WhatsApp acepta URLs remotas)
-        for (let i = 0; i < urls.length; i++) {
-          const imgUrl = urls[i];
-          await socket.sendMessage(remoteJid, { image: { url: imgUrl }, caption: i === 0 ? caption : "" }, { quoted: message });
+          await socket.sendMessage(
+            remoteJid,
+            { 
+              image: { url: imgUrl },
+              caption: i === 0 ? fytBold(result.title || "") : ""
+            },
+            { quoted: message }
+          );
         }
-      } else {
-        // Para video, descargar la primera URL y enviar
-        const mediaUrl = urls[0];
-        await socket.sendMessage(remoteJid, { text: caption }, { quoted: message });
-        await downloadStreamToFile(mediaUrl, tempPath, { timeout: 120000 });
-
-        await socket.sendMessage(remoteJid, { react: { text: "✅", key: message.key } });
-        await socket.sendMessage(remoteJid, {
-          video: { url: tempPath },
-          mimetype: "video/mp4",
-          fileName: `instagram_${tempId}.mp4`,
-          caption: `🎬 *Instagram Video*\n${title || ""}`,
-        }, { quoted: message });
       }
 
+      await socket.sendMessage(remoteJid, {
+        react: { text: "✅", key: message.key },
+      });
     } catch (error) {
-      console.error("Error en Instagram Downloader:", error);
-      await socket.sendMessage(remoteJid, { react: { text: "❌", key: message.key } });
-      await socket.sendMessage(remoteJid, { text: `╭〔 ❌ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ⚠️ 𝐄𝐑𝐑𝐎𝐑 𝐃𝐄 𝐃𝐄𝐒𝐂𝐀𝐑𝐆𝐀\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message || "Ocurrió un error al procesar el enlace de Instagram."}\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣` }, { quoted: message });
-    } finally {
-      try {
-        if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
-      } catch (e) {
-        // Ignorar errores de limpieza
-      }
+      console.error("Error en ig:", error);
+      await socket.sendMessage(remoteJid, {
+        react: { text: "❌", key: message.key },
+      });
+
+      await socket.sendMessage(
+        remoteJid,
+        {
+          text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("ERROR")}\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message}\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
+        },
+        { quoted: message },
+      );
     }
   },
 };
