@@ -79,26 +79,18 @@ export default {
           { quoted: message }
         );
       } else if (result.type === 'images') {
+        const album = result.images.map((imgUrl, i) => ({
+          image: { url: imgUrl },
+          caption: i === 0 ? `╭〔 📸 ${fytBold("INSTAGRAM POST")} 〕━⬣\n\n┃ ➥ ${fytBold(result.title || "Sin título")}\n\n┃ > ${fytBold("Total")} › ${result.images.length} imágenes\n╰〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕⬣` : ""
+        }));
+
         await socket.sendMessage(
           remoteJid,
           {
-            text: `╭〔 📸 ${fytBold("INSTAGRAM")} 〕⬣\n┃ Descargando ${result.images.length} imágenes... \n╰━━━━━━━━━━━━⬣`
+            album: album
           },
           { quoted: message }
         );
-
-        for (let i = 0; i < result.images.length; i++) {
-          const imgUrl = result.images[i];
-
-          await socket.sendMessage(
-            remoteJid,
-            { 
-              image: { url: imgUrl },
-              caption: i === 0 ? fytBold(result.title || "") : ""
-            },
-            { quoted: message }
-          );
-        }
       }
 
       await socket.sendMessage(remoteJid, {
