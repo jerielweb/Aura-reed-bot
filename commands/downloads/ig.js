@@ -1,7 +1,54 @@
-import { fytBold } from '../../models/TextStyle.js';
-import fetch from 'node-fetch';
+import fetch from "node-fetch";
+import {
+  generateWAMessageFromContent,
+  generateWAMessage,
+  jidNormalizedUser,
+} from "@whiskeysockets/baileys";
+import crypto from "crypto";
+import { fytBold } from "../../models/TextStyle.js";
 
 const IG_REGEX = /(?:instagram\.com|instagr\.am)\/(?:(?:reels?|p|tv)\/([A-Za-z0-9_-]+)|stories\/[^/]+\/(\d+))/;
+
+async function sendAlbumMessage(socket, jid, array, quoted) {
+  const userJid = jidNormalizedUser(
+    socket.user?.id || socket.authState?.creds?.me?.id || "",
+  );
+  const album = await generateWAMessageFromContent(
+    jid,
+    {
+      messageContextInfo: {
+        messageSecret: crypto.randomBytes(32),
+      },
+      albumMessage: {
+        expectedImageCount: array.filter((a) => "image" in a).length,
+        expectedVideoCount: array.filter((a) => "video" in a).length,
+      },
+    },
+    { quoted, userJid },
+  );
+
+  await socket.relayMessage(jid, album.message, {
+    messageId: album.key.id,
+  });
+
+  for (let item of array) {
+    const img = await generateWAMessage(jid, item, {
+      upload: socket.waUploadToServer,
+      userJid,
+    });
+    img.message.messageContextInfo = {
+      messageSecret: crypto.randomBytes(32),
+      messageAssociation: {
+        associationType: 1,
+        parentMessageKey: album.key,
+      },
+    };
+    await socket.relayMessage(jid, img.message, {
+      messageId: img.key.id,
+    });
+  }
+  return album;
+}
 
 async function downloadInstagram(url) {
   if (!IG_REGEX.test(url)) throw new Error('Enlace de Instagram inválido.');
@@ -79,18 +126,27 @@ export default {
           { quoted: message }
         );
       } else if (result.type === 'images') {
-        const album = result.images.map((imgUrl, i) => ({
-          image: { url: imgUrl },
-          caption: i === 0 ? `╭〔 📸 ${fytBold("INSTAGRAM POST")} 〕━⬣\n\n┃ ➥ ${fytBold(result.title || "Sin título")}\n\n┃ > ${fytBold("Total")} › ${result.images.length} imágenes\n╰〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕⬣` : ""
+        const mediaArray = result.images.map((imgUrl) => ({ url: imgUrl })).filter((m) => m.url && m.url.startsWith("http"));
+
+        if (mediaArray.length === 0) {
+          throw new Error("Sin imágenes válidas");
+        }
+
+        const albumCaption = `╭〔 📸 ${fytBold("INSTAGRAM POST")} 〕━⬣\n\n┃ ➥ ${fytBold(result.title || "Sin título")}\n\n┃ > ${fytBold("Total")} › ${mediaArray.length} imágenes\n╰〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕⬣`;
+
+        const album = mediaArray.map((m, i) => ({
+          image: { url: m.url },
+          caption: i === 0 ? albumCaption : "",
         }));
 
-        await socket.sendMessage(
-          remoteJid,
-          {
-            album: album
-          },
-          { quoted: message }
-        );
+        if (album.length < 2) {
+          await socket.sendMessage(remoteJid, {
+            image: { url: album[0].image.url },
+            caption: albumCaption
+          }, { quoted: message });
+        } else {
+          await sendAlbumMessage(socket, remoteJid, album, message);
+        }
       }
 
       await socket.sendMessage(remoteJid, {
@@ -105,7 +161,7 @@ export default {
       await socket.sendMessage(
         remoteJid,
         {
-          text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("ERROR")}\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message}\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
+          text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("ERROR")} \n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message}\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
         },
         { quoted: message },
       );
