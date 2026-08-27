@@ -13,7 +13,7 @@ function normalizeAlyacore(res) {
   const dl = res.data.dl;
   const type = (res.data.type || "video").toLowerCase();
   return {
-    url: dl,
+    urls: [dl],
     type,
     title: res.data.title || null,
     username: res.data.username || null,
@@ -21,10 +21,31 @@ function normalizeAlyacore(res) {
   };
 }
 
+function normalizeDelirius(res) {
+  if (!res || !res.status || !Array.isArray(res.data) || res.data.length === 0) {
+    throw new Error("Delirius no devolvió datos válidos para Instagram");
+  }
+
+  // Delirius devuelve un array de objetos { type, url }
+  const items = res.data.filter((d) => d && d.url);
+  if (items.length === 0) throw new Error("Delirius: no hay URLs válidas");
+
+  const type = (items[0].type || "video").toLowerCase();
+  const urls = items.map((i) => i.url);
+
+  return {
+    urls,
+    type,
+    title: null,
+    username: null,
+    motor: "Delirius",
+  };
+}
+
 export default {
   name: ["ig", "instagram", "igdl", "instadl", "reel", "instareel"],
   category: "downloads",
-  description: "Descarga posts y reels de Instagram usando Alyacore.",
+  description: "Descarga posts y reels de Instagram usando Delirius (fallback Alyacore).",
   execute: async (socket, message, args) => {
     const remoteJid = message.key.remoteJid;
     const url = args[0] ? args[0].trim() : "";
@@ -42,25 +63,40 @@ export default {
     const tempPath = path.join(tempDir, `aura-igdl-${tempId}.mp4`);
 
     try {
-      console.log(`[IG Downloader] Usando Alyacore para: ${url}`);
-      const apiUrl = `${global.Apis.apiAiya.url}/dl/instagram?url=${encodeURIComponent(url)}&key=${global.Apis.apiAiya.apikey}`;
-      const res = await fetchJson(apiUrl, 30000);
-      const meta = normalizeAlyacore(res);
+      console.log(`[IG Downloader] Intentando Delirius para: ${url}`);
+      let meta;
 
-      const { url: mediaUrl, type, title, motor } = meta;
+      try {
+        const delApi = `https://api.delirius.online/download/instagram?url=${encodeURIComponent(url)}`;
+        const delRes = await fetchJson(delApi, 30000);
+        meta = normalizeDelirius(delRes);
+        console.log(`[IG Downloader] Delirius respondió correctamente`);
+      } catch (delErr) {
+        console.warn(`[IG Downloader] Delirius falló: ${delErr.message}. Intentando Alyacore...`);
+        // Intentar Alyacore como fallback
+        const apiUrl = `${global.Apis.apiAiya.url}/dl/instagram?url=${encodeURIComponent(url)}&key=${global.Apis.apiAiya.apikey}`;
+        const alyRes = await fetchJson(apiUrl, 30000);
+        meta = normalizeAlyacore(alyRes);
+      }
+
+      const { urls, type, title, motor } = meta;
 
       let caption = `╭〔 📸 𝐈𝐍𝐒𝐓𝐀𝐆𝐑𝐀𝐌 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃𝐄𝐑 〕━⬣\n\n`;
       caption += `┃ ➥ ${title || "Sin título"}\n\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
-      caption += `┃ > 𝐌𝐨𝐝𝐨 › ${type === "image" ? "Imagen" : "Video (MP4)"}\n`;
+      caption += `┃ > 𝐌𝐨𝐝𝐨 › ${type === "image" ? "Imagen(es)" : "Video (MP4)"}\n`;
       caption += `┃ > 𝐌𝐨𝐭𝐨𝐫 › ${motor}\n\n`;
       caption += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
 
       if (type === "image") {
-        // Para imágenes, enviar directamente la URL como imagen (WhatsApp soporta enlaces remotos).
-        await socket.sendMessage(remoteJid, { image: { url: mediaUrl }, caption }, { quoted: message });
+        // Enviar cada imagen (WhatsApp acepta URLs remotas)
+        for (let i = 0; i < urls.length; i++) {
+          const imgUrl = urls[i];
+          await socket.sendMessage(remoteJid, { image: { url: imgUrl }, caption: i === 0 ? caption : "" }, { quoted: message });
+        }
       } else {
-        // Para video, descargar antes de enviar para asegurar compatibilidad
+        // Para video, descargar la primera URL y enviar
+        const mediaUrl = urls[0];
         await socket.sendMessage(remoteJid, { text: caption }, { quoted: message });
         await downloadStreamToFile(mediaUrl, tempPath, { timeout: 120000 });
 
