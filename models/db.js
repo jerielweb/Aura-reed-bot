@@ -5,6 +5,7 @@ import fs from "fs";
 import chalk from "chalk";
 
 const DATABASE_DIR = path.resolve("./database");
+
 let dbInstance = null;
 let sqliteConn = null;
 let usersCache = null;
@@ -16,163 +17,446 @@ export function getDBSync() {
   if (dbInstance) return dbInstance;
 
   if (!fs.existsSync(DATABASE_DIR)) {
-    fs.mkdirSync(DATABASE_DIR, { recursive: true });
+    fs.mkdirSync(DATABASE_DIR, {
+      recursive: true,
+    });
   }
 
-  const sqlitePath = path.join(DATABASE_DIR, "db.sqlite3");
+  const sqlitePath = path.join(
+    DATABASE_DIR,
+    "db.sqlite3",
+  );
+
   sqliteConn = new Database(sqlitePath);
 
   sqliteConn.exec(`
     CREATE TABLE IF NOT EXISTS config (
-        key TEXT PRIMARY KEY,
-        value TEXT
+      key TEXT PRIMARY KEY,
+      value TEXT
     );
+
     CREATE TABLE IF NOT EXISTS users (
-        jid TEXT PRIMARY KEY,
-        data TEXT
+      jid TEXT PRIMARY KEY,
+      data TEXT
     );
+
     CREATE TABLE IF NOT EXISTS groups (
-        jid TEXT PRIMARY KEY,
-        data TEXT
+      jid TEXT PRIMARY KEY,
+      data TEXT
     );
   `);
 
-  usersCache = new NodeCache({ stdTTL: 600, useClones: false });
-  groupsCache = new NodeCache({ stdTTL: 600, useClones: false });
+  // ==========================================================
+  // CACHE DE USUARIOS
+  // ==========================================================
 
-  usersCache.on("expired", (key, value) => {
-    try {
-      sqliteConn.prepare(
-        "INSERT INTO users(jid, data) VALUES(?, ?) ON CONFLICT(jid) DO UPDATE SET data=excluded.data"
-      ).run(key, JSON.stringify(value));
-    } catch (err) {
-      console.error(chalk.red(`[Main DB] Error guardando usuario expirado ${key}:`), err.message);
-    }
+  usersCache = new NodeCache({
+    stdTTL: 300,
+    checkperiod: 120,
+    useClones: false,
+    maxKeys: 5000,
   });
 
-  groupsCache.on("expired", (key, value) => {
-    try {
-      sqliteConn.prepare(
-        "INSERT INTO groups(jid, data) VALUES(?, ?) ON CONFLICT(jid) DO UPDATE SET data=excluded.data"
-      ).run(key, JSON.stringify(value));
-    } catch (err) {
-      console.error(chalk.red(`[Main DB] Error guardando grupo expirado ${key}:`), err.message);
-    }
+  // ==========================================================
+  // CACHE DE GRUPOS
+  // ==========================================================
+
+  groupsCache = new NodeCache({
+    stdTTL: 600,
+    checkperiod: 120,
+    useClones: false,
+    maxKeys: 1000,
   });
 
-  usersProxy = new Proxy({}, {
-    get(target, key) {
-      if (typeof key !== "string" || key === "toJSON" || key === "then") return target[key];
-      let user = usersCache.get(key);
-      if (!user) {
-        try {
-          const row = sqliteConn.prepare("SELECT data FROM users WHERE jid = ?").get(key);
-          if (row) {
-            user = JSON.parse(row.data);
-            usersCache.set(key, user);
-          }
-        } catch (err) {
-          console.error(chalk.red(`[Main DB] Error cargando usuario ${key}:`), err.message);
-        }
-      }
-      return user;
-    },
-    set(target, key, value) {
-      if (typeof key === "string") usersCache.set(key, value);
-      return true;
-    },
-    deleteProperty(target, key) {
-      if (typeof key === "string") {
-        usersCache.del(key);
-        try { sqliteConn.prepare("DELETE FROM users WHERE jid = ?").run(key); } catch {}
-      }
-      return true;
-    },
-    has(target, key) {
-      if (typeof key !== "string") return false;
-      if (usersCache.has(key)) return true;
+  // ==========================================================
+  // GUARDAR USUARIOS AL EXPIRAR CACHE
+  // ==========================================================
+
+  usersCache.on(
+    "expired",
+    (key, value) => {
       try {
-        return !!sqliteConn.prepare("SELECT 1 FROM users WHERE jid = ?").get(key);
-      } catch { return false; }
-    }
-  });
+        sqliteConn
+          .prepare(`
+            INSERT INTO users(jid, data)
+            VALUES(?, ?)
+            ON CONFLICT(jid)
+            DO UPDATE SET data=excluded.data
+          `)
+          .run(
+            key,
+            JSON.stringify(value),
+          );
+      } catch (err) {
+        console.error(
+          chalk.red(
+            `[Main DB] Error guardando usuario expirado ${key}:`,
+          ),
+          err.message,
+        );
+      }
+    },
+  );
 
-  groupsProxy = new Proxy({}, {
-    get(target, key) {
-      if (typeof key !== "string" || key === "toJSON" || key === "then") return target[key];
-      let group = groupsCache.get(key);
-      if (!group) {
-        try {
-          const row = sqliteConn.prepare("SELECT data FROM groups WHERE jid = ?").get(key);
-          if (row) {
-            group = JSON.parse(row.data);
-            groupsCache.set(key, group);
-          }
-        } catch (err) {
-          console.error(chalk.red(`[Main DB] Error cargando grupo ${key}:`), err.message);
+  // ==========================================================
+  // GUARDAR GRUPOS AL EXPIRAR CACHE
+  // ==========================================================
+
+  groupsCache.on(
+    "expired",
+    (key, value) => {
+      try {
+        sqliteConn
+          .prepare(`
+            INSERT INTO groups(jid, data)
+            VALUES(?, ?)
+            ON CONFLICT(jid)
+            DO UPDATE SET data=excluded.data
+          `)
+          .run(
+            key,
+            JSON.stringify(value),
+          );
+      } catch (err) {
+        console.error(
+          chalk.red(
+            `[Main DB] Error guardando grupo expirado ${key}:`,
+          ),
+          err.message,
+        );
+      }
+    },
+  );
+
+  // ==========================================================
+  // PROXY DE USUARIOS
+  // ==========================================================
+
+  usersProxy = new Proxy(
+    {},
+    {
+      get(target, key) {
+        if (
+          typeof key !== "string" ||
+          key === "toJSON" ||
+          key === "then"
+        ) {
+          return target[key];
         }
-      }
-      return group;
+
+        let user =
+          usersCache.get(key);
+
+        if (!user) {
+          try {
+            const row =
+              sqliteConn
+                .prepare(
+                  "SELECT data FROM users WHERE jid = ?",
+                )
+                .get(key);
+
+            if (row) {
+              user =
+                JSON.parse(row.data);
+
+              usersCache.set(
+                key,
+                user,
+              );
+            }
+          } catch (err) {
+            console.error(
+              chalk.red(
+                `[Main DB] Error cargando usuario ${key}:`,
+              ),
+              err.message,
+            );
+          }
+        }
+
+        return user;
+      },
+
+      set(target, key, value) {
+        if (
+          typeof key === "string"
+        ) {
+          usersCache.set(
+            key,
+            value,
+          );
+        }
+
+        return true;
+      },
+
+      deleteProperty(
+        target,
+        key,
+      ) {
+        if (
+          typeof key === "string"
+        ) {
+          usersCache.del(key);
+
+          try {
+            sqliteConn
+              .prepare(
+                "DELETE FROM users WHERE jid = ?",
+              )
+              .run(key);
+          } catch {}
+        }
+
+        return true;
+      },
+
+      has(target, key) {
+        if (
+          typeof key !== "string"
+        ) {
+          return false;
+        }
+
+        if (
+          usersCache.has(key)
+        ) {
+          return true;
+        }
+
+        try {
+          return !!sqliteConn
+            .prepare(
+              "SELECT 1 FROM users WHERE jid = ?",
+            )
+            .get(key);
+        } catch {
+          return false;
+        }
+      },
     },
-    set(target, key, value) {
-      if (typeof key === "string") groupsCache.set(key, value);
-      return true;
+  );
+
+  // ==========================================================
+  // PROXY DE GRUPOS
+  // ==========================================================
+
+  groupsProxy = new Proxy(
+    {},
+    {
+      get(target, key) {
+        if (
+          typeof key !== "string" ||
+          key === "toJSON" ||
+          key === "then"
+        ) {
+          return target[key];
+        }
+
+        let group =
+          groupsCache.get(key);
+
+        if (!group) {
+          try {
+            const row =
+              sqliteConn
+                .prepare(
+                  "SELECT data FROM groups WHERE jid = ?",
+                )
+                .get(key);
+
+            if (row) {
+              group =
+                JSON.parse(row.data);
+
+              groupsCache.set(
+                key,
+                group,
+              );
+            }
+          } catch (err) {
+            console.error(
+              chalk.red(
+                `[Main DB] Error cargando grupo ${key}:`,
+              ),
+              err.message,
+            );
+          }
+        }
+
+        return group;
+      },
+
+      set(target, key, value) {
+        if (
+          typeof key === "string"
+        ) {
+          groupsCache.set(
+            key,
+            value,
+          );
+        }
+
+        return true;
+      },
+
+      deleteProperty(
+        target,
+        key,
+      ) {
+        if (
+          typeof key === "string"
+        ) {
+          groupsCache.del(key);
+
+          try {
+            sqliteConn
+              .prepare(
+                "DELETE FROM groups WHERE jid = ?",
+              )
+              .run(key);
+          } catch {}
+        }
+
+        return true;
+      },
     },
-    deleteProperty(target, key) {
-      if (typeof key === "string") {
-        groupsCache.del(key);
-        try { sqliteConn.prepare("DELETE FROM groups WHERE jid = ?").run(key); } catch {}
-      }
-      return true;
-    }
-  });
+  );
+
+  // ==========================================================
+  // CONFIGURACIÓN
+  // ==========================================================
 
   const defaults = [
     ["prefix", "."],
     ["owners", []],
-    ["ownerRoles", {}]
+    ["ownerRoles", {}],
   ];
 
-  for (const [k, v] of defaults) {
-    const row = sqliteConn.prepare("SELECT key FROM config WHERE key = ?").get(k);
-    if (!row) {
-      sqliteConn.prepare("INSERT INTO config(key, value) VALUES(?, ?)").run(k, JSON.stringify(v));
+  const stmtSelect =
+    sqliteConn.prepare(
+      "SELECT key FROM config WHERE key = ?",
+    );
+
+  const stmtInsert =
+    sqliteConn.prepare(
+      "INSERT INTO config(key, value) VALUES(?, ?)",
+    );
+
+  for (
+    const [key, value] of defaults
+  ) {
+    if (!stmtSelect.get(key)) {
+      stmtInsert.run(
+        key,
+        JSON.stringify(value),
+      );
     }
   }
 
-  const configRows = sqliteConn.prepare("SELECT key, value FROM config").all();
+  const configRows =
+    sqliteConn
+      .prepare(
+        "SELECT key, value FROM config",
+      )
+      .all();
+
   const dbData = {};
-  for (const row of configRows) {
-    try { dbData[row.key] = JSON.parse(row.value); } catch { dbData[row.key] = row.value; }
+
+  for (
+    const row of configRows
+  ) {
+    try {
+      dbData[row.key] =
+        JSON.parse(row.value);
+    } catch {
+      dbData[row.key] =
+        row.value;
+    }
   }
 
   dbInstance = {
     ...dbData,
     users: usersProxy,
-    groups: groupsProxy
+    groups: groupsProxy,
   };
 
   return dbInstance;
 }
 
-export function saveMainDB() {
-  if (!sqliteConn) return;
-  try {
-    sqliteConn.transaction(() => {
-      const stmtUser = sqliteConn.prepare("INSERT INTO users(jid, data) VALUES(?, ?) ON CONFLICT(jid) DO UPDATE SET data=excluded.data");
-      for (const jid of usersCache.keys()) {
-        const val = usersCache.get(jid);
-        if (val) stmtUser.run(jid, JSON.stringify(val));
-      }
+// ============================================================
+// GUARDAR CACHE
+// ============================================================
 
-      const stmtGroup = sqliteConn.prepare("INSERT INTO groups(jid, data) VALUES(?, ?) ON CONFLICT(jid) DO UPDATE SET data=excluded.data");
-      for (const jid of groupsCache.keys()) {
-        const val = groupsCache.get(jid);
-        if (val) stmtGroup.run(jid, JSON.stringify(val));
-      }
-    })();
+export function saveMainDB() {
+  if (
+    !sqliteConn ||
+    !usersCache ||
+    !groupsCache
+  ) {
+    return;
+  }
+
+  try {
+    sqliteConn.transaction(
+      () => {
+        const stmtUser =
+          sqliteConn.prepare(`
+            INSERT INTO users(jid, data)
+            VALUES(?, ?)
+            ON CONFLICT(jid)
+            DO UPDATE SET data=excluded.data
+          `);
+
+        for (
+          const jid of usersCache.keys()
+        ) {
+          const value =
+            usersCache.get(jid);
+
+          if (
+            value !== undefined
+          ) {
+            stmtUser.run(
+              jid,
+              JSON.stringify(value),
+            );
+          }
+        }
+
+        const stmtGroup =
+          sqliteConn.prepare(`
+            INSERT INTO groups(jid, data)
+            VALUES(?, ?)
+            ON CONFLICT(jid)
+            DO UPDATE SET data=excluded.data
+          `);
+
+        for (
+          const jid of groupsCache.keys()
+        ) {
+          const value =
+            groupsCache.get(jid);
+
+          if (
+            value !== undefined
+          ) {
+            stmtGroup.run(
+              jid,
+              JSON.stringify(value),
+            );
+          }
+        }
+      },
+    )();
   } catch (err) {
-    console.error(chalk.red("[Main DB] Error guardando cambios:"), err.message);
+    console.error(
+      chalk.red(
+        "[Main DB] Error guardando cambios:",
+      ),
+      err.message,
+    );
   }
 }
 
