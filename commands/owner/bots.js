@@ -149,13 +149,14 @@ export default {
 
 
         for (const bot of registeredBots) {
-          // Normalizamos también el ID del bot por si viene como JID completo o con sufijos
           const id = normalizeNumber(bot.id || bot.jid || bot.key);
 
           if (!id) continue;
 
-          // Comparamos el número limpio con los participantes del grupo
-          const isInGroup = participantNumbers.has(id);
+          // Validación flexible para evitar cruces fallidos por prefijos de país
+          const isInGroup = Array.from(participantNumbers).some(
+            (p) => p === id || p.endsWith(id) || id.endsWith(p)
+          );
 
           if (bot.active && isInGroup) {
             botsInGroup.push(id);
@@ -180,7 +181,7 @@ export default {
         text += `┃ 🤖 𝐒𝐔𝐁-𝐁𝐎𝐓𝐒 𝐄𝐍 𝐄𝐋 𝐆𝐑𝐔𝐏𝐎\n`;
         text += `┣━━━━━━━━━━━━⬣\n`;
         text += `┃ 📊 𝐀𝐜𝐭𝐢𝐯𝐨𝐬 𝐠𝐥𝐨𝐛𝐚𝐥: *${activeCount}/${maxSubs}*\n`;
-        text += `┃ ⚡ 𝐄𝐧 𝐞𝐬𝐭𝐞 𝐠𝐫𝐮𝐩𝐨: *${botsInGroup.length}*\n\n`;
+        text += `┃ ⚡ 𝐄𝐧 𝐞𝐬𝐭𝐞 𝐠rupo: *${botsInGroup.length}*\n\n`;
 
 
         // ======================================================
