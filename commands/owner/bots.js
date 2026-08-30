@@ -15,20 +15,12 @@ import {
 
 function normalizeNumber(jid) {
   if (!jid) return "";
-
-  try {
-    const normalized = jidNormalizedUser(String(jid));
-    return normalized
-      .split("@")[0]
-      .split(":")[0]
-      .replace(/\D/g, "");
-  } catch {
-    return String(jid)
-      .split("@")[0]
-      .split(":")[0]
-      .replace(/\D/g, "");
-  }
+  return String(jid)
+    .split("@")[0]
+    .split(":")[0]
+    .replace(/\D/g, "");
 }
+
 
 
 // ============================================================
