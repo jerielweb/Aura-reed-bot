@@ -201,9 +201,13 @@ export function resolveSubBotSenderId(
   }
 
   if (jidRemitente) {
-    return jidRemitente
+    // Mismo criterio que el resto del código (cleanNum/normalizeNumber):
+    // dejar únicamente dígitos, para que el ID guardado siempre tenga
+    // el mismo formato sin importar de dónde venga (QR, code, etc).
+    return String(jidRemitente)
       .split("@")[0]
-      .split(":")[0];
+      .split(":")[0]
+      .replace(/\D/g, "");
   }
 
   return null;
@@ -647,7 +651,10 @@ export async function createSubBot(
   const sender =
     isAutoload
       ? null
-      : m?.key?.participant ||
+      : m?.key?.participantPn ||
+        m?.key?.participantAlt ||
+        m?.key?.participant ||
+        m?.key?.remoteJidAlt ||
         m?.key?.remoteJid;
 
   const senderId =
@@ -656,9 +663,10 @@ export async function createSubBot(
       phoneNumber,
       null,
     ) ||
-    sender
-      ?.split("@")[0]
-      ?.split(":")[0];
+    resolveSubBotSenderId(
+      null,
+      sender,
+    );
 
   if (!senderId) {
     return;
