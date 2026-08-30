@@ -401,21 +401,33 @@ export function getRegisteredSubBots() {
       fs.readFileSync(subbotsJsonPath, "utf-8"),
     );
 
-    if (Array.isArray(data?.subbots)) {
-      return data.subbots
-        .map((id) => String(id).replace(/\D/g, ""))
-        .filter(Boolean)
-        .map((id) => ({ id, active: activeSubBots.has(id) }));
+    const subbotsObj = data?.subbots || {};
+    const results = [];
+
+    // Si es un objeto, recorremos sus claves y valores
+    const keys = Array.isArray(subbotsObj) ? subbotsObj : Object.keys(subbotsObj);
+
+    for (const key of keys) {
+      const cleanId = String(key).replace(/\D/g, "");
+      
+      // Ignoramos si no es un número de teléfono válido (muy corto)
+      if (!cleanId || cleanId.length < 5) continue;
+
+      // El estado activo real lo manda el Map de sockets activos o el JSON
+      const isActive = activeSubBots.has(cleanId) || Boolean(subbotsObj[key]?.active);
+
+      results.push({
+        id: cleanId,
+        active: isActive,
+      });
     }
 
-    return Object.keys(data?.subbots || {})
-      .map((id) => String(id).replace(/\D/g, ""))
-      .filter(Boolean)
-      .map((id) => ({ id, active: activeSubBots.has(id) }));
+    return results;
   } catch {
     return [];
   }
 }
+
 
 export async function getSubBotsInGroup(groupJid) {
   const result = [];
