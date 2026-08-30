@@ -4,14 +4,16 @@ import { fytBold } from "../../models/TextStyle.js";
 export default {
   name: ["eval", "e", "execute"],
   category: "owner",
-  ownersOnly: false,
+  ownersOnly: true, // Recomendado que sea true por seguridad (solo tú puedes ejecutar código)
   description:
-    "Ejecuta cualquier código JavaScript en tiempo real capturando la consola.",
+    "Ejecuta cualquier código JavaScript en tiempo real con acceso total al entorno.",
   async execute(
     sock,
     m,
     args,
-    {
+    context, // Recibimos el objeto de contexto completo
+  ) {
+    const {
       prefix,
       db,
       saveDB,
@@ -22,8 +24,8 @@ export default {
       groupMetadata,
       numeroReal,
       jidRemitente,
-    },
-  ) {
+    } = context;
+
     const remoteJid = m.key.remoteJid;
     const code = args.join(" ").trim();
 
@@ -56,19 +58,25 @@ export default {
     try {
       let evaled;
 
-      // Si el código contiene la palabra 'await ', lo ejecutamos de forma asíncrona envolviéndolo
-      if (code.includes("await ")) {
-        evaled = await eval(`(async () => { ${code} })()`);
-      } else {
-        // Ejecución directa en el contexto global para que devuelva operaciones como "2+2" sin "undefined"
-        evaled = eval(code);
-      }
+      // Definimos alias de ayuda rápida accesibles dentro del eval
+      const send = (texto, options = {}) => sock.sendMessage(remoteJid, { text: texto, ...options }, { quoted: m });
+      const reply = (texto) => sock.sendMessage(remoteJid, { text: texto }, { quoted: m });
+      const sender = m.key.participant || m.key.remoteJid;
+
+      // Ejecución segura envolviendo el código en una función asíncrona que inyecta todo el entorno
+      const executeFn = new Function(
+        'sock', 'm', 'args', 'remoteJid', 'db', 'saveDB', 'isOwner', 'isAdmin', 'isBotAdmin', 'owners', 'groupMetadata', 'numeroReal', 'jidRemitente', 'send', 'reply', 'sender', 'inspect',
+        `return (async () => { ${code} })();`
+      );
+
+      evaled = await executeFn(
+        sock, m, args, remoteJid, db, saveDB, isOwner, isAdmin, isBotAdmin, owners, groupMetadata, numeroReal, jidRemitente, send, reply, sender, inspect
+      );
 
       if (typeof evaled !== "string" && evaled !== undefined) {
         evaled = inspect(evaled, { depth: 1 });
       }
 
-      // Si hubo logs en consola, los muestra. Si no, muestra el resultado final obtenido.
       resultado =
         logs.length > 0
           ? logs.join("\n")
@@ -78,11 +86,9 @@ export default {
     } catch (err) {
       resultado = err.toString();
     } finally {
-      // Restaurar la consola nativa pase lo que pase
       console.log = originalLog;
     }
 
-    // Enviar respuesta formateada en bloque monoespaciado limpio (```)
     await sock.sendMessage(
       remoteJid,
       {
