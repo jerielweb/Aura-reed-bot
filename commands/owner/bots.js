@@ -136,7 +136,6 @@ export default {
         const participantNumbers = new Set();
 
         for (const participant of participants) {
-          // Extraer cualquier campo posible de identificación del participante
           const rawId = participant?.id || participant?.jid || participant?.phoneNumber;
           
           if (rawId) {
@@ -162,7 +161,6 @@ export default {
 
           if (!id) continue;
 
-          // Verificamos tanto el número exacto como coincidencias parciales si el JID varía
           const isInGroup = participantNumbers.has(id);
 
 
