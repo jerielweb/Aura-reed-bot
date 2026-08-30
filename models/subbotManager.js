@@ -187,16 +187,43 @@ export function countActiveSubBots() {
 // RESOLVER ID
 // ============================================================
 
+// Algunos países insertan un dígito extra en el JID real de WhatsApp
+// que la gente normalmente NO escribe al marcar el número. El caso
+// más común es Argentina: código de país 54 + 10 dígitos al marcar,
+// pero el JID de WhatsApp exige un "9" extra después del 54
+// (549XXXXXXXXXX). Si no lo agregamos aquí, el ID que guardamos
+// (carpeta de sesión / subbots.json) nunca calza con el JID real
+// una vez conectado, y por eso el número "cambia de formato".
+function applyCountryMobilePrefix(
+  digits,
+) {
+  if (!digits) return digits;
+
+  // Argentina: 54 + 10 dígitos (12 en total) sin el "9" de celular.
+  if (
+    digits.startsWith("54") &&
+    digits.length === 12
+  ) {
+    return `549${digits.slice(2)}`;
+  }
+
+  return digits;
+}
+
 export function resolveSubBotSenderId(
   phoneNumber,
   jidRemitente,
 ) {
   if (phoneNumber) {
-    return String(
+    const digits = String(
       phoneNumber,
     ).replace(
       /\D/g,
       "",
+    );
+
+    return applyCountryMobilePrefix(
+      digits,
     );
   }
 
@@ -204,10 +231,14 @@ export function resolveSubBotSenderId(
     // Mismo criterio que el resto del código (cleanNum/normalizeNumber):
     // dejar únicamente dígitos, para que el ID guardado siempre tenga
     // el mismo formato sin importar de dónde venga (QR, code, etc).
-    return String(jidRemitente)
+    const digits = String(jidRemitente)
       .split("@")[0]
       .split(":")[0]
       .replace(/\D/g, "");
+
+    return applyCountryMobilePrefix(
+      digits,
+    );
   }
 
   return null;
