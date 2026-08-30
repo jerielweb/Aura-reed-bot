@@ -53,7 +53,6 @@ export default {
 
   ownerOnly: false,
 
-
   execute: async (
     socket,
     message,
@@ -94,7 +93,7 @@ export default {
 
 
       let text =
-        `╭〔 🔌 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
+        `╭〔 🔌 ${fytBold ? fytBold("AURA REED") : "AURA REED"} 〕⬣\n`;
 
 
       // ========================================================
@@ -107,7 +106,7 @@ export default {
           `┃ 🤖 𝐒𝐔𝐁-𝐁𝐎𝐓𝐒\n`;
 
         text +=
-          `╰━━━━━━━━━━━━⬣\n\n`;
+          `┣━━━━━━━━━━━━⬣\n`;
 
         text +=
           `┃ 📊 𝐀𝐜𝐭𝐢𝐯𝐨𝐬: *${activeCount}/${maxSubs}*\n`;
@@ -184,7 +183,7 @@ export default {
             `┃ Intenta nuevamente en unos segundos.\n`;
 
           text +=
-            `\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
+            `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
 
 
           return await socket.sendMessage(
@@ -207,18 +206,6 @@ export default {
         const participants =
           groupMetadata?.participants ||
           [];
-
-
-        /*
-         * Guardamos TODOS los identificadores que Baileys
-         * nos entregue.
-         *
-         * Primero intentamos phoneNumber porque queremos
-         * comparar contra los números guardados en
-         * subbots.json.
-         *
-         * Si no existe, usamos id/jid normalizado.
-         */
 
         const participantNumbers =
           new Set();
@@ -243,12 +230,10 @@ export default {
               continue;
             }
 
-
             const normalized =
               normalizeNumber(
                 jid,
               );
-
 
             if (normalized) {
 
@@ -265,9 +250,7 @@ export default {
         // ======================================================
 
         const botsInGroup = [];
-
         const activeNotInGroup = [];
-
         const inactiveBots = [];
 
 
@@ -280,21 +263,15 @@ export default {
               bot.id,
             );
 
-
           if (!id) {
             continue;
           }
-
 
           const isInGroup =
             participantNumbers.has(
               id,
             );
 
-
-          // -----------------------------------------------
-          // ACTIVO Y ESTÁ EN EL GRUPO
-          // -----------------------------------------------
 
           if (
             bot.active &&
@@ -309,10 +286,6 @@ export default {
           }
 
 
-          // -----------------------------------------------
-          // ACTIVO PERO NO ESTÁ EN EL GRUPO
-          // -----------------------------------------------
-
           if (
             bot.active &&
             !isInGroup
@@ -326,10 +299,6 @@ export default {
           }
 
 
-          // -----------------------------------------------
-          // INACTIVO
-          // -----------------------------------------------
-
           if (
             !bot.active
           ) {
@@ -342,14 +311,14 @@ export default {
 
 
         // ======================================================
-        // CABECERA
+        // CABECERA GRUPO
         // ======================================================
 
         text +=
-          `┃ 🤖 𝐒𝐔𝐁-𝐁𝐎𝐓𝐒 𝐄𝐍 𝐄𝐋 𝐆𝐑𝐔𝐏𝐎\n`;
+          `┃ 🤖 𝐒𝐔𝐁-𝐁𝐎𝐓𝐒 𝐄𝐍 𝐄𝐋 𝐆𝐑𝐔𝐏Ο\n`;
 
         text +=
-          `╰━━━━━━━━━━━━⬣\n\n`;
+          `┣━━━━━━━━━━━━⬣\n`;
 
         text +=
           `┃ 📊 𝐀𝐜𝐭𝐢𝐯𝐨𝐬 𝐠𝐥𝐨𝐛𝐚𝐥: *${activeCount}/${maxSubs}*\n`;
@@ -367,8 +336,7 @@ export default {
         ) {
 
           text +=
-            `┃ 🟢 𝐀𝐂𝐓𝐈𝐕𝐎𝐒 𝐄𝐍 𝐄𝐒𝐓𝐄 𝐆𝐑𝐔𝐏𝐎\n\n`;
-
+            `┃ 🟢 𝐀𝐂𝐓𝐈𝐕𝐎𝐒 𝐄𝐍 𝐄𝐒𝐓𝐄 𝐆𝐑𝐔𝐏𝐎\n`;
 
           botsInGroup.forEach(
             (
@@ -385,16 +353,17 @@ export default {
             },
           );
 
+          text += `┃\n`;
 
         } else {
 
           text +=
-            `┃ > No hay Sub-Bots activos en este grupo.\n`;
+            `┃ > No hay Sub-Bots activos aquí.\n\n`;
         }
 
 
         // ======================================================
-        // ACTIVOS PERO NO ESTÁN EN EL GRUPO
+        // ACTIVOS PERO NO EN GRUPO
         // ======================================================
 
         if (
@@ -402,8 +371,7 @@ export default {
         ) {
 
           text +=
-            `\n┃ 🔵 𝐀𝐂𝐓𝐈𝐕𝐎𝐒 𝐏𝐄𝐑𝐎 𝐍𝐎 𝐄𝐍 𝐄𝐒𝐓𝐄 𝐆𝐑𝐔𝐏𝐎\n\n`;
-
+            `┃ 🔵 𝐀𝐂𝐓𝐈𝐕𝐎𝐒 (𝐅𝐔𝐄𝐑𝐀)\n`;
 
           activeNotInGroup.forEach(
             (
@@ -418,6 +386,8 @@ export default {
               );
             },
           );
+
+          text += `┃\n`;
         }
 
 
@@ -430,8 +400,7 @@ export default {
         ) {
 
           text +=
-            `\n┃ 🔴 𝐈𝐍𝐀𝐂𝐓𝐈𝐕𝐎𝐒\n\n`;
-
+            `┃ 🔴 𝐈𝐍𝐀𝐂𝐓𝐈𝐕𝐎𝐒\n`;
 
           inactiveBots.forEach(
             (
@@ -451,11 +420,14 @@ export default {
 
 
       // ========================================================
-      // PIE
+      // PIE DE PÁGINA ÚNICO
       // ========================================================
 
       text +=
-        `\n> _Usa ${prefix}code o ${prefix}qr para tener tu sub-bot._\n\n`;
+        `┣━━━━━━━━━━━━⬣\n`;
+
+      text +=
+        `┃ 💡 _Usa ${prefix}code o ${prefix}qr_\n`;
 
       text +=
         `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
@@ -484,7 +456,6 @@ export default {
         "[BOTS] Error ejecutando comando:",
         error,
       );
-
 
       try {
 
