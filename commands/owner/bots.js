@@ -1,7 +1,7 @@
 import {
   jidNormalizedUser,
 } from "@whiskeysockets/baileys";
-import { fytBold } from "../../models/TextStyle.js";
+
 import {
   countActiveSubBots,
   getMaxSubBots,
@@ -17,11 +17,7 @@ function normalizeNumber(jid) {
   if (!jid) return "";
 
   try {
-    const normalized =
-      jidNormalizedUser(
-        String(jid),
-      );
-
+    const normalized = jidNormalizedUser(String(jid));
     return normalized
       .split("@")[0]
       .split(":")[0]
@@ -62,38 +58,21 @@ export default {
 
     try {
 
-      const remoteJid =
-        message.key.remoteJid;
+      const remoteJid = message.key.remoteJid;
 
       if (!remoteJid) {
         return;
       }
 
-      const isGroup =
-        remoteJid.endsWith(
-          "@g.us",
-        );
+      const isGroup = remoteJid.endsWith("@g.us");
 
-
-      // ========================================================
-      // DATOS GENERALES
-      // ========================================================
-
-      const activeCount =
-        countActiveSubBots();
-
-      const maxSubs =
-        getMaxSubBots();
-
-      const registeredBots =
-        getRegisteredSubBots();
-
+      const activeCount = countActiveSubBots();
+      const maxSubs = getMaxSubBots();
+      const registeredBots = getRegisteredSubBots();
 
       const mentions = [];
 
-
-      let text =
-        `╭〔 🔌 ${fytBold ? fytBold("AURA REED") : "AURA REED"} 〕⬣\n`;
+      let text = `╭〔 🔌 AURA REED 〕⬣\n`;
 
 
       // ========================================================
@@ -102,55 +81,25 @@ export default {
 
       if (!isGroup) {
 
-        text +=
-          `┃ 🤖 𝐒𝐔𝐁-𝐁𝐎𝐓𝐒\n`;
-
-        text +=
-          `┣━━━━━━━━━━━━⬣\n`;
-
-        text +=
-          `┃ 📊 𝐀𝐜𝐭𝐢𝐯𝐨𝐬: *${activeCount}/${maxSubs}*\n`;
-
-        text +=
-          `┃ 📁 𝐑𝐞𝐠𝐢𝐬𝐭𝐫𝐚𝐝𝐨𝐬: *${registeredBots.length}*\n\n`;
+        text += `┃ 🤖 𝐒𝐔𝐁-𝐁𝐎𝐓𝐒\n`;
+        text += `┣━━━━━━━━━━━━⬣\n`;
+        text += `┃ 📊 𝐀𝐜𝐭𝐢𝐯𝐨𝐬: *${activeCount}/${maxSubs}*\n`;
+        text += `┃ 📁 𝐑𝐞𝐠𝐢𝐬𝐭𝐫𝐚𝐝𝐨𝐬: *${registeredBots.length}*\n\n`;
 
 
-        if (
-          registeredBots.length === 0
-        ) {
-
-          text +=
-            `┃ > No hay Sub-Bots registrados.\n`;
-
+        if (registeredBots.length === 0) {
+          text += `┃ > No hay Sub-Bots registrados.\n`;
         } else {
+          registeredBots.forEach((bot, index) => {
+            const id = normalizeNumber(bot.id);
+            if (!id) return;
 
-          registeredBots.forEach(
-            (
-              bot,
-              index,
-            ) => {
+            text += `┃ ${index + 1}. @${id} ${
+              bot.active ? "🟢 ACTIVO" : "🔴 INACTIVO"
+            }\n`;
 
-              const id =
-                normalizeNumber(
-                  bot.id,
-                );
-
-              if (!id) {
-                return;
-              }
-
-              text +=
-                `┃ ${index + 1}. @${id} ${
-                  bot.active
-                    ? "🟢 ACTIVO"
-                    : "🔴 INACTIVO"
-                }\n`;
-
-              mentions.push(
-                `${id}@s.whatsapp.net`,
-              );
-            },
-          );
+            mentions.push(`${id}@s.whatsapp.net`);
+          });
         }
 
 
@@ -163,83 +112,37 @@ export default {
         let groupMetadata = null;
 
         try {
-
-          groupMetadata =
-            await socket.groupMetadata(
-              remoteJid,
-            );
-
+          groupMetadata = await socket.groupMetadata(remoteJid);
         } catch (error) {
+          console.error("[BOTS] Error al obtener metadata del grupo:", error);
 
-          console.error(
-            "[BOTS] No se pudo obtener metadata del grupo:",
-            error,
-          );
-
-          text +=
-            `┃ ⚠️ No pude obtener la información del grupo.\n`;
-
-          text +=
-            `┃ Intenta nuevamente en unos segundos.\n`;
-
-          text +=
-            `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
-
+          text += `┃ ⚠️ No pude obtener la información del grupo.\n`;
+          text += `┃ Intenta nuevamente en unos segundos.\n`;
+          text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
 
           return await socket.sendMessage(
             remoteJid,
-            {
-              text,
-            },
-            {
-              quoted:
-                message,
-            },
+            { text },
+            { quoted: message },
           );
         }
 
 
         // ======================================================
-        // OBTENER PARTICIPANTES
+        // OBTENER PARTICIPANTES (CORREGIDO Y ROBUSTO)
         // ======================================================
 
-        const participants =
-          groupMetadata?.participants ||
-          [];
+        const participants = groupMetadata?.participants || [];
+        const participantNumbers = new Set();
 
-        const participantNumbers =
-          new Set();
-
-
-        for (
-          const participant of participants
-        ) {
-
-          const possibleJids = [
-            participant?.phoneNumber,
-            participant?.jid,
-            participant?.id,
-          ];
-
-
-          for (
-            const jid of possibleJids
-          ) {
-
-            if (!jid) {
-              continue;
-            }
-
-            const normalized =
-              normalizeNumber(
-                jid,
-              );
-
+        for (const participant of participants) {
+          // Extraer cualquier campo posible de identificación del participante
+          const rawId = participant?.id || participant?.jid || participant?.phoneNumber;
+          
+          if (rawId) {
+            const normalized = normalizeNumber(rawId);
             if (normalized) {
-
-              participantNumbers.add(
-                normalized,
-              );
+              participantNumbers.add(normalized);
             }
           }
         }
@@ -254,58 +157,27 @@ export default {
         const inactiveBots = [];
 
 
-        for (
-          const bot of registeredBots
-        ) {
+        for (const bot of registeredBots) {
+          const id = normalizeNumber(bot.id);
 
-          const id =
-            normalizeNumber(
-              bot.id,
-            );
+          if (!id) continue;
 
-          if (!id) {
+          // Verificamos tanto el número exacto como coincidencias parciales si el JID varía
+          const isInGroup = participantNumbers.has(id);
+
+
+          if (bot.active && isInGroup) {
+            botsInGroup.push(id);
             continue;
           }
 
-          const isInGroup =
-            participantNumbers.has(
-              id,
-            );
-
-
-          if (
-            bot.active &&
-            isInGroup
-          ) {
-
-            botsInGroup.push(
-              id,
-            );
-
+          if (bot.active && !isInGroup) {
+            activeNotInGroup.push(id);
             continue;
           }
 
-
-          if (
-            bot.active &&
-            !isInGroup
-          ) {
-
-            activeNotInGroup.push(
-              id,
-            );
-
-            continue;
-          }
-
-
-          if (
-            !bot.active
-          ) {
-
-            inactiveBots.push(
-              id,
-            );
+          if (!bot.active) {
+            inactiveBots.push(id);
           }
         }
 
@@ -314,51 +186,27 @@ export default {
         // CABECERA GRUPO
         // ======================================================
 
-        text +=
-          `┃ 🤖 𝐒𝐔𝐁-𝐁𝐎𝐓𝐒 𝐄𝐍 𝐄𝐋 𝐆𝐑𝐔𝐏Ο\n`;
-
-        text +=
-          `┣━━━━━━━━━━━━⬣\n`;
-
-        text +=
-          `┃ 📊 𝐀𝐜𝐭𝐢𝐯𝐨𝐬 𝐠𝐥𝐨𝐛𝐚𝐥: *${activeCount}/${maxSubs}*\n`;
-
-        text +=
-          `┃ ⚡ 𝐄𝐧 𝐞𝐬𝐭𝐞 𝐠𝐫𝐮𝐩𝐨: *${botsInGroup.length}*\n\n`;
+        text += `┃ 🤖 𝐒𝐔𝐁-𝐁𝐎𝐓𝐒 𝐄𝐍 𝐄𝐋 𝐆𝐑𝐔𝐏𝐎\n`;
+        text += `┣━━━━━━━━━━━━⬣\n`;
+        text += `┃ 📊 𝐀𝐜𝐭𝐢𝐯𝐨𝐬 𝐠𝐥𝐨𝐛𝐚𝐥: *${activeCount}/${maxSubs}*\n`;
+        text += `┃ ⚡ 𝐄𝐧 𝐞𝐬𝐭𝐞 𝐠𝐫𝐮𝐩𝐨: *${botsInGroup.length}*\n\n`;
 
 
         // ======================================================
         // BOTS EN EL GRUPO
         // ======================================================
 
-        if (
-          botsInGroup.length > 0
-        ) {
+        if (botsInGroup.length > 0) {
+          text += `┃ 🟢 𝐀𝐂𝐓𝐈𝐕𝐎𝐒 𝐄𝐍 𝐄𝐒𝐓𝐄 𝐆𝐑𝐔𝐏𝐎\n`;
 
-          text +=
-            `┃ 🟢 𝐀𝐂𝐓𝐈𝐕𝐎𝐒 𝐄𝐍 𝐄𝐒𝐓𝐄 𝐆𝐑𝐔𝐏𝐎\n`;
-
-          botsInGroup.forEach(
-            (
-              id,
-              index,
-            ) => {
-
-              text +=
-                `┃ ${index + 1}. @${id} 🟢\n`;
-
-              mentions.push(
-                `${id}@s.whatsapp.net`,
-              );
-            },
-          );
+          botsInGroup.forEach((id, index) => {
+            text += `┃ ${index + 1}. @${id} 🟢\n`;
+            mentions.push(`${id}@s.whatsapp.net`);
+          });
 
           text += `┃\n`;
-
         } else {
-
-          text +=
-            `┃ > No hay Sub-Bots activos aquí.\n\n`;
+          text += `┃ > No hay Sub-Bots activos aquí.\n\n`;
         }
 
 
@@ -366,26 +214,13 @@ export default {
         // ACTIVOS PERO NO EN GRUPO
         // ======================================================
 
-        if (
-          activeNotInGroup.length > 0
-        ) {
+        if (activeNotInGroup.length > 0) {
+          text += `┃ 🔵 𝐀𝐂𝐓𝐈𝐕𝐎𝐒 (𝐅𝐔𝐄𝐑𝐀)\n`;
 
-          text +=
-            `┃ 🔵 𝐀𝐂𝐓𝐈𝐕𝐎𝐒 (𝐅𝐔𝐄𝐑𝐀)\n`;
-
-          activeNotInGroup.forEach(
-            (
-              id,
-            ) => {
-
-              text +=
-                `┃ • @${id} 🔵\n`;
-
-              mentions.push(
-                `${id}@s.whatsapp.net`,
-              );
-            },
-          );
+          activeNotInGroup.forEach((id) => {
+            text += `┃ • @${id} 🔵\n`;
+            mentions.push(`${id}@s.whatsapp.net`);
+          });
 
           text += `┃\n`;
         }
@@ -395,42 +230,24 @@ export default {
         // INACTIVOS
         // ======================================================
 
-        if (
-          inactiveBots.length > 0
-        ) {
+        if (inactiveBots.length > 0) {
+          text += `┃ 🔴 𝐈𝐍𝐀𝐂𝐓𝐈𝐕𝐎𝐒\n`;
 
-          text +=
-            `┃ 🔴 𝐈𝐍𝐀𝐂𝐓𝐈𝐕𝐎𝐒\n`;
-
-          inactiveBots.forEach(
-            (
-              id,
-            ) => {
-
-              text +=
-                `┃ • @${id} 🔴\n`;
-
-              mentions.push(
-                `${id}@s.whatsapp.net`,
-              );
-            },
-          );
+          inactiveBots.forEach((id) => {
+            text += `┃ • @${id} 🔴\n`;
+            mentions.push(`${id}@s.whatsapp.net`);
+          });
         }
       }
 
 
       // ========================================================
-      // PIE DE PÁGINA ÚNICO
+      // PIE DE PÁGINA
       // ========================================================
 
-      text +=
-        `┣━━━━━━━━━━━━⬣\n`;
-
-      text +=
-        `┃ 💡 _Usa ${prefix}code o ${prefix}qr_\n`;
-
-      text +=
-        `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
+      text += `┣━━━━━━━━━━━━⬣\n`;
+      text += `┃ 💡 _Usa ${prefix}code o ${prefix}qr_\n`;
+      text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
 
 
       // ========================================================
@@ -444,33 +261,23 @@ export default {
           mentions,
         },
         {
-          quoted:
-            message,
+          quoted: message,
         },
       );
 
-
     } catch (error) {
-
-      console.error(
-        "[BOTS] Error ejecutando comando:",
-        error,
-      );
+      console.error("[BOTS] Error ejecutando comando:", error);
 
       try {
-
         await socket.sendMessage(
           message.key.remoteJid,
           {
-            text:
-              `❌ Error en .bots:\n\n${error.message}`,
+            text: `❌ Error en .bots:\n\n${error.message}`,
           },
           {
-            quoted:
-              message,
+            quoted: message,
           },
         );
-
       } catch {}
     }
   },
