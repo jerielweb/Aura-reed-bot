@@ -1,7 +1,7 @@
 import {
   jidNormalizedUser,
 } from "@whiskeysockets/baileys";
-
+import { fytBold } from "../../models/TextStyle.js";
 import {
   countActiveSubBots,
   getMaxSubBots,
