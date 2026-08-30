@@ -110,18 +110,24 @@ export default {
     const currentBotNum = cleanNum(sock.user?.id || sock.user?.jid);
 
     // Lectura del JSON global de bots
-    let globalBots = { mainBot: null, subbots: [] };
+    let globalBots = { mainBot: null, subbots: {} };
     if (fs.existsSync(subbotsJsonPath)) {
       try {
         globalBots = JSON.parse(fs.readFileSync(subbotsJsonPath, "utf-8")) || globalBots;
       } catch {}
     }
 
+    // "subbots" se guarda como objeto { "numero": { active } }.
+    // Soportamos también el formato viejo (arreglo de números) por compatibilidad.
+    const subbotIds = Array.isArray(globalBots.subbots)
+      ? globalBots.subbots
+      : Object.keys(globalBots.subbots || {});
+
     // Lista unificada limpia de números telefónicos
     const allValidBots = [
       cleanNum(globalBots.mainBot),
       currentBotNum,
-      ...(globalBots.subbots || []).map(cleanNum),
+      ...subbotIds.map(cleanNum),
     ].filter(Boolean);
 
     const isValidBot = allValidBots.includes(targetNum);
