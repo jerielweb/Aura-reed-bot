@@ -76,7 +76,7 @@ export default {
 
 
       // ========================================================
-      // PRIVADO
+      // PRIVADO (Muestra todos los registrados y su estado)
       // ========================================================
 
       if (!isGroup) {
@@ -104,7 +104,7 @@ export default {
 
 
       // ========================================================
-      // GRUPO
+      // GRUPO (Clasifica activos en grupo, fuera e inactivos)
       // ========================================================
 
       } else {
@@ -129,7 +129,7 @@ export default {
 
 
         // ======================================================
-        // OBTENER PARTICIPANTES (CORREGIDO Y ROBUSTO)
+        // OBTENER PARTICIPANTES DEL GRUPO DE FORMA SEGURA
         // ======================================================
 
         const participants = groupMetadata?.participants || [];
@@ -249,7 +249,7 @@ export default {
 
 
       // ========================================================
-      // ENVIAR
+      // ENVIAR MENSAJE
       // ========================================================
 
       await socket.sendMessage(
