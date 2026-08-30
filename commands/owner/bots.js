@@ -128,10 +128,20 @@ export default {
         const participantNumbers = new Set();
 
         for (const participant of participants) {
-          const rawId = participant?.id || participant?.jid || participant?.phoneNumber;
-          
-          if (rawId) {
-            const normalized = normalizeNumber(rawId);
+          // Baileys puede entregar el id en formato LID (ej. "123456789@lid")
+          // en vez del número real cuando el grupo usa direccionamiento LID.
+          // Por eso priorizamos phoneNumber/jid (número real) y solo caemos
+          // a "id" si no viene en formato @lid.
+          const candidates = [
+            participant?.phoneNumber,
+            participant?.jid,
+            participant?.id,
+          ].filter(Boolean);
+
+          for (const raw of candidates) {
+            if (typeof raw === "string" && raw.endsWith("@lid")) continue;
+
+            const normalized = normalizeNumber(raw);
             if (normalized) {
               participantNumbers.add(normalized);
             }
@@ -141,10 +151,10 @@ export default {
 
         // ======================================================
         // COMPARAR SUB-BOTS REGISTRADOS
+        // (solo los que pertenecen a este grupo; el resto se oculta)
         // ======================================================
 
         const botsInGroup = [];
-        const activeNotInGroup = [];
         const inactiveBots = [];
 
 
@@ -158,17 +168,12 @@ export default {
             (p) => p === id || p.endsWith(id) || id.endsWith(p)
           );
 
-          if (bot.active && isInGroup) {
+          // Si el sub-bot no está en el grupo, se oculta por completo.
+          if (!isInGroup) continue;
+
+          if (bot.active) {
             botsInGroup.push(id);
-            continue;
-          }
-
-          if (bot.active && !isInGroup) {
-            activeNotInGroup.push(id);
-            continue;
-          }
-
-          if (!bot.active) {
+          } else {
             inactiveBots.push(id);
           }
         }
@@ -203,23 +208,7 @@ export default {
 
 
         // ======================================================
-        // ACTIVOS PERO NO EN GRUPO
-        // ======================================================
-
-        if (activeNotInGroup.length > 0) {
-          text += `┃ 🔵 𝐀𝐂𝐓𝐈𝐕𝐎𝐒 (𝐅𝐔𝐄𝐑𝐀)\n`;
-
-          activeNotInGroup.forEach((id) => {
-            text += `┃ • @${id} 🔵\n`;
-            mentions.push(`${id}@s.whatsapp.net`);
-          });
-
-          text += `┃\n`;
-        }
-
-
-        // ======================================================
-        // INACTIVOS
+        // INACTIVOS (pero presentes en el grupo)
         // ======================================================
 
         if (inactiveBots.length > 0) {
