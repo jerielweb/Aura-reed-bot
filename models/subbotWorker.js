@@ -89,10 +89,10 @@ export async function getSubBotDB(
 
   const groupsCache =
     new NodeCache({
-      stdTTL: 300,
+      stdTTL: 200,
       checkperiod: 120,
       useClones: false,
-      maxKeys: 500,
+      maxKeys: 150,
     });
 
   // ==========================================================

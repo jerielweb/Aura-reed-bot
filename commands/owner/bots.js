@@ -1,7 +1,8 @@
-import fs from "fs";
 import {
   countActiveSubBots,
   getMaxSubBots,
+  getRegisteredSubBots,
+  getSubBotsInGroup,
 } from "../../models/subbotManager.js";
 
 export default {
@@ -13,66 +14,86 @@ export default {
   execute: async (socket, message, args, { prefix }) => {
     const remoteJid = message.key.remoteJid;
     const isGroup = remoteJid.endsWith("@g.us");
-    const sessionsDir = "./sessions/subbots";
 
-    if (!fs.existsSync(sessionsDir)) {
-      let text = `╭〔 🔌 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
-      text += `┃ ⚠️ 𝐒𝐈𝐒𝐓𝐄𝐌𝐀 𝐒𝐔𝐁-𝐁𝐎𝐓𝐒\n`;
-      text += `╰━━━━━━━━━━━━⬣\n\n`;
-      text += `┃ > No se han encontrado\n`;
-      text += `┃ > sesiones de sub-bots.\n\n`;
-      text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
-      return await socket.sendMessage(remoteJid, { text }, { quoted: message });
-    }
-
-    const files = fs.readdirSync(sessionsDir);
     const activeCount = countActiveSubBots();
     const maxSubs = getMaxSubBots();
-    let mentions = [];
+    const registeredBots = getRegisteredSubBots();
+
+    const mentions = [];
 
     let text = `╭〔 🔌 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;
 
-    if (isGroup) {
-      let botsInGroup = [];
-      try {
-        const groupMetadata = await socket.groupMetadata(remoteJid);
-        const participantJids = groupMetadata.participants.map((p) => {
-          const jid = (p.jid?.includes('s.whatsapp.net') ? p.jid : null) || p.phoneNumber || p.id;
-          return jid ? String(jid).split("@")[0].split(":")[0] : null;
-        }).filter(Boolean);
+    // ============================================================
+    // GRUPO
+    // ============================================================
 
-        botsInGroup = files.filter((file) => participantJids.includes(file.replace(/[^0-9]/g, '')));
-      } catch (e) {
-        console.error("Error al obtener metadata del grupo:", e);
-      }
+    if (isGroup) {
+      const botsInGroup =
+        await getSubBotsInGroup(remoteJid);
 
       text += `┃ 🤖 𝐒𝐔𝐁-𝐁𝐎𝐓𝐒 𝐄𝐍 𝐄𝐋 𝐆𝐑𝐔𝐏𝐎\n`;
       text += `╰━━━━━━━━━━━━⬣\n\n`;
+
       text += `┃ 📊 𝐀𝐜𝐭𝐢𝐯𝐨𝐬 𝐠𝐥𝐨𝐛𝐚𝐥: *${activeCount}/${maxSubs}*\n`;
       text += `┃ ⚡ 𝐄𝐧 𝐞𝐬𝐭𝐞 𝐠𝐫𝐮𝐩𝐨: *${botsInGroup.length}*\n\n`;
 
       if (botsInGroup.length === 0) {
-        text += `┃ > No hay sub-bots aquí.\n`;
+        text += `┃ > No hay sub-bots activos aquí.\n`;
       } else {
-        botsInGroup.forEach((file, index) => {
-          const num = file.replace(/[^0-9]/g, '');
-          text += `┃ ${index + 1}. @${num}\n`;
-          mentions.push(`${num}@s.whatsapp.net`);
+        botsInGroup.forEach((bot, index) => {
+          text += `┃ ${index + 1}. @${bot.id} 🟢\n`;
+
+          mentions.push(
+            `${bot.id}@s.whatsapp.net`,
+          );
         });
       }
-    } else {
-      text += `┃ 🤖 𝐒𝐔𝐁-𝐁𝐎𝐓𝐒 𝐀𝐂𝐓𝐈𝐕𝐎𝐒\n`;
-      text += `╰━━━━━━━━━━━━⬣\n\n`;
-      text += `┃ 📊 𝐒𝐞𝐬𝐢𝐨𝐧𝐞𝐬: *${activeCount}/${maxSubs}*\n\n`;
 
-      if (files.length === 0) {
-        text += `┃ > No hay sesiones activas.\n`;
-      } else {
-        files.forEach((file, index) => {
-          const num = file.replace(/[^0-9]/g, '');
-          text += `┃ ${index + 1}. @${num}\n`;
-          mentions.push(`${num}@s.whatsapp.net`);
+      // Mostrar también los registrados pero desconectados
+      const inactiveBots =
+        registeredBots.filter(
+          (bot) => !bot.active,
+        );
+
+      if (inactiveBots.length > 0) {
+        text += `\n┃ 🔴 𝐒𝐔𝐁-𝐁𝐎𝐓𝐒 𝐈𝐍𝐀𝐂𝐓𝐈𝐕𝐎𝐒\n`;
+
+        inactiveBots.forEach((bot) => {
+          text += `┃ • @${bot.id} 🔴 INACTIVO\n`;
+
+          mentions.push(
+            `${bot.id}@s.whatsapp.net`,
+          );
         });
+      }
+
+    // ============================================================
+    // PRIVADO
+    // ============================================================
+
+    } else {
+      text += `┃ 🤖 𝐒𝐔𝐁-𝐁𝐎𝐓𝐒\n`;
+      text += `╰━━━━━━━━━━━━⬣\n\n`;
+
+      text += `┃ 📊 𝐀𝐜𝐭𝐢𝐯𝐨𝐬: *${activeCount}/${maxSubs}*\n`;
+      text += `┃ 📁 𝐑𝐞𝐠𝐢𝐬𝐭𝐫𝐚𝐝𝐨𝐬: *${registeredBots.length}*\n\n`;
+
+      if (registeredBots.length === 0) {
+        text += `┃ > No hay sub-bots registrados.\n`;
+      } else {
+        registeredBots.forEach(
+          (bot, index) => {
+            text += `┃ ${index + 1}. @${bot.id} ${
+              bot.active
+                ? "🟢 ACTIVO"
+                : "🔴 INACTIVO"
+            }\n`;
+
+            mentions.push(
+              `${bot.id}@s.whatsapp.net`,
+            );
+          },
+        );
       }
     }
 
@@ -81,8 +102,13 @@ export default {
 
     await socket.sendMessage(
       remoteJid,
-      { text, mentions },
-      { quoted: message },
+      {
+        text,
+        mentions,
+      },
+      {
+        quoted: message,
+      },
     );
   },
 };

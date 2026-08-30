@@ -62,10 +62,10 @@ export function getDBSync() {
   // ==========================================================
 
   groupsCache = new NodeCache({
-    stdTTL: 600,
+    stdTTL: 300,
     checkperiod: 120,
     useClones: false,
-    maxKeys: 1000,
+    maxKeys: 500,
   });
 
   // ==========================================================

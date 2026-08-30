@@ -295,77 +295,83 @@ export function syncSubBotsJson(
   mainBotNumber = null,
 ) {
   try {
-    if (
-      !fs.existsSync(
-        databaseDir,
-      )
-    ) {
-      fs.mkdirSync(
-        databaseDir,
-        {
-          recursive: true,
-        },
-      );
+    if (!fs.existsSync(databaseDir)) {
+      fs.mkdirSync(databaseDir, { recursive: true });
     }
 
     let currentData = {
       mainBot: null,
-      subbots: [],
+      subbots: {},
     };
 
-    if (
-      fs.existsSync(
-        subbotsJsonPath,
-      )
-    ) {
+    if (fs.existsSync(subbotsJsonPath)) {
       try {
-        currentData =
-          JSON.parse(
-            fs.readFileSync(
-              subbotsJsonPath,
-              "utf-8",
-            ),
-          ) ||
-          currentData;
+        const parsed = JSON.parse(
+          fs.readFileSync(subbotsJsonPath, "utf-8"),
+        );
+        if (parsed && typeof parsed === "object") {
+          currentData = parsed;
+        }
       } catch {}
     }
 
-    const activeSessions =
-      listActiveSubBotSessions();
+    const registry = {};
+    const previous = currentData.subbots;
 
-    const cleanNum =
-      (jid) =>
-        jid
-          ? String(jid)
-              .split("@")[0]
-              .split(":")[0]
-              .replace(
-                /\D/g,
-                "",
-              )
-          : null;
+    // Compatibilidad con el formato viejo: subbots: ["506..."]
+    if (Array.isArray(previous)) {
+      for (const value of previous) {
+        const id = String(value || "").replace(/\D/g, "");
+        if (id) registry[id] = { active: false };
+      }
+    } else if (previous && typeof previous === "object") {
+      for (const [key, value] of Object.entries(previous)) {
+        const id = String(key).replace(/\D/g, "");
+        if (!id) continue;
+        registry[id] = {
+          ...(value && typeof value === "object" ? value : {}),
+          active: Boolean(value?.active),
+        };
+      }
+    }
 
-    const mainNum =
-      mainBotNumber
-        ? cleanNum(
-            mainBotNumber,
-          )
-        : currentData.mainBot;
+    // Las sesiones existentes siguen registradas aunque estén apagadas.
+    for (const session of listActiveSubBotSessions()) {
+      const id = String(session).replace(/\D/g, "");
+      if (!id) continue;
+      if (!registry[id]) registry[id] = { active: false };
+    }
 
-    const updatedData = {
-      mainBot:
-        mainNum,
+    // El estado real siempre sale del Map de sockets.
+    for (const id of Object.keys(registry)) {
+      registry[id].active = activeSubBots.has(id);
+    }
+    for (const id of activeSubBots.keys()) {
+      const cleanId = String(id).replace(/\D/g, "");
+      if (!cleanId) continue;
+      if (!registry[cleanId]) registry[cleanId] = { active: true };
+      else registry[cleanId].active = true;
+    }
 
-      subbots:
-        activeSessions
-          .map(cleanNum)
-          .filter(Boolean),
-    };
+    const cleanNum = (jid) =>
+      jid
+        ? String(jid)
+            .split("@")[0]
+            .split(":")[0]
+            .replace(/\D/g, "")
+        : null;
+
+    const mainNum = mainBotNumber
+      ? cleanNum(mainBotNumber)
+      : currentData.mainBot || null;
 
     fs.writeFileSync(
       subbotsJsonPath,
       JSON.stringify(
-        updatedData,
+        {
+          mainBot: mainNum,
+          subbots: registry,
+        },
         null,
         2,
       ),
@@ -376,6 +382,64 @@ export function syncSubBotsJson(
       error,
     );
   }
+}
+
+// ============================================================
+// REGISTRO / ESTADO / GRUPOS
+// ============================================================
+
+export function isSubBotActive(senderId) {
+  const id = resolveSubBotSenderId(null, senderId);
+  return Boolean(id && activeSubBots.has(id));
+}
+
+export function getRegisteredSubBots() {
+  try {
+    if (!fs.existsSync(subbotsJsonPath)) return [];
+
+    const data = JSON.parse(
+      fs.readFileSync(subbotsJsonPath, "utf-8"),
+    );
+
+    if (Array.isArray(data?.subbots)) {
+      return data.subbots
+        .map((id) => String(id).replace(/\D/g, ""))
+        .filter(Boolean)
+        .map((id) => ({ id, active: activeSubBots.has(id) }));
+    }
+
+    return Object.keys(data?.subbots || {})
+      .map((id) => String(id).replace(/\D/g, ""))
+      .filter(Boolean)
+      .map((id) => ({ id, active: activeSubBots.has(id) }));
+  } catch {
+    return [];
+  }
+}
+
+export async function getSubBotsInGroup(groupJid) {
+  const result = [];
+
+  if (!groupJid || !String(groupJid).endsWith("@g.us")) {
+    return result;
+  }
+
+  for (const [id, subSock] of activeSubBots) {
+    try {
+      if (!subSock || subSock.isClosedManually) continue;
+
+      await subSock.groupMetadata(groupJid);
+
+      result.push({
+        id: String(id).replace(/\D/g, ""),
+        active: true,
+      });
+    } catch {
+      // Activo pero no puede consultar el grupo = no lo contamos.
+    }
+  }
+
+  return result;
 }
 
 // ============================================================
@@ -405,6 +469,11 @@ async function destroySubBotSocket(
     activeSubBots.delete(
       senderId,
     );
+  } catch {}
+
+  // Persistir inmediatamente que el Sub-Bot quedó inactivo.
+  try {
+    syncSubBotsJson();
   } catch {}
 
   // Muy importante:
@@ -626,8 +695,7 @@ export async function createSubBot(
   // ==========================================================
   // LIMPIAR SESIÓN ANTERIOR
   // ==========================================================
-
-  if (
+    if (
     !isAutoload &&
     fs.existsSync(
       sessionPath,
@@ -1096,7 +1164,7 @@ export async function createSubBot(
         // ====================================================
         // RECONEXIÓN
         // ====================================================
-        if (
+                if (
           !subSock.isClosedManually
         ) {
           console.log(
