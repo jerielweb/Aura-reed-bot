@@ -424,23 +424,19 @@ export async function getSubBotsInGroup(groupJid) {
     return result;
   }
 
-  for (const [id, subSock] of activeSubBots) {
-    try {
-      if (!subSock || subSock.isClosedManually) continue;
-
-      await subSock.groupMetadata(groupJid);
-
+  for (const [id] of activeSubBots) {
+    const cleanId = String(id).replace(/\D/g, "");
+    if (cleanId) {
       result.push({
-        id: String(id).replace(/\D/g, ""),
+        id: cleanId,
         active: true,
       });
-    } catch {
-      // Activo pero no puede consultar el grupo = no lo contamos.
     }
   }
 
   return result;
 }
+
 
 // ============================================================
 // DESTRUIR SOCKET
