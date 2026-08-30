@@ -149,12 +149,13 @@ export default {
 
 
         for (const bot of registeredBots) {
-          const id = normalizeNumber(bot.id);
+          // Normalizamos también el ID del bot por si viene como JID completo o con sufijos
+          const id = normalizeNumber(bot.id || bot.jid || bot.key);
 
           if (!id) continue;
 
+          // Comparamos el número limpio con los participantes del grupo
           const isInGroup = participantNumbers.has(id);
-
 
           if (bot.active && isInGroup) {
             botsInGroup.push(id);
