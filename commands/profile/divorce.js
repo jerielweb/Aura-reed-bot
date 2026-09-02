@@ -47,7 +47,7 @@ export default {
     const pending = getMarriagePending(group);
 
     if (!targetJid && pending?.to === normalizedSender) {
-      targetJid = pending.from;
+      targetJid = jidNormalizedUser(pending.from);
     }
 
     if (!targetJid) {

@@ -33,7 +33,7 @@ export default {
     const remoteJid = message.key.remoteJid;
     if (!remoteJid.endsWith("@g.us")) {
       let text = `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n`;
-      text += `${fytBold("ACCION INCONPATIBLE")} \n╰━━━━━━━━━━━━⬣\n\n`;
+      text += `${fytBold("ACCION INCOMPATIBLE")} \n╰━━━━━━━━━━━━⬣\n\n`;
       text += `> Este comando solo funciona en grupos.\n\n`;
       text += `╰〔 ⚡ ${fytBold("SYSTEM ALERT")} 〕⬣`;
       return await socket.sendMessage(remoteJid, { text }, { quoted: message });
@@ -47,7 +47,7 @@ export default {
     const pending = getMarriagePending(group);
 
     if (!targetJid && pending?.to === normalizedSender) {
-      targetJid = pending.from;
+      targetJid = jidNormalizedUser(pending.from);
     }
 
     if (!targetJid) {
