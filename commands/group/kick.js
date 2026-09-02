@@ -6,10 +6,10 @@ export default {
   description: "Expulsa a un integrante o a varios por prefijo de país.",
   adminOnly: true,
   execute: async (
-    socket,
+    sock,
     message,
     args,
-    { groupMetadata, isOwner, prefix },
+    { prefix, db, saveDB, isOwner, isAdmin, isBotAdmin, owners, groupMetadata, numeroReal, jidRemitente, senderRaw, rawParticipant, rawMentionedJid }
   ) => {
     const remoteJid = message.key.remoteJid;
 
@@ -20,51 +20,38 @@ export default {
       text += `┃ > Este comando solo funciona en grupos.\n\n`;
       text += `╰〔 ⚡ ${fytBold("SYSTEM ALERT")} 〕⬣`;
 
-      return socket.sendMessage(remoteJid, { text }, { quoted: message });
+      return sock.sendMessage(remoteJid, { text }, { quoted: message });
     }
 
-    let usersToKick = [];
+    let usersToCryOrKick = [];
 
-    // Extracción segura del texto del mensaje sin importar cómo lo envíe Baileys
-    const msgContent = message.message;
-    const rawText =
-      msgContent?.conversation ||
-      msgContent?.extendedTextMessage?.text ||
-      msgContent?.imageMessage?.caption ||
-      msgContent?.videoMessage?.caption ||
-      "";
+    // 1. Caso: Por respuesta o mención usando los raw o args directos
+    const contextInfo = message.message?.extendedTextMessage?.contextInfo;
+    const mentionedJid = contextInfo?.mentionedJid || rawMentionedJid;
+    const participantRef = contextInfo?.participant || rawParticipant;
 
-    // Si el router no llenó args, los extraemos manualmente del texto quitando el comando
-    let parsedArgs = args && args.length > 0 ? args : rawText.trim().split(/ +/).slice(1);
-    const targetArg = parsedArgs[0];
-
-    // 1. Caso: Por respuesta o mención
-    if (msgContent?.extendedTextMessage?.contextInfo?.participant) {
-      usersToKick.push(
-        msgContent.extendedTextMessage.contextInfo.participant,
-      );
-    } else if (
-      msgContent?.extendedTextMessage?.contextInfo?.mentionedJid?.[0]
-    ) {
-      usersToKick =
-        msgContent.extendedTextMessage.contextInfo.mentionedJid;
-    } else if (targetArg) {
-      const num = targetArg.replace("+", "").trim();
-      if (!isNaN(num)) {
-        const participants = groupMetadata.participants || [];
-        usersToKick = participants
+    if (participantRef) {
+      usersToCryOrKick.push(participantRef);
+    } else if (mentionedJid && mentionedJid.length > 0) {
+      usersToCryOrKick = mentionedJid;
+    } else if (args && args.length > 0) {
+      // Tomamos el primer argumento limpio (ej: +240 o 240)
+      const targetArg = args[0].replace("+", "").trim();
+      if (!isNaN(targetArg)) {
+        const participants = groupMetadata?.participants || [];
+        usersToCryOrKick = participants
           .map((p) => p.id)
           .filter(
             (id) =>
-              id.startsWith(num) &&
-              !id.includes(socket.user.id.split(":")[0]),
+              id.startsWith(targetArg) &&
+              !id.includes(sock.user.id.split(":")[0]),
           );
         const admins = participants.filter((p) => p.admin).map((p) => p.id);
-        usersToKick = usersToKick.filter((id) => !admins.includes(id));
+        usersToCryOrKick = usersToCryOrKick.filter((id) => !admins.includes(id));
       }
     }
 
-    if (usersToKick.length === 0) {
+    if (usersToCryOrKick.length === 0) {
       let text = `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n`;
       text += `┃ ${fytBold("ACCIÓN INVÁLIDA")} \n`;
       text += `╰━━━━━━━━━━━━⬣\n\n`;
@@ -73,25 +60,25 @@ export default {
       text += `┃ > prefijo (ej: ${prefix}kick 234)\n\n`;
       text += `╰〔 ⚡ ${fytBold("SYSTEM ALERT")} 〕⬣`;
 
-      return socket.sendMessage(remoteJid, { text }, { quoted: message });
+      return sock.sendMessage(remoteJid, { text }, { quoted: message });
     }
 
     try {
-      await socket.groupParticipantsUpdate(remoteJid, usersToKick, "remove");
+      await sock.groupParticipantsUpdate(remoteJid, usersToCryOrKick, "remove");
 
       let successText = `╭〔 👑 ${fytBold("ADMIN SYSTEM")} 〕⬣\n\n`;
-      if (usersToKick.length === 1) {
-        successText += `┃ ✅ @${usersToKick[0].split("@")[0]}\n┃ > fue expulsado del grupo\n`;
+      if (usersToCryOrKick.length === 1) {
+        successText += `┃ ✅ @${usersToCryOrKick[0].split("@")[0]}\n┃ > fue expulsado del grupo\n`;
       } else {
-        successText += `┃ ✅ ${fytBold("LIMPIEZA COMPLETADA")}\n┃ > Se expulsaron ${usersToKick.length} usuarios\n┃ > con el prefijo solicitado.\n`;
+        successText += `┃ ✅ ${fytBold("LIMPIEZA COMPLETADA")}\n┃ > Se expulsaron ${usersToCryOrKick.length} usuarios\n┃ > con el prefijo solicitado.\n`;
       }
       successText += `\n╰〔 ⚡ ${fytBold("SYSTEM INFO")} 〕⬣`;
 
-      await socket.sendMessage(
+      await sock.sendMessage(
         remoteJid,
         {
           text: successText,
-          mentions: usersToKick.length <= 10 ? usersToKick : [],
+          mentions: usersToCryOrKick.length <= 10 ? usersToCryOrKick : [],
         },
         { quoted: message },
       );
@@ -103,7 +90,7 @@ export default {
       text += `┃ > Asegúrate de que soy admin.\n\n`;
       text += `╰〔 ⚡ ${fytBold("SYSTEM ALERT")} 〕⬣`;
 
-      await socket.sendMessage(remoteJid, { text }, { quoted: message });
+      await sock.sendMessage(remoteJid, { text }, { quoted: message });
     }
   },
 };
