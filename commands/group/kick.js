@@ -15,7 +15,7 @@ export default {
 
     if (!remoteJid.endsWith("@g.us")) {
       let text = `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n`;
-      text += `┃ ${fytBold("ACCION INCONPATIBLE")} \n`;
+      text += `┃ ${fytBold("ACCION INCOMPATIBLE")} \n`;
       text += `╰━━━━━━━━━━━━⬣\n\n`;
       text += `┃ > Este comando solo funciona en grupos.\n\n`;
       text += `╰〔 ⚡ ${fytBold("SYSTEM ALERT")} 〕⬣`;
@@ -24,6 +24,13 @@ export default {
     }
 
     let usersToKick = [];
+
+    // Obtener texto completo por si args viene vacío
+    const textMessage =
+      message.message?.conversation ||
+      message.message?.extendedTextMessage?.text || "";
+    const textArgs = textMessage.trim().split(/ +/).slice(1);
+    const targetArg = args?.[0] || textArgs?.[0];
 
     // 1. Caso: Por respuesta o mención
     if (message.message?.extendedTextMessage?.contextInfo?.participant) {
@@ -35,8 +42,8 @@ export default {
     ) {
       usersToKick =
         message.message.extendedTextMessage.contextInfo.mentionedJid;
-    } else if (args[0]) {
-      const num = args[0].replace("+", "").trim();
+    } else if (targetArg) {
+      const num = targetArg.replace("+", "").trim();
       if (!isNaN(num)) {
         const participants = groupMetadata.participants;
         usersToKick = participants
