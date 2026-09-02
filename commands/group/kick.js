@@ -36,14 +36,14 @@ export default {
       usersToKick =
         message.message.extendedTextMessage.contextInfo.mentionedJid;
     } else if (args[0]) {
-      const prefix = args[0].replace("+", "").trim();
-      if (!isNaN(prefix)) {
+      const num = args[0].replace("+", "").trim();
+      if (!isNaN(num)) {
         const participants = groupMetadata.participants;
         usersToKick = participants
           .map((p) => p.id)
           .filter(
             (id) =>
-              id.startsWith(prefix) &&
+              id.startsWith(num) &&
               !id.includes(socket.user.id.split(":")[0]),
           );
         const admins = participants.filter((p) => p.admin).map((p) => p.id);
