@@ -1,5 +1,4 @@
-﻿import { resolveLidToRealJid } from "../../models/utils.js";
-import { getProfileUser } from "../../models/profileUtils.js";
+﻿import { getProfileUser } from "../../models/profileUtils.js";
 import { ensureGroup } from "../../models/groupDb.js";
 import { fytBold } from "../../models/TextStyle.js";
 import {
@@ -17,8 +16,7 @@ async function resolveTargetFromMessage(message, socket, remoteJid, groupMetadat
   else if (ctx?.participant) targetJid = ctx.participant;
   if (!targetJid) return null;
 
-  const resolved = await resolveLidToRealJid(targetJid, socket, remoteJid);
-  const normalizedRaw = jidNormalizedUser(resolved || targetJid);
+  const normalizedRaw = jidNormalizedUser(targetJid);
 
   if (groupMetadata?.participants) {
     const participant = groupMetadata.participants.find(
