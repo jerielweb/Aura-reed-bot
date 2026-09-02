@@ -25,27 +25,33 @@ export default {
 
     let usersToKick = [];
 
-    // Obtener texto completo por si args viene vacío
-    const textMessage =
-      message.message?.conversation ||
-      message.message?.extendedTextMessage?.text || "";
-    const textArgs = textMessage.trim().split(/ +/).slice(1);
-    const targetArg = args?.[0] || textArgs?.[0];
+    // Extracción segura del texto del mensaje sin importar cómo lo envíe Baileys
+    const msgContent = message.message;
+    const rawText =
+      msgContent?.conversation ||
+      msgContent?.extendedTextMessage?.text ||
+      msgContent?.imageMessage?.caption ||
+      msgContent?.videoMessage?.caption ||
+      "";
+
+    // Si el router no llenó args, los extraemos manualmente del texto quitando el comando
+    let parsedArgs = args && args.length > 0 ? args : rawText.trim().split(/ +/).slice(1);
+    const targetArg = parsedArgs[0];
 
     // 1. Caso: Por respuesta o mención
-    if (message.message?.extendedTextMessage?.contextInfo?.participant) {
+    if (msgContent?.extendedTextMessage?.contextInfo?.participant) {
       usersToKick.push(
-        message.message.extendedTextMessage.contextInfo.participant,
+        msgContent.extendedTextMessage.contextInfo.participant,
       );
     } else if (
-      message.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0]
+      msgContent?.extendedTextMessage?.contextInfo?.mentionedJid?.[0]
     ) {
       usersToKick =
-        message.message.extendedTextMessage.contextInfo.mentionedJid;
+        msgContent.extendedTextMessage.contextInfo.mentionedJid;
     } else if (targetArg) {
       const num = targetArg.replace("+", "").trim();
       if (!isNaN(num)) {
-        const participants = groupMetadata.participants;
+        const participants = groupMetadata.participants || [];
         usersToKick = participants
           .map((p) => p.id)
           .filter(
