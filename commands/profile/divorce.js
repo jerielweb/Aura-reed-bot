@@ -1,4 +1,5 @@
-﻿import { getProfileUser } from "../../models/profileUtils.js";
+﻿import { resolveLidToRealJid } from "../../models/utils.js";
+import { getProfileUser } from "../../models/profileUtils.js";
 import { ensureGroup } from "../../models/groupDb.js";
 import { fytBold } from "../../models/TextStyle.js";
 import {
@@ -9,25 +10,14 @@ import {
 } from "../../models/marriageUtils.js";
 import { jidNormalizedUser } from "@whiskeysockets/baileys";
 
-async function resolveTargetFromMessage(message, socket, remoteJid, groupMetadata) {
+async function resolveTargetFromMessage(message, socket, remoteJid) {
   const ctx = message.message?.extendedTextMessage?.contextInfo;
   let targetJid = null;
   if (ctx?.mentionedJid?.length > 0) targetJid = ctx.mentionedJid[0];
   else if (ctx?.participant) targetJid = ctx.participant;
   if (!targetJid) return null;
-
-  const normalizedRaw = jidNormalizedUser(targetJid);
-
-  if (groupMetadata?.participants) {
-    const participant = groupMetadata.participants.find(
-      p => p.id === normalizedRaw || p.jid === normalizedRaw || p.phoneNumber === normalizedRaw.replace('@s.whatsapp.net', '')
-    );
-    if (participant?.jid) {
-      return jidNormalizedUser(participant.jid);
-    }
-  }
-
-  return normalizedRaw;
+  const resolved = await resolveLidToRealJid(targetJid, socket, remoteJid);
+  return resolved ? jidNormalizedUser(resolved) : null;
 }
 
 export default {
@@ -49,22 +39,15 @@ export default {
       return await socket.sendMessage(remoteJid, { text }, { quoted: message });
     }
 
-    let groupMetadata;
-    try {
-      groupMetadata = await socket.groupMetadata(remoteJid);
-    } catch (e) {
-      groupMetadata = null;
-    }
-
     const normalizedSender = jidNormalizedUser(jidRemitente);
     const group = ensureGroup(db, remoteJid);
     const user = getProfileUser(db, remoteJid, normalizedSender);
-    let targetJid = await resolveTargetFromMessage(message, socket, remoteJid, groupMetadata);
+    let targetJid = await resolveTargetFromMessage(message, socket, remoteJid);
     if (targetJid) targetJid = jidNormalizedUser(targetJid);
     const pending = getMarriagePending(group);
 
     if (!targetJid && pending?.to === normalizedSender) {
-      targetJid = jidNormalizedUser(pending.from);
+      targetJid = pending.from;
     }
 
     if (!targetJid) {

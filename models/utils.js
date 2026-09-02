@@ -1,7 +1,7 @@
 const groupMetadataCache = new Map();
 const lidCache = new Map();
-const metadataTTL = 300000; // 5 minutos (antes eran 5 segundos)
-const pendingMetadataRequests = new Map(); // Para evitar peticiones simultáneas duplicadas
+const metadataTTL = 300000; // 5 minutos
+const pendingMetadataRequests = new Map();
 
 function normalizeToJid(phone) {
   if (!phone) return null;
@@ -59,7 +59,6 @@ export async function resolveLidToRealJid(lid, client, remoteJid) {
   let metadata;
 
   if (!cached || Date.now() - cached.timestamp > metadataTTL) {
-    // Si ya hay una petición en curso para este grupo, esperamos a que termine en lugar de disparar otra
     if (pendingMetadataRequests.has(remoteJid)) {
       metadata = await pendingMetadataRequests.get(remoteJid);
     } else {
@@ -69,7 +68,6 @@ export async function resolveLidToRealJid(lid, client, remoteJid) {
           groupMetadataCache.set(remoteJid, { metadata: res, timestamp: Date.now() });
           return res;
         } catch (error) {
-          // Si da rate-limit (429), devolvemos el caché viejo si existe para evitar romper el flujo
           if (cached?.metadata) return cached.metadata;
           throw error;
         } finally {
@@ -98,10 +96,26 @@ export async function resolveLidToRealJid(lid, client, remoteJid) {
     
     const phone = normalizeToJid(p?.phoneNumber) || (pJidBase && !p?.jid?.endsWith("@lid") ? `${pJidBase}@s.whatsapp.net` : null);
 
-    if ((pIdBase === lidBase || pJidBase === lidBase) && phone) {
-      lidCache.set(input, phone);
-      return phone;
+    if (pIdBase === lidBase || pJidBase === lidBase) {
+      if (phone) {
+        lidCache.set(input, phone);
+        return phone;
+      }
+      
+      // SI NO TIENE TELÉFONO PERO EL PARTICIPANTE TIENE UN LID VÁLIDO, EXTRAERLO Y RETORNARLO
+      const fallbackLid = p?.id?.endsWith("@lid") ? p.id : (p?.jid?.endsWith("@lid") ? p.jid : null);
+      if (fallbackLid) {
+        const cleanFallback = `${fallbackLid.split("@")[0].split(":")[0]}@lid`;
+        lidCache.set(input, cleanFallback);
+        return cleanFallback;
+      }
     }
+  }
+
+  // Si era un LID de entrada y de plano no apareció por ningún lado, devolver el LID limpio en vez de fallar
+  if (isLid) {
+    const cleanInput = `${lidBase}@lid`;
+    return cleanInput;
   }
 
   return input;
