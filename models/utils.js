@@ -41,6 +41,231 @@ function normalizeToJid(phone) {
  * 3. Metadata del grupo
  * 4. Fallback al LID si no se pudo resolver
  */
+/**
+ * Obtiene (con cache) la metadata de un grupo.
+ * Compartida entre resolveLidToRealJid y resolveToLid
+ * para no duplicar la lógica de fetch/cache.
+ */
+async function getCachedGroupMetadata(
+  client,
+  remoteJid,
+) {
+  const cached =
+    groupMetadataCache.get(remoteJid);
+
+  if (
+    cached &&
+    Date.now() - cached.timestamp <= metadataTTL
+  ) {
+    return cached.metadata;
+  }
+
+  if (
+    pendingMetadataRequests.has(remoteJid)
+  ) {
+    return await pendingMetadataRequests.get(
+      remoteJid,
+    );
+  }
+
+  const fetchPromise =
+    (async () => {
+      try {
+        const res =
+          await client.groupMetadata(
+            remoteJid,
+          );
+
+        groupMetadataCache.set(
+          remoteJid,
+          {
+            metadata: res,
+            timestamp: Date.now(),
+          },
+        );
+
+        return res;
+      } catch (error) {
+        if (cached?.metadata) {
+          return cached.metadata;
+        }
+
+        throw error;
+      } finally {
+        pendingMetadataRequests.delete(
+          remoteJid,
+        );
+      }
+    })();
+
+  pendingMetadataRequests.set(
+    remoteJid,
+    fetchPromise,
+  );
+
+  try {
+    return await fetchPromise;
+  } catch {
+    return cached?.metadata || null;
+  }
+}
+
+/**
+ * Resuelve cualquier identificador (LID, JID real,
+ * número) a su LID correspondiente.
+ *
+ * A diferencia de resolveLidToRealJid, esta función
+ * NUNCA intenta devolver un número real: sirve para
+ * comparar identidades cuando el número está oculto
+ * (username activado) y solo el LID es confiable.
+ *
+ * Orden:
+ *
+ * 1. Si ya es LID, se limpia y se devuelve tal cual.
+ * 2. Cache de PN -> LID.
+ * 3. signalRepository.lidMapping.getLIDForPN
+ * 4. Metadata del grupo (buscar participante por jid/teléfono
+ *    y devolver su id si es @lid).
+ * 5. Fallback: jid real normalizado (no se pudo mapear a LID).
+ */
+export async function resolveToLid(
+  id,
+  client,
+  remoteJid,
+) {
+  const input = id?.toString().trim();
+
+  if (!input) {
+    return input;
+  }
+
+  const base = input
+    .split("@")[0]
+    .split(":")[0];
+
+  const isLid =
+    input.endsWith("@lid") ||
+    input.includes("@hosted.lid");
+
+  /*
+   * Ya es LID: solo limpiar sufijo de dispositivo.
+   */
+
+  if (isLid) {
+    return `${base}@lid`;
+  }
+
+  const cacheKey = `pn:${base}`;
+
+  if (lidCache.has(cacheKey)) {
+    return lidCache.get(cacheKey);
+  }
+
+  /*
+   * ============================================================
+   * RESOLVER MEDIANTE SIGNAL REPOSITORY (PN -> LID)
+   * ============================================================
+   */
+
+  if (
+    client?.signalRepository?.lidMapping?.getLIDForPN
+  ) {
+    try {
+      const pn = `${base}@s.whatsapp.net`;
+
+      const lid =
+        await client.signalRepository
+          .lidMapping
+          .getLIDForPN(pn);
+
+      if (lid) {
+        const cleanLid =
+          `${lid.split("@")[0].split(":")[0]}@lid`;
+
+        lidCache.set(cacheKey, cleanLid);
+
+        return cleanLid;
+      }
+    } catch (e) {
+      console.error(
+        "[resolveToLid] Error resolviendo PN->LID mediante signalRepository:",
+        e,
+      );
+    }
+  }
+
+  /*
+   * ============================================================
+   * BUSCAR EN METADATA DEL GRUPO
+   * ============================================================
+   */
+
+  const isGroup =
+    remoteJid?.endsWith("@g.us");
+
+  if (isGroup) {
+    let metadata;
+
+    try {
+      metadata =
+        await getCachedGroupMetadata(
+          client,
+          remoteJid,
+        );
+    } catch (e) {
+      console.error(
+        "[resolveToLid] Error obteniendo metadata del grupo:",
+        e,
+      );
+    }
+
+    for (
+      const p of metadata?.participants || []
+    ) {
+      const pJidBase =
+        p?.jid
+          ?.split("@")[0]
+          ?.split(":")[0];
+
+      const pPhoneBase =
+        p?.phoneNumber
+          ?.toString()
+          .replace(/\D/g, "");
+
+      const matches =
+        (pJidBase && pJidBase === base) ||
+        (pPhoneBase && pPhoneBase === base);
+
+      if (matches && p?.id?.endsWith("@lid")) {
+        const cleanLid =
+          `${p.id
+            .split("@")[0]
+            .split(":")[0]}@lid`;
+
+        lidCache.set(cacheKey, cleanLid);
+
+        return cleanLid;
+      }
+    }
+  }
+
+  /*
+   * ============================================================
+   * ÚLTIMO FALLBACK
+   * ============================================================
+   *
+   * No se pudo mapear a LID (ej. no es un grupo, o el
+   * participante no tiene LID registrado todavía).
+   */
+
+  const fallback =
+    `${base}@s.whatsapp.net`;
+
+  lidCache.set(cacheKey, fallback);
+
+  return fallback;
+}
+
 export async function resolveLidToRealJid(
   lid,
   client,

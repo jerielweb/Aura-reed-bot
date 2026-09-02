@@ -1,4 +1,4 @@
-﻿import { resolveLidToRealJid } from "../../models/utils.js";
+﻿import { resolveToLid } from "../../models/utils.js";
 import { getProfileUser } from "../../models/profileUtils.js";
 import { ensureGroup } from "../../models/groupDb.js";
 import { fytBold } from "../../models/TextStyle.js";
@@ -16,7 +16,7 @@ async function resolveTargetFromMessage(message, socket, remoteJid) {
   if (ctx?.mentionedJid?.length > 0) targetJid = ctx.mentionedJid[0];
   else if (ctx?.participant) targetJid = ctx.participant;
   if (!targetJid) return null;
-  const resolved = await resolveLidToRealJid(targetJid, socket, remoteJid);
+  const resolved = await resolveToLid(targetJid, socket, remoteJid);
   return resolved ? jidNormalizedUser(resolved) : null;
 }
 
@@ -39,7 +39,7 @@ export default {
       return await socket.sendMessage(remoteJid, { text }, { quoted: message });
     }
 
-    const resolvedSender = await resolveLidToRealJid(
+    const resolvedSender = await resolveToLid(
       jidRemitente,
       socket,
       remoteJid,

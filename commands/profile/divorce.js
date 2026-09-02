@@ -1,5 +1,5 @@
 ﻿import {
-  resolveLidToRealJid,
+  resolveToLid,
 } from "../../models/utils.js";
 
 import {
@@ -64,7 +64,7 @@ async function resolveTargetFromMessage(
   }
 
   const resolved =
-    await resolveLidToRealJid(
+    await resolveToLid(
       targetJid,
       socket,
       remoteJid,
@@ -139,7 +139,7 @@ export default {
      */
 
     const resolvedSender =
-      await resolveLidToRealJid(
+      await resolveToLid(
         jidRemitente,
         socket,
         remoteJid,
@@ -252,7 +252,7 @@ export default {
      */
 
     const resolvedTarget =
-      await resolveLidToRealJid(
+      await resolveToLid(
         targetJid,
         socket,
         remoteJid,
