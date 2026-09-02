@@ -35,17 +35,25 @@ export default {
     } else if (mentionedJid && mentionedJid.length > 0) {
       usersToCryOrKick = mentionedJid;
     } else if (args && args.length > 0) {
-      // Tomamos el primer argumento limpio (ej: +240 o 240)
-      const targetArg = args[0].replace("+", "").trim();
-      if (!isNaN(targetArg)) {
+      // Tomamos el primer argumento y nos quedamos solo con dígitos (ej: +240 -> 240)
+      const targetArg = args[0].replace(/\D/g, "");
+
+      if (targetArg) {
         const participants = groupMetadata?.participants || [];
+        const botBase = sock.user?.id?.split("@")[0]?.split(":")[0];
+
+        // IMPORTANTE: filtramos por el número real (p.phoneNumber, ya resuelto
+        // por msgHandler.js), NO por p.id. Con LID activo, p.id suele ser un
+        // identificador interno (@lid) y no el número de teléfono, así que
+        // comparar el prefijo contra p.id nunca coincide.
         usersToCryOrKick = participants
+          .filter((p) => {
+            const phoneBase = p.phoneNumber?.replace(/\D/g, "");
+            return phoneBase && phoneBase.startsWith(targetArg);
+          })
           .map((p) => p.id)
-          .filter(
-            (id) =>
-              id.startsWith(targetArg) &&
-              !id.includes(sock.user.id.split(":")[0]),
-          );
+          .filter((id) => id.split("@")[0].split(":")[0] !== botBase);
+
         const admins = participants.filter((p) => p.admin).map((p) => p.id);
         usersToCryOrKick = usersToCryOrKick.filter((id) => !admins.includes(id));
       }
@@ -57,7 +65,10 @@ export default {
       text += `╰━━━━━━━━━━━━⬣\n\n`;
       text += `┃ > Menciona a alguien, responde\n`;
       text += `┃ > a su mensaje o escribe un\n`;
-      text += `┃ > prefijo (ej: ${prefix}kick 234)\n\n`;
+      text += `┃ > prefijo (ej: ${prefix}kick 234)\n`;
+      text += `┃ > Nota: el kick por prefijo solo\n`;
+      text += `┃ > funciona si el número del\n`;
+      text += `┃ > usuario es visible en el grupo.\n\n`;
       text += `╰〔 ⚡ ${fytBold("SYSTEM ALERT")} 〕⬣`;
 
       return sock.sendMessage(remoteJid, { text }, { quoted: message });
