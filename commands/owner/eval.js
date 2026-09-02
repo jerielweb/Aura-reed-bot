@@ -4,28 +4,10 @@ import { fytBold } from "../../models/TextStyle.js";
 export default {
   name: ["eval", "e", "execute"],
   category: "owner",
-  ownersOnly: true, // Recomendado que sea true por seguridad (solo tú puedes ejecutar código)
+  ownersOnly: true,
   description:
-    "Ejecuta cualquier código JavaScript en tiempo real con acceso total al entorno.",
-  async execute(
-    sock,
-    m,
-    args,
-    context, // Recibimos el objeto de contexto completo
-  ) {
-    const {
-      prefix,
-      db,
-      saveDB,
-      isOwner,
-      isAdmin,
-      isBotAdmin,
-      owners,
-      groupMetadata,
-      numeroReal,
-      jidRemitente,
-    } = context;
-
+    "Ejecuta cualquier código JavaScript con acceso total al entorno y consultas en vivo.",
+  async execute(sock, m, args, context, {groupMetadata, prefix, db}) {
     const remoteJid = m.key.remoteJid;
     const code = args.join(" ").trim();
 
@@ -33,7 +15,7 @@ export default {
       return await sock.sendMessage(
         remoteJid,
         {
-          text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("FALTA CÓDIGO")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, ingresa el código a evaluar.\n┃ > Ejemplo: *${prefix}eval 2 + 2*\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
+          text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("FALTA CÓDIGO")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, ingresa el código a evaluar.\n┃ > Ejemplo: *${context?.prefix || "."}eval 2 + 2*\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
         },
         { quoted: m },
       );
@@ -42,7 +24,6 @@ export default {
     let logs = [];
     const originalLog = console.log;
 
-    // Interceptar console.log para capturarlos en el reporte de WhatsApp
     console.log = (...argsLog) => {
       logs.push(
         argsLog
@@ -56,21 +37,42 @@ export default {
 
     let resultado;
     try {
-      let evaled;
-
-      // Definimos alias de ayuda rápida accesibles dentro del eval
+      // Helpers avanzados y seguros dentro del eval:
       const send = (texto, options = {}) => sock.sendMessage(remoteJid, { text: texto, ...options }, { quoted: m });
       const reply = (texto) => sock.sendMessage(remoteJid, { text: texto }, { quoted: m });
       const sender = m.key.participant || m.key.remoteJid;
+      
+      // Obtener groupMetadata en vivo si estamos en un grupo (evita que sea undefined)
+      let groupMetadata = context?.groupMetadata;
+      if (!groupMetadata && remoteJid.endsWith("@g.us")) {
+        try {
+          groupMetadata = await sock.groupMetadata(remoteJid);
+        } catch (e) {
+          groupMetadata = null;
+        }
+      }
 
-      // Ejecución segura envolviendo el código en una función asíncrona que inyecta todo el entorno
+      // Obtener info del mensaje citado (reply) de forma limpia
+      const ctxInfo = m.message?.extendedTextMessage?.contextInfo;
+      const quoted = {
+        participant: ctxInfo?.participant || null,
+        stanzaId: ctxInfo?.stanzaId || null,
+        mentionedJid: ctxInfo?.mentionedJid || []
+      };
+
+      // Extrayendo el resto del contexto de forma segura
+      const db = context?.db || {};
+      const saveDB = context?.saveDB || (() => {});
+      const prefix = context?.prefix || ".";
+
+      // Ejecución segura inyectando todo el entorno enriquecido
       const executeFn = new Function(
-        'sock', 'm', 'args', 'remoteJid', 'db', 'saveDB', 'isOwner', 'isAdmin', 'isBotAdmin', 'owners', 'groupMetadata', 'numeroReal', 'jidRemitente', 'send', 'reply', 'sender', 'inspect',
+        'sock', 'm', 'args', 'remoteJid', 'db', 'saveDB', 'prefix', 'groupMetadata', 'quoted', 'send', 'reply', 'sender', 'inspect',
         `return (async () => { ${code} })();`
       );
 
       evaled = await executeFn(
-        sock, m, args, remoteJid, db, saveDB, isOwner, isAdmin, isBotAdmin, owners, groupMetadata, numeroReal, jidRemitente, send, reply, sender, inspect
+        sock, m, args, remoteJid, db, saveDB, prefix, groupMetadata, quoted, send, reply, sender, inspect
       );
 
       if (typeof evaled !== "string" && evaled !== undefined) {
