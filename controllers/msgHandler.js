@@ -185,6 +185,16 @@ export async function handleMessage(sock, m, db, saveDB) {
     }
   }
 
+  // 📌 Capturamos los valores CRUDOS (tal cual los da WhatsApp) antes de que
+  // resolveMessageLids los mute in-place. Comandos como marry/divorce que
+  // necesitan comparar identidades por LID deben partir de estos valores,
+  // no de los ya "resueltos" más abajo, para evitar doble resolución.
+  const rawCtxInfo = m.message?.extendedTextMessage?.contextInfo;
+  const rawParticipant = rawCtxInfo?.participant || null;
+  const rawMentionedJid = Array.isArray(rawCtxInfo?.mentionedJid)
+    ? [...rawCtxInfo.mentionedJid]
+    : [];
+
   try {
     await resolveMessageLids(m, sock, remoteJid);
   } catch (e) {
@@ -470,6 +480,9 @@ export async function handleMessage(sock, m, db, saveDB) {
             groupMetadata,
             numeroReal,
             jidRemitente,
+            senderRaw,
+            rawParticipant,
+            rawMentionedJid,
           });
         } catch (err) {
           console.error(

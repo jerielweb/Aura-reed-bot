@@ -33,6 +33,8 @@ async function resolveTargetFromMessage(
   message,
   socket,
   remoteJid,
+  rawParticipant,
+  rawMentionedJid,
 ) {
   const ctx =
     message.message
@@ -42,9 +44,16 @@ async function resolveTargetFromMessage(
   let targetJid = null;
 
   /*
-   * Mención explícita
+   * Mención explícita (preferimos el valor crudo,
+   * capturado antes de que msgHandler lo mute)
    */
-  if (
+  if (rawMentionedJid?.length > 0) {
+    targetJid = rawMentionedJid[0];
+  }
+  else if (rawParticipant) {
+    targetJid = rawParticipant;
+  }
+  else if (
     ctx?.mentionedJid?.length > 0
   ) {
     targetJid =
@@ -96,6 +105,9 @@ export default {
       saveDB,
       jidRemitente,
       prefix,
+      senderRaw,
+      rawParticipant,
+      rawMentionedJid,
     },
   ) => {
     const remoteJid =
@@ -140,14 +152,14 @@ export default {
 
     const resolvedSender =
       await resolveToLid(
-        jidRemitente,
+        senderRaw || jidRemitente,
         socket,
         remoteJid,
       );
 
     const normalizedSender =
       jidNormalizedUser(
-        resolvedSender || jidRemitente,
+        resolvedSender || senderRaw || jidRemitente,
       );
 
     const group =
@@ -180,7 +192,8 @@ export default {
         ?.contextInfo;
 
     const hasExplicitMention =
-      ctx?.mentionedJid?.length > 0;
+      (rawMentionedJid?.length > 0) ||
+      (ctx?.mentionedJid?.length > 0);
 
     /*
      * Si el usuario es quien debe aceptar
@@ -202,6 +215,8 @@ export default {
           message,
           socket,
           remoteJid,
+          rawParticipant,
+          rawMentionedJid,
         );
     }
 

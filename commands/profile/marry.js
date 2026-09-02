@@ -10,10 +10,18 @@ import {
 } from "../../models/marriageUtils.js";
 import { jidNormalizedUser } from "@whiskeysockets/baileys";
 
-async function resolveTargetFromMessage(message, socket, remoteJid) {
+async function resolveTargetFromMessage(
+  message,
+  socket,
+  remoteJid,
+  rawParticipant,
+  rawMentionedJid,
+) {
   const ctx = message.message?.extendedTextMessage?.contextInfo;
   let targetJid = null;
-  if (ctx?.mentionedJid?.length > 0) targetJid = ctx.mentionedJid[0];
+  if (rawMentionedJid?.length > 0) targetJid = rawMentionedJid[0];
+  else if (rawParticipant) targetJid = rawParticipant;
+  else if (ctx?.mentionedJid?.length > 0) targetJid = ctx.mentionedJid[0];
   else if (ctx?.participant) targetJid = ctx.participant;
   if (!targetJid) return null;
   const resolved = await resolveToLid(targetJid, socket, remoteJid);
@@ -28,7 +36,15 @@ export default {
     socket,
     message,
     args,
-    { db, saveDB, jidRemitente, prefix },
+    {
+      db,
+      saveDB,
+      jidRemitente,
+      prefix,
+      senderRaw,
+      rawParticipant,
+      rawMentionedJid,
+    },
   ) => {
     const remoteJid = message.key.remoteJid;
     if (!remoteJid.endsWith("@g.us")) {
@@ -40,16 +56,22 @@ export default {
     }
 
     const resolvedSender = await resolveToLid(
-      jidRemitente,
+      senderRaw || jidRemitente,
       socket,
       remoteJid,
     );
     const normalizedSender = jidNormalizedUser(
-      resolvedSender || jidRemitente,
+      resolvedSender || senderRaw || jidRemitente,
     );
     const group = ensureGroup(db, remoteJid);
     const user = getProfileUser(db, remoteJid, normalizedSender);
-    let targetJid = await resolveTargetFromMessage(message, socket, remoteJid);
+    let targetJid = await resolveTargetFromMessage(
+      message,
+      socket,
+      remoteJid,
+      rawParticipant,
+      rawMentionedJid,
+    );
     if (targetJid) targetJid = jidNormalizedUser(targetJid);
     const pending = getMarriagePending(group);
 
