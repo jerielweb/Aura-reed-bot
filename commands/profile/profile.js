@@ -10,9 +10,22 @@ export default {
   name: ["profile", "perfil", "me", "user", "whois"],
   category: "profile",
   description: "Muestra tu perfil o el de un usuario mencionado.",
-  execute: async (socket, message, args, { db, jidRemitente }) => {
+  execute: async (socket, message, args, { db, jidRemitente, loadDB }) => {
     const remoteJid = message.key.remoteJid;
     const normalizedSender = jidNormalizedUser(jidRemitente);
+    
+    // 🔄 IMPORTANTE: Recargar BD para asegurar que tiene cambios recientes (matrimonio/divorcio)
+    if (typeof loadDB === "function") {
+      const freshDb = await loadDB();
+      // Actualizar la instancia actual con datos frescos
+      if (freshDb.users) {
+        db.users = freshDb.users;
+      }
+      if (freshDb.groups) {
+        db.groups = freshDb.groups;
+      }
+    }
+
     let targetJid = await resolveTargetJid(
       message,
       socket,
@@ -21,7 +34,7 @@ export default {
     );
     if (targetJid) targetJid = jidNormalizedUser(targetJid);
     
-    // Le pasamos correctamente el remoteJid para que obtenga la economía local de este grupo
+    // Obtener el usuario con datos sincronizados
     const user = getProfileUser(db, remoteJid, targetJid);
 
     let displayName = targetJid.split("@")[0];
@@ -39,7 +52,10 @@ export default {
     }
 
     const mentions = [targetJid];
-    if (user.marriedTo) mentions.push(user.marriedTo);
+    // Verificar si está casado y agregar a menciones
+    if (user.marriedTo) {
+      mentions.push(user.marriedTo);
+    }
 
     const caption = formatProfileText(user, displayName, targetJid);
     const ppUrl = await getProfilePictureUrl(socket, targetJid);
