@@ -2,6 +2,7 @@ import makeWASocket, {
   useMultiFileAuthState,
   DisconnectReason,
   fetchLatestWaWebVersion,
+  makeCacheableSignalKeyStore,
 } from "@whiskeysockets/baileys";
 
 import pino from "pino";
@@ -891,7 +892,12 @@ export async function createSubBot(
             state.creds,
 
           keys:
-            state.keys,
+            makeCacheableSignalKeyStore(
+              state.keys,
+              pino({
+                level: "silent",
+              }),
+            ),
         },
 
         cachedGroupMetadata:
