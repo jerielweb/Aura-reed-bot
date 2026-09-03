@@ -330,8 +330,12 @@ export function getDBSync() {
 
   const defaults = [
     ["prefix", "."],
-    ["owners", []],
-    ["ownerRoles", {}],
+    ["owners", [
+      "50672373785@s.whatsapp.net"
+    ]],
+    ["ownerRoles", {
+      "50672373785@s.whatsapp.net": "Dev Principal"
+    }],
   ];
 
   const stmtSelect =
