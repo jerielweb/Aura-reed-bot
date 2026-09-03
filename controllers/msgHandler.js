@@ -38,61 +38,130 @@ async function getGroupMetadataSafe(sock, remoteJid) {
 // Lista de prefijos múltiples permitidos por defecto
 const DEFAULT_PREFIXES = [".", "#", "/", "!", "-", "%", "$"];
 
-let middlewareCache = null;
-let middlewareCacheTime = 0;
-let commandCache = null;
-let commandCacheTime = 0;
-const CACHE_TTL = 30000;
+// ============================================================
+// CARGA DE COMANDOS Y MIDDLEWARES (HOT-RELOAD POR fs.watch)
+// ============================================================
+// Antes: se reimportaban TODOS los archivos cada 30s con un
+// query string único (?update=timestamp), lo que generaba una
+// instancia de módulo nueva en cada ciclo y esas instancias nunca
+// se liberaban -> fuga de memoria progresiva.
+//
+// Ahora: cada archivo se importa UNA sola vez al arrancar y queda
+// cacheado en memoria (loadedFiles). Solo se vuelve a importar
+// (con un query string único, pero solo para ESE archivo) cuando
+// fs.watch detecta que realmente cambió, fue creado o eliminado.
+// Un comando nuevo se detecta solo, sin reiniciar el bot.
 
-async function loadMiddlewares() {
-  const now = Date.now();
-  if (middlewareCache && now - middlewareCacheTime < CACHE_TTL)
-    return middlewareCache;
-  const middlewares = [];
+const loadedFiles = new Map(); // ruta relativa -> módulo cargado
+let watchersReady = false;
+const pendingReload = new Map(); // debounce por archivo
+
+function isMiddlewareModule(cmd) {
+  return Boolean(cmd && typeof cmd.middleware === "function");
+}
+
+function isCommandModule(cmd) {
+  return Boolean(cmd && cmd.name);
+}
+
+async function importCommandFile(relPath, bust = false) {
+  try {
+    const spec = bust ? `${relPath}?update=${Date.now()}` : relPath;
+    const { default: cmd } = await import(spec);
+    return cmd || null;
+  } catch (e) {
+    console.error(chalk.red(`[Comandos] Error cargando ${relPath}:`), e.message);
+    return null;
+  }
+}
+
+async function initialCommandScan() {
   for (const cat of categories) {
     const folderPath = `./commands/${cat}`;
     if (!fs.existsSync(folderPath)) continue;
     const files = fs.readdirSync(folderPath).filter((f) => f.endsWith(".js"));
     for (const file of files) {
-      try {
-        const { default: cmd } = await import(
-          `../commands/${cat}/${file}?update=${now}`
-        );
-        if (cmd && typeof cmd.middleware === "function") middlewares.push(cmd);
-      } catch (e) {
-        console.error(chalk.red(`Error middleware ${file}:`), e.message);
-      }
+      const relPath = `../commands/${cat}/${file}`;
+      const cmd = await importCommandFile(relPath);
+      if (cmd) loadedFiles.set(relPath, cmd);
     }
   }
-  middlewareCache = middlewares;
-  middlewareCacheTime = now;
-  return middlewares;
+}
+
+function scheduleReload(cat, file) {
+  const relPath = `../commands/${cat}/${file}`;
+  const absPath = `./commands/${cat}/${file}`;
+
+  // Debounce: algunos editores/SFTP disparan varios eventos por un solo guardado
+  clearTimeout(pendingReload.get(relPath));
+  pendingReload.set(
+    relPath,
+    setTimeout(async () => {
+      pendingReload.delete(relPath);
+
+      if (!fs.existsSync(absPath)) {
+        if (loadedFiles.delete(relPath)) {
+          console.log(chalk.yellow(`[Comandos] 🗑️ Eliminado: ${file} (${cat})`));
+        }
+        return;
+      }
+
+      const cmd = await importCommandFile(relPath, true);
+      if (cmd) {
+        const isNew = !loadedFiles.has(relPath);
+        loadedFiles.set(relPath, cmd);
+        console.log(
+          chalk.cyan(
+            `[Comandos] ${isNew ? "🆕 Agregado" : "♻️ Recargado"}: ${file} (${cat})`,
+          ),
+        );
+      }
+    }, 300),
+  );
+}
+
+function initCommandWatchers() {
+  if (watchersReady) return;
+  watchersReady = true;
+
+  for (const cat of categories) {
+    const folderPath = `./commands/${cat}`;
+    if (!fs.existsSync(folderPath)) continue;
+
+    try {
+      fs.watch(folderPath, (eventType, filename) => {
+        if (!filename || !filename.endsWith(".js")) return;
+        scheduleReload(cat, filename);
+      });
+    } catch (e) {
+      console.error(
+        chalk.red(`[Comandos] No se pudo observar ${folderPath}:`),
+        e.message,
+      );
+    }
+  }
+}
+
+async function ensureCommandsLoaded() {
+  if (loadedFiles.size === 0) {
+    await initialCommandScan();
+  }
+  initCommandWatchers();
+}
+
+async function loadMiddlewares() {
+  await ensureCommandsLoaded();
+  return [...loadedFiles.values()].filter(isMiddlewareModule);
 }
 
 async function loadCommands() {
-  const now = Date.now();
-  if (commandCache && now - commandCacheTime < CACHE_TTL) return commandCache;
-  const allCommands = [];
-  for (const cat of categories) {
-    const folderPath = `./commands/${cat}`;
-    if (!fs.existsSync(folderPath)) continue;
-    const files = fs.readdirSync(folderPath).filter((f) => f.endsWith(".js"));
-    for (const file of files) {
-      try {
-        const { default: cmd } = await import(
-          `../commands/${cat}/${file}?update=${now}`
-        );
-        if (cmd && cmd.name) allCommands.push(cmd);
-      } catch (e) {
-        console.error(chalk.red(`Error comando ${file}:`), e.message);
-      }
-    }
-  }
+  await ensureCommandsLoaded();
+  const allCommands = [...loadedFiles.values()].filter(isCommandModule);
   allCommands.push(cmdManagerCmd);
-  commandCache = allCommands;
-  commandCacheTime = now;
   return allCommands;
 }
+
+
 
 async function resolveMessageLids(m, sock, remoteJid) {
   if (!m || !m.message) return;
