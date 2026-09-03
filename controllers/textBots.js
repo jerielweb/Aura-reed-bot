@@ -18,5 +18,5 @@ export const Err = {
 
 
 export const catOff = ({ CAT_CMD, prefix }) => {
-  return `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ${fytBold("CATEGORIA DESACTIVADA")} \n╰━━━━━━━━━━━━⬣\n\n┃ > Los comandos ${fytBold(CAT_CMD)}\n┃ > están desactivados en este grupo.\n┣━━━━━━━━━━━━⬣\n┃ > Un administrador puede\n┃ > activarlos con\n┃ >\`${prefix}cmd on ${CAT_CMD}\`\n\n╰〔 ⚡ ${fytBold("SYSTEM ALERT")} 〕⬣`;
+  return `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ${fytBold("CATEGORIA DESACTIVADA")} \n╰━━━━━━━━━━━━⬣\n\n┃ > Los comandos ${fytBold(CAT_CMD)}\n┃ > están desactivados en este grupo.\n┣━━━━━━━━━━━━⬣\n┃ > Un administrador puede\n┃ > activarlos con\n┃ > \`${prefix}cmd on ${CAT_CMD}\`\n\n╰〔 ⚡ ${fytBold("SYSTEM ALERT")} 〕⬣`;
 };
