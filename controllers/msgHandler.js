@@ -527,7 +527,7 @@ export async function handleMessage(sock, m, db, saveDB) {
         if (isGroup && !isCategoryEnabled(remoteJid, cmd.category, db))
           return await sock.sendMessage(
             remoteJid,
-            { text: catOff({ CAT_CMD: cmd.category }) },
+            { text: catOff({ CAT_CMD: cmd.category, prefix }) },
             { quoted: m },
           );
         if (cmd.adminOnly && !isAdmin)
