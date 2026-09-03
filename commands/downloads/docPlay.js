@@ -90,9 +90,13 @@ export default {
         { quoted: message },
       );
 
-      // Descargamos el archivo a un Buffer mediante axios asegurando el tipo arraybuffer
+      // Descargamos el archivo con Headers para evitar errores 403
       const audio = await axios.get(audioUrl, {
         responseType: "arraybuffer",
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Referer": "https://www.youtube.com/"
+        }
       });
       const audioBuffer = Buffer.from(audio.data);
 
