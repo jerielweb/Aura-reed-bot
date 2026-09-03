@@ -1,5 +1,4 @@
 import yts from "yt-search";
-import yt from "@vreden/youtube_scraper";
 import axios from "axios";
 import { fytBold } from "../../models/TextStyle.js";
 import formatter from "../../controllers/functions/formatNumbers.js";
@@ -22,7 +21,7 @@ function extractVideoId(url) {
 export default {
   name: ["ytdmp3", "docplay", "docplayaudio", "dmp3", "dyta", "docaudio", "play doc"],
   category: "downloads",
-  description: "Busca y descarga audio de YouTube",
+  description: "Busca y descarga audio de YouTube como documento usando API externa",
   execute: async (socket, message, args) => {
     const remoteJid = message.key.remoteJid;
     const text = args.join(" ").trim();
@@ -57,22 +56,21 @@ export default {
         videoData = await yts({ videoId });
       }
 
-      // Solicitud a máxima calidad según la librería
-      const res = await yt.ytmp3(finalUrl, 320);
-      
-      // Validación corregida para acceder a res.download.url
-      if (!res || !res.status || !res.download || !res.download.url) {
+      // Solicitud a la API externa de Alyacore
+      const apiResponse = await axios.get(`https://api.alyacore.xyz/dl/fastytmp3?url=${encodeURIComponent(finalUrl)}&key=oboe`);
+      const res = apiResponse.data;
+
+      if (!res || !res.status || !res.data || !res.data.dl) {
         throw new Error("El servicio de descarga no respondió correctamente.");
       }
 
-      const title = videoData.title || res.metadata?.title || "Video de YouTube";
-      const author = videoData.author?.name || res.metadata?.author?.name || "Desconocido";
-      const duration = videoData.duration?.timestamp || res.metadata?.timestamp || "??";
-      const views = typeof videoData.views === "number" ? videoData.views : (res.metadata?.views || 0);
-      const ytURL = `https://youtu.be/${videoData.videoId || extractVideoId(finalUrl)}`
-      const thumbnail = videoData.thumbnail || videoData.image || res.metadata?.thumbnail || `https://i.ytimg.com/vi/${extractVideoId(finalUrl)}/hqdefault.jpg`;
-      
-      const audioUrl = res.download.url;
+      const title = videoData.title || res.data.title || "Video de YouTube";
+      const author = videoData.author?.name || res.data.author || "Desconocido";
+      const duration = videoData.duration?.timestamp || res.data.duration || "??";
+      const views = typeof videoData.views === "number" ? videoData.views : 0;
+      const ytURL = `https://youtu.be/${videoData.videoId || extractVideoId(finalUrl)}`;
+      const thumbnail = videoData.thumbnail || videoData.image || res.data.thumbnail || `https://i.ytimg.com/vi/${extractVideoId(finalUrl)}/hqdefault.jpg`;
+      const audioUrl = res.data.dl;
 
       let caption = `╭〔 🎵 ${fytBold("YOUTUBE PLAY")} 〕━⬣\n\n`;
       caption += `┃ ➥ ${fytBold(title)}\n\n`;
@@ -80,8 +78,8 @@ export default {
       caption += `┃ > ${fytBold("Canal")} › ${author}\n`;
       caption += `┃ > ${fytBold("Duración")} › ${duration}\n`;
       caption += `┃ > ${fytBold("Vistas")} › ${formatter(views)}\n`;
-      caption += `┃ > ${fytBold("Calidad")} › 320 kbps\n`;
-      caption += `┃ > ${fytBold("Url")} › ${ytURL}\n`
+      caption += `┃ > ${fytBold("Calidad")} › ${res.data.quality || "128k"}\n`;
+      caption += `┃ > ${fytBold("Url")} › ${ytURL}\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ > ⌛ Descargando audio...\n`;
       caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
