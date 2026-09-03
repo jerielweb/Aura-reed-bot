@@ -1,5 +1,4 @@
 import { resolveLidToRealJid } from "./utils.js";
-import { getDBSync } from "./db.js";
 import { getGroupUser } from "./groupDb.js";
 import formatter from "../controllers/functions/formatNumbers.js";
 import { fytBold } from "./TextStyle.js";
@@ -144,16 +143,18 @@ export async function getProfilePictureUrl(socket, jid) {
 /**
  * Obtiene de manera híbrida la economía local por grupo (usando getGroupUser)
  * y unifica el perfil social de forma 100% global.
+ * 
+ * ⚡ IMPORTANTE: Ahora usa el parámetro 'db' directamente en lugar de getDBSync()
+ * para garantizar que todos los cambios se guarden correctamente.
  */
 export function getProfileUser(db, remoteJid, jid) {
   // 1. Economía local sincronizada exactamente con los comandos de economía y wallet
   let localEconomy = getGroupUser(db, remoteJid, jid, { coins: 0, bank: 0 });
 
-  // 2. Perfil social global (obtenido desde getDBSync())
-  const globalDb = getDBSync();
-  if (!globalDb.users) globalDb.users = {};
-  if (!globalDb.users[jid]) {
-    globalDb.users[jid] = {
+  // 2. Perfil social global (obtenido desde el parámetro db directamente)
+  if (!db.users) db.users = {};
+  if (!db.users[jid]) {
+    db.users[jid] = {
       xp: 0,
       level: 1,
       genre: null,
@@ -161,7 +162,7 @@ export function getProfileUser(db, remoteJid, jid) {
       marriedTo: null,
     };
   }
-  let globalUser = globalDb.users[jid];
+  let globalUser = db.users[jid];
 
   // 3. Retorna un objeto unificado que conecta la economía local y los datos sociales globales
   return {
