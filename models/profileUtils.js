@@ -106,7 +106,7 @@ export function formatProfileText(user, pushName, jid) {
   let text = `╭〔 👤 𝐏𝐄𝐑𝐅𝐈𝐋 〕⬣\n`;
   text += `┃ 📋 𝐃𝐀𝐓𝐎𝐒 𝐃𝐄 𝐔𝐒𝐔𝐀𝐑𝐈𝐎\n`;
   text += `╰━━━━━━━━━━━━⬣\n\n`;
-  text += `┃ 👤 ${fytBold("Nombre")} › *${displayName}*\n`;
+  text += `┃ 👤 ${fytBold("Nombre")} › *@${displayName}*\n`;
   text += `┃ 🆔 ${fytBold("ID")} › ${phoneNumber}\n\n`;
   text += `┃ ⚧️ ${fytBold("Género")} › ${genre}\n`;
   text += `┃ 🎂 ${fytBold("Cumpleaños")} › ${birthday}\n`;
