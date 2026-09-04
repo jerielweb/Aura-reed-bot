@@ -1,8 +1,7 @@
 // profile.js - VERSIÓN CORREGIDA
 import { 
   getProfileUser, 
-  formatProfileText,
-  resolveTargetJid
+  formatProfileText
 } from "../../models/profileUtils.js";
 import { jidNormalizedUser } from "@whiskeysockets/baileys";
 
@@ -13,18 +12,23 @@ export default {
   execute: async (socket, message, args, { db, jidRemitente }) => {
     const remoteJid = message.key.remoteJid;
     
-    // ✅ Obtener el JID objetivo
-    let targetJid = jidNormalizedUser(jidRemitente);
-    const ctx = message.message?.extendedTextMessage?.contextInfo;
+    // ✅ Obtener el JID del remitente
+    let targetJid = jidRemitente; // Usar el JID original sin modificar
     
+    // ✅ Si hay mención, usar ese JID
+    const ctx = message.message?.extendedTextMessage?.contextInfo;
     if (ctx?.mentionedJid?.length > 0) {
-      targetJid = jidNormalizedUser(ctx.mentionedJid[0]);
+      targetJid = ctx.mentionedJid[0];
     }
     
-    console.log('📝 [profile] Usuario objetivo:', targetJid);
+    // ✅ Normalizar SOLO para la clave en la DB
+    const normalizedJid = jidNormalizedUser(targetJid);
     
-    // ✅ Obtener usuario
-    const user = getProfileUser(db, remoteJid, targetJid);
+    console.log('📝 [profile] JID original:', targetJid);
+    console.log('📝 [profile] JID normalizado:', normalizedJid);
+    
+    // ✅ Obtener usuario con el JID normalizado
+    const user = getProfileUser(db, remoteJid, normalizedJid);
     
     console.log('📝 [profile] Datos del usuario:', {
       genre: user.genre,
@@ -34,23 +38,21 @@ export default {
       level: user.level
     });
     
-    // ✅ OBTENER EL OBJETO COMPLETO (texto + mención de pareja)
-    const result = formatProfileText(user, null, targetJid);
+    // ✅ Generar texto del perfil
+    const text = formatProfileText(user, null, normalizedJid);
     
-    // ✅ Construir menciones
+    // ✅ Construir menciones (usar el JID original para menciones)
     const mentions = [targetJid];
-    
-    // ✅ Si tiene pareja, agregarla a las menciones
     if (user.marriedTo) {
       const marriedJid = jidNormalizedUser(user.marriedTo);
       mentions.push(marriedJid);
     }
     
-    // ✅ Enviar mensaje con el texto y las menciones
+    // ✅ Enviar mensaje - SOLO TEXTO Y MENCIONES
     await socket.sendMessage(
       remoteJid,
       { 
-        text: result.text,  // ✅ USAR result.text
+        text: text,  // ✅ SOLO TEXTO
         mentions: mentions 
       },
       { quoted: message }

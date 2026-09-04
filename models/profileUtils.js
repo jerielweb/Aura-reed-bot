@@ -112,6 +112,7 @@ export function calculateAge(birthdayStr) {
 
 // profileUtils.js - formatProfileText CON LOGS
 // profileUtils.js - formatProfileText CORREGIDO
+// profileUtils.js - formatProfileText SOLO TEXTO
 export function formatProfileText(user, pushName, displayJid) {
   console.log('📝 [formatProfileText] Datos recibidos:', {
     jid: displayJid,
@@ -122,33 +123,22 @@ export function formatProfileText(user, pushName, displayJid) {
     level: user.level
   });
 
-  // ✅ Obtener datos del usuario
   const coins = user.coins || 0;
   const bank = user.bank || 0;
   const xp = user.xp || 0;
   const level = user.level || calculateLevel(xp);
-  
-  // ✅ Calcular edad si tiene cumpleaños
   const yearsOld = user.birthday ? calculateAge(user.birthday) : null;
-  
-  // ✅ Obtener género
   const genre = user.genre ? (GENRES[user.genre] || user.genre) : "No definido";
-  
-  // ✅ Obtener cumpleaños
   const birthday = user.birthday || "No definido";
 
   // ✅ Mostrar pareja
   let marriedText = "Soltero/a";
-  let marriedMention = null;
-  
   if (user.marriedTo) {
     const marriedJid = jidNormalizedUser(user.marriedTo);
     const marriedNumber = marriedJid.split("@")[0];
     marriedText = `@${marriedNumber}`;
-    marriedMention = marriedJid;
   }
 
-  // ✅ Número de teléfono para mención
   const phoneNumber = displayJid.split("@")[0];
   
   let text = `╭〔 👤 𝐏𝐄𝐑𝐅𝐈𝐋 〕⬣\n`;
@@ -167,8 +157,8 @@ export function formatProfileText(user, pushName, displayJid) {
   text += `┃ 🏦 ${fytBold("Banco")} › ₡${formatter(bank)}\n\n`;
   text += `╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣`;
   
-  // ✅ Retornar también el JID de la pareja para mencionarlo
-  return { text, marriedMention };
+  // ✅ RETORNAR SOLO TEXTO
+  return text;
 }
 
 export const DEFAULT_PFP =
