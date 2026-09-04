@@ -41,17 +41,6 @@ const DEFAULT_PREFIXES = [".", "#", "/", "!", "-", "%", "$"];
 // ============================================================
 // CARGA DE COMANDOS Y MIDDLEWARES (HOT-RELOAD POR fs.watch)
 // ============================================================
-// Antes: se reimportaban TODOS los archivos cada 30s con un
-// query string único (?update=timestamp), lo que generaba una
-// instancia de módulo nueva en cada ciclo y esas instancias nunca
-// se liberaban -> fuga de memoria progresiva.
-//
-// Ahora: cada archivo se importa UNA sola vez al arrancar y queda
-// cacheado en memoria (loadedFiles). Solo se vuelve a importar
-// (con un query string único, pero solo para ESE archivo) cuando
-// fs.watch detecta que realmente cambió, fue creado o eliminado.
-// Un comando nuevo se detecta solo, sin reiniciar el bot.
-
 const loadedFiles = new Map(); // ruta relativa -> módulo cargado
 let watchersReady = false;
 const pendingReload = new Map(); // debounce por archivo
@@ -92,7 +81,6 @@ function scheduleReload(cat, file) {
   const relPath = `../commands/${cat}/${file}`;
   const absPath = `./commands/${cat}/${file}`;
 
-  // Debounce: algunos editores/SFTP disparan varios eventos por un solo guardado
   clearTimeout(pendingReload.get(relPath));
   pendingReload.set(
     relPath,
@@ -161,8 +149,6 @@ async function loadCommands() {
   return allCommands;
 }
 
-
-
 async function resolveMessageLids(m, sock, remoteJid) {
   if (!m || !m.message) return;
 
@@ -228,9 +214,7 @@ export async function handleMessage(sock, m, db, saveDB) {
         [m.key.id, remoteJid, JSON.stringify(m.message)]
       );
     }
-  } catch (e) {
-    // Si la tabla no existe en tu esquema SQLite o falla, el try evita detener la ejecución
-  }
+  } catch (e) {}
 
   // 🔇 DETECTOR Y BORRADO AUTOMÁTICO DE USUARIOS SILENCIADOS (MUTE)
   if (isGroup && senderRaw) {
@@ -254,10 +238,6 @@ export async function handleMessage(sock, m, db, saveDB) {
     }
   }
 
-  // 📌 Capturamos los valores CRUDOS (tal cual los da WhatsApp) antes de que
-  // resolveMessageLids los mute in-place. Comandos como marry/divorce que
-  // necesitan comparar identidades por LID deben partir de estos valores,
-  // no de los ya "resueltos" más abajo, para evitar doble resolución.
   const rawCtxInfo = m.message?.extendedTextMessage?.contextInfo;
   const rawParticipant = rawCtxInfo?.participant || null;
   const rawMentionedJid = Array.isArray(rawCtxInfo?.mentionedJid)
@@ -300,7 +280,7 @@ export async function handleMessage(sock, m, db, saveDB) {
     commandNameForCheck === "desbanearchat";
 
   if (isChatBanned && !isUnbanCmd) {
-    return; // Ignora en silencio cualquier comando o interacción si el chat está baneado
+    return;
   }
 
   // Interceptor del juego ahorcado
@@ -310,8 +290,6 @@ export async function handleMessage(sock, m, db, saveDB) {
     const quotedId = m.message?.extendedTextMessage?.contextInfo?.stanzaId;
     const isReplyToGame = game.lastMessage?.key?.id && quotedId === game.lastMessage.key.id;
 
-    // En grupos, solo intercepta si es reply directo a la imagen del juego.
-    // En privado, cualquier mensaje suelto cuenta como intento.
     const shouldIntercept = isReplyToGame || !isGroup;
 
     if (shouldIntercept) {
@@ -330,18 +308,20 @@ export async function handleMessage(sock, m, db, saveDB) {
     const currentBotNum = cleanJid(sock.user?.id || sock.user?.jid);
     const primaryBotNum = cleanJid(groupPrimaryBotJid);
 
-    // Permitir el comando setprimary/primary para poder reconfigurar o desactivar
     const isPrimaryCmd = ["setprimary", "primary"].includes(commandNameForCheck);
 
     if (currentBotNum !== primaryBotNum && !isPrimaryCmd) {
-      return; // El bot secundario ignora todos los demás comandos
+      return; 
     }
   }
-  sock.sendPresenceUpdate('composing', remoteJid)
+
+  // 🟢 INICIAR ESTADO DE "ESCRIBIENDO" (Pasa las validaciones del primario)
+  await sock.sendPresenceUpdate('composing', remoteJid);
 
   if (isGroup && db.groups?.[remoteJid]?.botOn === false) {
     if (commandNameForCheck === "bot" && argsForCheck[1]?.toLowerCase() === "on") {
     } else if (esComando) {
+      await sock.sendPresenceUpdate('paused', remoteJid);
       return await sock.sendMessage(
         remoteJid,
         {
@@ -349,7 +329,10 @@ export async function handleMessage(sock, m, db, saveDB) {
         },
         { quoted: m },
       );
-    } else return;
+    } else {
+      await sock.sendPresenceUpdate('paused', remoteJid);
+      return;
+    }
   }
 
   const jidResuelto = await resolveLidToRealJid(senderRaw, sock, remoteJid);
@@ -374,11 +357,9 @@ export async function handleMessage(sock, m, db, saveDB) {
   let groupMetadata = null;
 
   if (isGroup) {
-    // Uso del método seguro respaldado por caché en RAM
     groupMetadata = await getGroupMetadataSafe(sock, remoteJid);
 
     if (groupMetadata) {
-      // 🏷️ MAPEAR PARTICIPANTES CORRIGIENDO EXTRACCIÓN DE USERNAME Y LIDs
       if (Array.isArray(groupMetadata.participants)) {
         groupMetadata.participants = await Promise.all(
           groupMetadata.participants.map(async (p) => {
@@ -403,7 +384,6 @@ export async function handleMessage(sock, m, db, saveDB) {
             const num = extractNum(realJid) || extractNum(p.jid) || extractNum(p.phoneNumber);
             const isSender = p.id === senderRaw || realJid === jidRemitente;
             
-            // Prioriza username real si no es un número/LID, de lo contrario busca el notify/pushName o número limpio
             const validUsername = p.username && !p.username.includes("@") && !/^\d+$/.test(p.username) ? p.username : null;
             const displayHandle = validUsername || p.notify || (isSender ? m.pushName : null) || num || "usuario";
 
@@ -451,6 +431,7 @@ export async function handleMessage(sock, m, db, saveDB) {
     !isAdmin &&
     !isOwner
   ) {
+    await sock.sendPresenceUpdate('paused', remoteJid);
     return;
   }
 
@@ -482,6 +463,8 @@ export async function handleMessage(sock, m, db, saveDB) {
       m,
       sock,
     });
+    // 🔴 DETENER ESTADO DE "ESCRIBIENDO" (Mensaje normal sin comando)
+    await sock.sendPresenceUpdate('paused', remoteJid);
   } else {
     const args = text.slice(prefix.length).trim().split(/ +/);
     const commandName = args.shift().toLowerCase();
@@ -510,33 +493,41 @@ export async function handleMessage(sock, m, db, saveDB) {
         commandFound = true;
         const requiresOwner =
           cmd.ownerOnly !== false && cmd.category === "owner";
-        if (requiresOwner && !isOwner)
+        if (requiresOwner && !isOwner) {
+          await sock.sendPresenceUpdate('paused', remoteJid);
           return await sock.sendMessage(
             remoteJid,
             { text: Rstr.onlyOwner },
             { quoted: m },
           );
+        }
         if (
           (cmd.category === "group" || cmd.category === "economy") &&
           !isGroup
-        )
+        ) {
+          await sock.sendPresenceUpdate('paused', remoteJid);
           return await sock.sendMessage(
             remoteJid,
             { text: Rstr.onlyGroup },
             { quoted: m },
           );
-        if (isGroup && !isCategoryEnabled(remoteJid, cmd.category, db))
+        }
+        if (isGroup && !isCategoryEnabled(remoteJid, cmd.category, db)) {
+          await sock.sendPresenceUpdate('paused', remoteJid);
           return await sock.sendMessage(
             remoteJid,
             { text: catOff({ CAT_CMD: cmd.category, prefix }) },
             { quoted: m },
           );
-        if (cmd.adminOnly && !isAdmin)
+        }
+        if (cmd.adminOnly && !isAdmin) {
+          await sock.sendPresenceUpdate('paused', remoteJid);
           return await sock.sendMessage(
             remoteJid,
             { text: Rstr.onlyAdmin },
             { quoted: m },
           );
+        }
 
         try {
           await cmd.execute(sock, m, args, {
@@ -566,12 +557,17 @@ export async function handleMessage(sock, m, db, saveDB) {
             },
             { quoted: m },
           );
+        } finally {
+          // 🔴 DETENER ESTADO DE "ESCRIBIENDO" (Al finalizar el comando con éxito o error)
+          await sock.sendPresenceUpdate('paused', remoteJid);
         }
         return;
       }
     }
 
     if (!commandFound) {
+      // 🔴 DETENER ESTADO DE "ESCRIBIENDO" (Comando no encontrado)
+      await sock.sendPresenceUpdate('paused', remoteJid);
       return await sock.sendMessage(
         remoteJid,
         {
