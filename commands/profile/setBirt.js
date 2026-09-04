@@ -1,7 +1,6 @@
-// setBirth.js - CORREGIDO
-import { getProfileUser, parseBirthday } from "../../models/profileUtils.js";
+import { getGroupUser } from "../../models/groupDb.js";
+import { parseBirthday } from "../../models/profileUtils.js";
 import { fytBold } from "../../models/TextStyle.js";
-import { jidNormalizedUser } from "@whiskeysockets/baileys";
 
 export default {
   name: ["setbirth", "setbirt", "cumple", "cumpleaños"],
@@ -9,11 +8,7 @@ export default {
   description: "Define tu fecha de cumpleaños.",
   execute: async (socket, message, args, { db, saveDB, jidRemitente }) => {
     const remoteJid = message.key.remoteJid;
-    const normalizedSender = jidNormalizedUser(jidRemitente);
     const input = args.join(" ");
-
-    console.log('📝 [setBirth] Usuario:', normalizedSender);
-    console.log('📝 [setBirth] Fecha ingresada:', input);
 
     if (!input) {
       let text = `╭〔 ⚠️ ${fytBold("FALTA INFORMACIÓN")} 〕⬣\n`;
@@ -35,27 +30,16 @@ export default {
       );
     }
 
-    // ✅ Obtener usuario y asignar cumpleaños
-    const user = getProfileUser(db, remoteJid, normalizedSender);
+    const user = getGroupUser(db, remoteJid, jidRemitente, {});
     user.birthday = birthday;
-    
-    console.log('📝 [setBirth] Guardado:', {
-      jid: normalizedSender,
-      birthday: birthday,
-      dbUsers: db.users[normalizedSender]
-    });
-    
-    // ✅ Guardar en disco
-    if (typeof saveDB === "function") saveDB(db);
-
-    let text = `╭〔 🎂 ${fytBold("PERFIL")} 〕\n`;
+    saveDB(db);
+    let text = `╭〔 🎂${fytBold("PERFIL")} 〕⬣\n`;
     text += `┃ ✅ ${fytBold("CUMPLEAÑOS GUARDADO")}\n╰━━━━━━━━━━━━⬣\n\n`;
     text += `┃ > Fecha: *${birthday}*\n\n`;
     text += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;
-    
     await socket.sendMessage(
       remoteJid,
-      { text, mentions: [normalizedSender] },
+      { text, mentions: [jidRemitente] },
       { quoted: message },
     );
   },

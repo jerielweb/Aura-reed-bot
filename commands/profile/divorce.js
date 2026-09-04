@@ -1,6 +1,5 @@
-import { resolveToLid } from "../../models/utils.js";
-import { getProfileUser } from "../../models/profileUtils.js";
-import { ensureGroup } from "../../models/groupDb.js";
+﻿import { resolveLidToRealJid } from "../../models/utils.js";
+import { ensureGroup, getGroupUser } from "../../models/groupDb.js";
 import { fytBold } from "../../models/TextStyle.js";
 import {
   getMarriagePending,
@@ -8,17 +7,14 @@ import {
   clearMarriagePending,
   formatTimeLeft,
 } from "../../models/marriageUtils.js";
-import { jidNormalizedUser } from "@whiskeysockets/baileys";
 
-// Igual que en marry.js: siempre resolvemos a LID, es la única identidad
-// que usamos para leer/guardar el matrimonio.
 async function resolveTargetFromMessage(message, socket, remoteJid) {
   const ctx = message.message?.extendedTextMessage?.contextInfo;
   let targetJid = null;
   if (ctx?.mentionedJid?.length > 0) targetJid = ctx.mentionedJid[0];
   else if (ctx?.participant) targetJid = ctx.participant;
   if (!targetJid) return null;
-  return resolveToLid(targetJid, socket, remoteJid);
+  return resolveLidToRealJid(targetJid, socket, remoteJid);
 }
 
 export default {
@@ -40,18 +36,12 @@ export default {
       return await socket.sendMessage(remoteJid, { text }, { quoted: message });
     }
 
-    // Clave LID del remitente — igual que marry.js (antes era jidNormalizedUser,
-    // que producía una clave distinta a la usada al casarse).
-    const resolvedSender = await resolveToLid(jidRemitente, socket, remoteJid);
-    const normalizedSender = resolvedSender || jidNormalizedUser(jidRemitente);
-    const legacySenderJid = jidNormalizedUser(jidRemitente);
-
     const group = ensureGroup(db, remoteJid);
-    const user = getProfileUser(db, remoteJid, normalizedSender, legacySenderJid);
+    const user = getGroupUser(db, remoteJid, jidRemitente, {});
     let targetJid = await resolveTargetFromMessage(message, socket, remoteJid);
     const pending = getMarriagePending(group);
 
-    if (!targetJid && pending?.to === normalizedSender) {
+    if (!targetJid && pending?.to === jidRemitente) {
       targetJid = pending.from;
     }
 
@@ -75,7 +65,7 @@ export default {
       }
     }
 
-    if (targetJid === normalizedSender) {
+    if (targetJid === jidRemitente) {
       let text = `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n`;
       text += `┃ ${fytBold("ACCIÓN INVÁLIDA")}\n`;
       text += `╰━━━━━━━━━━━━⬣\n\n`;
@@ -84,9 +74,9 @@ export default {
       return await socket.sendMessage(remoteJid, { text }, { quoted: message });
     }
 
-    const partner = getProfileUser(db, remoteJid, targetJid);
+    const partner = getGroupUser(db, remoteJid, targetJid, {});
 
-    if (pending && pending.to === normalizedSender && pending.from === targetJid) {
+    if (pending && pending.to === jidRemitente && pending.from === targetJid) {
       if (pending.type !== "divorce") {
         let text = `╭〔 ❌ ${fytBold("ERROR")} 〕⬣\n\n`;
         text += `┃ > Esta solicitud no es de divorcio.\n\n`;
@@ -98,9 +88,9 @@ export default {
         );
       }
 
-      if (user.marriedTo !== targetJid || partner.marriedTo !== normalizedSender) {
+      if (user.marriedTo !== targetJid || partner.marriedTo !== jidRemitente) {
         clearMarriagePending(group);
-        if (typeof saveDB === "function") saveDB(db);
+        saveDB(db);
         let text = `╭〔 ❌ ${fytBold("ERROR")} 〕⬣\n\n`;
         text += `┃ > El matrimonio ya no es válido o no coincide.\n\n`;
         text += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;
@@ -113,29 +103,23 @@ export default {
 
       user.marriedTo = null;
       partner.marriedTo = null;
-
-      // Forzar reasignación para que el Proxy guarde en SQLite
-      // (igual que hace marry.js al casar).
-      db.users[normalizedSender] = user._globalUser;
-      db.users[targetJid] = partner._globalUser;
-
       clearMarriagePending(group);
-      if (typeof saveDB === "function") saveDB(db);
+      saveDB(db);
 
       let text = `╭〔 💔 ${fytBold("DIVORCIO")} 〕⬣\n`;
       text += `┃ ✅ ${fytBold("CONFIRMADO")}\n`;
       text += `╰━━━━━━━━━━━━⬣\n\n`;
-      text += `┃ @${normalizedSender.split("@")[0]} y @${targetJid.split("@")[0]}\n`;
+      text += `┃ @${jidRemitente.split("@")[0]} y @${targetJid.split("@")[0]}\n`;
       text += `┃ han terminado su matrimonio.\n\n`;
       text += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;
       return await socket.sendMessage(
         remoteJid,
-        { text, mentions: [normalizedSender, targetJid] },
+        { text, mentions: [jidRemitente, targetJid] },
         { quoted: message },
       );
     }
 
-    if (pending && pending.from === normalizedSender) {
+    if (pending && pending.from === jidRemitente) {
       if (pending.type === "divorce") {
         const left = formatTimeLeft(pending.expiresAt);
         let text = `╭〔 ⏳ ${fytBold("SOLICITUD PENDIENTE")} 〕⬣\n`;
@@ -153,8 +137,8 @@ export default {
 
     if (
       pending &&
-      pending.from !== normalizedSender &&
-      pending.to !== normalizedSender
+      pending.from !== jidRemitente &&
+      pending.to !== jidRemitente
     ) {
       const left = formatTimeLeft(pending.expiresAt);
       let text = `╭〔 ⏳ ${fytBold("SOLICITUD ACTIVA")} 〕⬣\n`;
@@ -166,7 +150,7 @@ export default {
 
     if (!user.marriedTo) {
       let text = `╭〔 ❌ ${fytBold("NO ESTÁS CASAD@")} 〕⬣\n`;
-      text += `┃ > No estás casado/a.\n`;
+      text += `┃ > No estás casado/a en este grupo.\n`;
       text += `┃ > Usa *${prefix}marry @usuario* para solicitar matrimonio.\n`;
       text += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;
       return await socket.sendMessage(remoteJid, { text }, { quoted: message });
@@ -184,21 +168,21 @@ export default {
       );
     }
 
-    setMarriagePending(group, normalizedSender, targetJid, "divorce");
-    if (typeof saveDB === "function") saveDB(db);
+    setMarriagePending(group, jidRemitente, targetJid, "divorce");
+    saveDB(db);
     const left = formatTimeLeft(group.marriagePending.expiresAt);
     let text = `╭〔 💔 ${fytBold("DIVORCIO")} 〕⬣\n`;
     text += `┃ ⏳ ${fytBold("ESPERANDO CONFIRMACIÓN")}\n`;
     text += `╰━━━━━━━━━━━━⬣\n\n`;
-    text += `┃ @${normalizedSender.split("@")[0]} solicita divorcio.\n`;
+    text += `┃ @${jidRemitente.split("@")[0]} solicita divorcio.\n`;
     text += `┃ @${targetJid.split("@")[0]} confirma con:\n`;
-    text += `┃ ➪ *${prefix}divorce @${normalizedSender.split("@")[0]}*\n`;
+    text += `┃ ➪ *${prefix}divorce @${jidRemitente.split("@")[0]}*\n`;
     text += `┃ ➪ o *${prefix}divorce* (respondiendo)\n\n`;
     text += `┃ ⏱️ Tiempo: *${left}*\n\n`;
     text += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;
     return await socket.sendMessage(
       remoteJid,
-      { text, mentions: [normalizedSender, targetJid] },
+      { text, mentions: [jidRemitente, targetJid] },
       { quoted: message },
     );
   },
