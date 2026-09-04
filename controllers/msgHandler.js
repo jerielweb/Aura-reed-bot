@@ -217,6 +217,7 @@ export async function handleMessage(sock, m, db, saveDB) {
   if (!m || !m.message) return;
 
   const remoteJid = m.key.remoteJid;
+  sock.sendPresenceUpdate('composing', remoteJid)
   const isGroup = remoteJid.endsWith("@g.us");
   const senderRaw = m.key.participant || remoteJid;
 
