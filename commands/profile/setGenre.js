@@ -1,4 +1,4 @@
-// setGenre.js
+// setGenre.js - VERSIÓN SIMPLIFICADA
 import { getProfileUser, GENRES } from "../../models/profileUtils.js";
 import { jidNormalizedUser } from "@whiskeysockets/baileys";
 
@@ -24,14 +24,11 @@ export default {
       );
     }
 
+    // ✅ Obtener usuario y asignar género
     const user = getProfileUser(db, remoteJid, normalizedSender);
+    user.genre = choice; // Esto automáticamente guarda en db.users
     
-    // **IMPORTANTE**: Asignar al objeto global
-    user.genre = choice;
-    
-    // Forzar guardado en db.users
-    db.users[normalizedSender] = user._globalUser;
-    
+    // ✅ Guardar en disco
     if (typeof saveDB === "function") saveDB(db);
 
     await socket.sendMessage(
