@@ -108,7 +108,7 @@ export function formatProfileText(user, pushName, jid) {
   const yearsOld = calculateAge(user.birthday);
   const genre = user.genre ? GENRES[user.genre] || user.genre : "No definido";
   const birthday = user.birthday || "No definido";
-  const married = user.marriedTo
+  const married = users.marriedTo
     ? `@${user.marriedTo.split("@")[0]}`
     : "Soltero/a";
 
