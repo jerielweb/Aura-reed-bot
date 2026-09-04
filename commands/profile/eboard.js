@@ -1,3 +1,4 @@
+// eboard.js
 import { getDBSync } from "../../models/db.js";
 import { calculateLevel } from "../../models/profileUtils.js";
 import formatter from "../../controllers/functions/formatNumbers.js";
@@ -74,13 +75,12 @@ export default {
     pageUsers.forEach((u, i) => {
       const rank = startIndex + i + 1;
       const medal = rank <= 3 ? medals[rank - 1] : medals[3];
-      
-      // Para menciones, usamos el JID directamente
+
       const mentionJid = u.jid;
-      
+
       text += `┃ ${medal} *#${rank}* └ @${mentionJid.split("@")[0]}\n`;
       text += `┃ 📊 Nivel *${u.level}* | XP: ${formatter(u.xp)}\n\n`;
-      
+
       mentions.push(mentionJid);
     });
 

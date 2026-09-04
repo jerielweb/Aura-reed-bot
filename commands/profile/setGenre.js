@@ -1,5 +1,6 @@
-import { getGroupUser } from "../../models/groupDb.js";
-import { GENRES } from "../../models/profileUtils.js";
+// setGenre.js
+import { getProfileUser, GENRES } from "../../models/profileUtils.js";
+import { resolveToLid, resolveLidToRealJid } from "../../models/utils.js";
 
 export default {
   name: ["setgenre", "género", "genero", "setgen", "sg"],
@@ -22,15 +23,19 @@ export default {
       );
     }
 
-    const user = getGroupUser(db, remoteJid, jidRemitente, {});
+    const lid = await resolveToLid(jidRemitente, socket, remoteJid);
+    const user = getProfileUser(db, remoteJid, lid);
     user.genre = choice;
-    saveDB(db);
+
+    if (typeof saveDB === "function") saveDB(db);
+
+    const realJid = await resolveLidToRealJid(lid, socket, remoteJid);
 
     await socket.sendMessage(
       remoteJid,
       {
         text: `╭〔 👤 𝐏𝐄𝐑𝐅𝐈𝐋 〕⬣\n┃ ✅ 𝐆𝐞́𝐧𝐞𝐫𝐨 𝐚𝐜𝐭𝐮𝐚𝐥𝐢𝐳𝐚𝐝𝐨\n╰━━━━━━━━━━━━⬣\n\n┃ > Ahora eres: *${GENRES[choice]}*\n\n╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣`,
-        mentions: [jidRemitente],
+        mentions: [realJid],
       },
       { quoted: message },
     );

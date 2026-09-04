@@ -1,3 +1,4 @@
+// groupDb.js
 import { getDBSync } from "./db.js";
 import { jidNormalizedUser } from "@whiskeysockets/baileys";
 
@@ -12,10 +13,9 @@ export const DEFAULT_GROUP = {
   disabledCategories: ["nsfw"],
   botOn: true,
   prefix: null,
-  users: {}, // Aquí vivirá únicamente la economía local por grupo
+  users: {},
 };
 
-// Solo la economía se aísla por grupo
 const ECONOMY_FIELDS = new Set([
   "coins",
   "bank",
@@ -32,7 +32,6 @@ const ECONOMY_FIELDS = new Set([
   "lastAdventure",
 ]);
 
-/** Limpia campos de economía viejos del almacén global de usuarios si llegasen a existir. */
 export function stripEconomyFromUsers(users = {}) {
   const cleaned = {};
   for (const [jid, data] of Object.entries(users)) {
@@ -67,50 +66,36 @@ export function getGroupUsers(db, remoteJid) {
   return ensureGroup(db, remoteJid).users;
 }
 
-// Obtiene o inicializa la economía local del usuario en este grupo específico
-export function getGroupUser(
-  db,
-  remoteJid,
-  jid,
-  defaults = { coins: 0, bank: 0 },
-) {
-  // Normalizamos SIEMPRE la clave aquí para que no importe si el llamador
-  // pasa un jid crudo (@lid, con sufijo de dispositivo, etc.) o ya normalizado.
-  // Así lectura y escritura de economía apuntan siempre al mismo registro.
+export function getGroupUser(db, remoteJid, jid, defaults = { coins: 0, bank: 0 }) {
   const normalizedJid = jidNormalizedUser(jid);
   const users = getGroupUsers(db, remoteJid);
-
-  // Migración suave: si existe un registro viejo guardado con la clave cruda
-  // (antes de este fix) y aún no existe uno con la clave normalizada,
-  // lo migramos para no perder la plata que ya tenía el usuario.
+  
   if (!users[normalizedJid] && jid !== normalizedJid && users[jid]) {
     users[normalizedJid] = users[jid];
     delete users[jid];
   }
-
+  
   if (!users[normalizedJid]) users[normalizedJid] = { ...defaults };
   return users[normalizedJid];
 }
 
-/** Registra un mensaje del usuario en la actividad del grupo y otorga XP global. */
 export function trackGroupActivity(db, remoteJid, jid) {
   if (!remoteJid?.endsWith("@g.us") || !jid?.endsWith("@s.whatsapp.net"))
     return false;
-
+  
   const group = ensureGroup(db, remoteJid);
   const monthKey = new Date().toISOString().slice(0, 7);
-
+  
   if (
     !group.activity[monthKey] ||
     typeof group.activity[monthKey] !== "object"
   ) {
     group.activity[monthKey] = {};
   }
-
+  
   const monthly = group.activity[monthKey];
   monthly[jid] = (monthly[jid] || 0) + 1;
-
-  // El XP y nivel se suman en la base de datos GLOBAL para que apliquen en todos lados
+  
   const globalDb = getDBSync();
   if (!globalDb.users) globalDb.users = {};
   if (!globalDb.users[jid]) {
@@ -120,6 +105,6 @@ export function trackGroupActivity(db, remoteJid, jid) {
   const user = globalDb.users[jid];
   user.xp = (user.xp || 0) + 1;
   user.level = Math.floor(user.xp / 150) + 1;
-
+  
   return true;
 }

@@ -1,5 +1,7 @@
-﻿import { resolveLidToRealJid } from "../../models/utils.js";
-import { ensureGroup, getGroupUser } from "../../models/groupDb.js";
+﻿// divorce.js
+import { resolveToLid, resolveLidToRealJid } from "../../models/utils.js";
+import { getProfileUser } from "../../models/profileUtils.js";
+import { ensureGroup } from "../../models/groupDb.js";
 import { fytBold } from "../../models/TextStyle.js";
 import {
   getMarriagePending,
@@ -14,7 +16,7 @@ async function resolveTargetFromMessage(message, socket, remoteJid) {
   if (ctx?.mentionedJid?.length > 0) targetJid = ctx.mentionedJid[0];
   else if (ctx?.participant) targetJid = ctx.participant;
   if (!targetJid) return null;
-  return resolveLidToRealJid(targetJid, socket, remoteJid);
+  return resolveToLid(targetJid, socket, remoteJid);
 }
 
 export default {
@@ -28,26 +30,28 @@ export default {
     { db, saveDB, jidRemitente, prefix },
   ) => {
     const remoteJid = message.key.remoteJid;
+
     if (!remoteJid.endsWith("@g.us")) {
       let text = `╭〔 ❌ ${fytBold("AURA REED")} 〕━━⬣\n`;
-      text += `${fytBold("ACCION INCONPATIBLE")} \n╰━━━━━━━━━━━━⬣\n\n`;
+      text += `${fytBold("ACCION INCOMPATIBLE")} \n╰━━━━━━━━━━━━⬣\n\n`;
       text += `> Este comando solo funciona en grupos.\n\n`;
       text += `╰〔 ⚡ ${fytBold("SYSTEM ALERT")} 〕⬣`;
       return await socket.sendMessage(remoteJid, { text }, { quoted: message });
     }
 
+    const userLid = await resolveToLid(jidRemitente, socket, remoteJid);
     const group = ensureGroup(db, remoteJid);
-    const user = getGroupUser(db, remoteJid, jidRemitente, {});
-    let targetJid = await resolveTargetFromMessage(message, socket, remoteJid);
+    const user = getProfileUser(db, remoteJid, userLid);
+    let targetLid = await resolveTargetFromMessage(message, socket, remoteJid);
     const pending = getMarriagePending(group);
 
-    if (!targetJid && pending?.to === jidRemitente) {
-      targetJid = pending.from;
+    if (!targetLid && pending?.to === userLid) {
+      targetLid = pending.from;
     }
 
-    if (!targetJid) {
+    if (!targetLid) {
       if (user.marriedTo) {
-        targetJid = user.marriedTo;
+        targetLid = user.marriedTo;
       } else {
         let text = `╭〔 ⚠️ ${fytBold("FALTA OBJETIVO")} 〕⬣\n\n`;
         text += `┃ > Menciona o responde a la persona.\n`;
@@ -65,7 +69,7 @@ export default {
       }
     }
 
-    if (targetJid === jidRemitente) {
+    if (targetLid === userLid) {
       let text = `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n`;
       text += `┃ ${fytBold("ACCIÓN INVÁLIDA")}\n`;
       text += `╰━━━━━━━━━━━━⬣\n\n`;
@@ -74,9 +78,9 @@ export default {
       return await socket.sendMessage(remoteJid, { text }, { quoted: message });
     }
 
-    const partner = getGroupUser(db, remoteJid, targetJid, {});
+    const partner = getProfileUser(db, remoteJid, targetLid);
 
-    if (pending && pending.to === jidRemitente && pending.from === targetJid) {
+    if (pending && pending.to === userLid && pending.from === targetLid) {
       if (pending.type !== "divorce") {
         let text = `╭〔 ❌ ${fytBold("ERROR")} 〕⬣\n\n`;
         text += `┃ > Esta solicitud no es de divorcio.\n\n`;
@@ -88,9 +92,9 @@ export default {
         );
       }
 
-      if (user.marriedTo !== targetJid || partner.marriedTo !== jidRemitente) {
+      if (user.marriedTo !== targetLid || partner.marriedTo !== userLid) {
         clearMarriagePending(group);
-        saveDB(db);
+        if (typeof saveDB === "function") saveDB(db);
         let text = `╭〔 ❌ ${fytBold("ERROR")} 〕⬣\n\n`;
         text += `┃ > El matrimonio ya no es válido o no coincide.\n\n`;
         text += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;
@@ -103,33 +107,38 @@ export default {
 
       user.marriedTo = null;
       partner.marriedTo = null;
+
       clearMarriagePending(group);
-      saveDB(db);
+      if (typeof saveDB === "function") saveDB(db);
+
+      const userRealJid = await resolveLidToRealJid(userLid, socket, remoteJid);
+      const targetRealJid = await resolveLidToRealJid(targetLid, socket, remoteJid);
 
       let text = `╭〔 💔 ${fytBold("DIVORCIO")} 〕⬣\n`;
       text += `┃ ✅ ${fytBold("CONFIRMADO")}\n`;
       text += `╰━━━━━━━━━━━━⬣\n\n`;
-      text += `┃ @${jidRemitente.split("@")[0]} y @${targetJid.split("@")[0]}\n`;
+      text += `┃ @${userRealJid.split("@")[0]} y @${targetRealJid.split("@")[0]}\n`;
       text += `┃ han terminado su matrimonio.\n\n`;
       text += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;
       return await socket.sendMessage(
         remoteJid,
-        { text, mentions: [jidRemitente, targetJid] },
+        { text, mentions: [userRealJid, targetRealJid] },
         { quoted: message },
       );
     }
 
-    if (pending && pending.from === jidRemitente) {
+    if (pending && pending.from === userLid) {
       if (pending.type === "divorce") {
         const left = formatTimeLeft(pending.expiresAt);
+        const pendingToReal = await resolveLidToRealJid(pending.to, socket, remoteJid);
         let text = `╭〔 ⏳ ${fytBold("SOLICITUD PENDIENTE")} 〕⬣\n`;
         text += `┃ > Ya enviaste una solicitud de divorcio.\n`;
-        text += `┃ > Espera que @${pending.to.split("@")[0]} confirme con *${prefix}divorce*.\n`;
+        text += `┃ > Espera que @${pendingToReal.split("@")[0]} confirme con *${prefix}divorce*.\n`;
         text += `┃ > Tiempo restante: *${left}*\n`;
         text += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;
         return await socket.sendMessage(
           remoteJid,
-          { text, mentions: [pending.to] },
+          { text, mentions: [pendingToReal] },
           { quoted: message },
         );
       }
@@ -137,52 +146,63 @@ export default {
 
     if (
       pending &&
-      pending.from !== jidRemitente &&
-      pending.to !== jidRemitente
+      pending.from !== userLid &&
+      pending.to !== userLid
     ) {
       const left = formatTimeLeft(pending.expiresAt);
+      const fromReal = await resolveLidToRealJid(pending.from, socket, remoteJid);
+      const toReal = await resolveLidToRealJid(pending.to, socket, remoteJid);
       let text = `╭〔 ⏳ ${fytBold("SOLICITUD ACTIVA")} 〕⬣\n`;
-      text += `┃ > Hay otra solicitud en curso entre @${pending.from.split("@")[0]} y @${pending.to.split("@")[0]}.\n`;
+      text += `┃ > Hay otra solicitud en curso entre @${fromReal.split("@")[0]} y @${toReal.split("@")[0]}.\n`;
       text += `┃ > Tiempo restante: *${left}*\n`;
       text += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;
-      return await socket.sendMessage(remoteJid, { text }, { quoted: message });
+      return await socket.sendMessage(
+        remoteJid,
+        { text, mentions: [fromReal, toReal] },
+        { quoted: message },
+      );
     }
 
     if (!user.marriedTo) {
       let text = `╭〔 ❌ ${fytBold("NO ESTÁS CASAD@")} 〕⬣\n`;
-      text += `┃ > No estás casado/a en este grupo.\n`;
+      text += `┃ > No estás casado/a.\n`;
       text += `┃ > Usa *${prefix}marry @usuario* para solicitar matrimonio.\n`;
       text += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;
       return await socket.sendMessage(remoteJid, { text }, { quoted: message });
     }
 
-    if (user.marriedTo !== targetJid) {
+    if (user.marriedTo !== targetLid) {
+      const marriedReal = await resolveLidToRealJid(user.marriedTo, socket, remoteJid);
       let text = `╭〔 ❌ ${fytBold("NO PUEDES DIVORCIAR")} 〕⬣\n`;
-      text += `┃ > Estás casado/a con @${user.marriedTo.split("@")[0]}.\n`;
-      text += `┃ > Usa *${prefix}divorce @${user.marriedTo.split("@")[0]}* para solicitar el divorcio correcto.\n`;
+      text += `┃ > Estás casado/a con @${marriedReal.split("@")[0]}.\n`;
+      text += `┃ > Usa *${prefix}divorce @${marriedReal.split("@")[0]}* para solicitar el divorcio correcto.\n`;
       text += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;
       return await socket.sendMessage(
         remoteJid,
-        { text, mentions: [user.marriedTo] },
+        { text, mentions: [marriedReal] },
         { quoted: message },
       );
     }
 
-    setMarriagePending(group, jidRemitente, targetJid, "divorce");
-    saveDB(db);
+    setMarriagePending(group, userLid, targetLid, "divorce");
+    if (typeof saveDB === "function") saveDB(db);
     const left = formatTimeLeft(group.marriagePending.expiresAt);
+
+    const userRealJid = await resolveLidToRealJid(userLid, socket, remoteJid);
+    const targetRealJid = await resolveLidToRealJid(targetLid, socket, remoteJid);
+
     let text = `╭〔 💔 ${fytBold("DIVORCIO")} 〕⬣\n`;
     text += `┃ ⏳ ${fytBold("ESPERANDO CONFIRMACIÓN")}\n`;
     text += `╰━━━━━━━━━━━━⬣\n\n`;
-    text += `┃ @${jidRemitente.split("@")[0]} solicita divorcio.\n`;
-    text += `┃ @${targetJid.split("@")[0]} confirma con:\n`;
-    text += `┃ ➪ *${prefix}divorce @${jidRemitente.split("@")[0]}*\n`;
+    text += `┃ @${userRealJid.split("@")[0]} solicita divorcio.\n`;
+    text += `┃ @${targetRealJid.split("@")[0]} confirma con:\n`;
+    text += `┃ ➪ *${prefix}divorce @${userRealJid.split("@")[0]}*\n`;
     text += `┃ ➪ o *${prefix}divorce* (respondiendo)\n\n`;
     text += `┃ ⏱️ Tiempo: *${left}*\n\n`;
     text += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;
     return await socket.sendMessage(
       remoteJid,
-      { text, mentions: [jidRemitente, targetJid] },
+      { text, mentions: [userRealJid, targetRealJid] },
       { quoted: message },
     );
   },
