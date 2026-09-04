@@ -217,7 +217,6 @@ export async function handleMessage(sock, m, db, saveDB) {
   if (!m || !m.message) return;
 
   const remoteJid = m.key.remoteJid;
-  sock.sendPresenceUpdate('composing', remoteJid)
   const isGroup = remoteJid.endsWith("@g.us");
   const senderRaw = m.key.participant || remoteJid;
 
@@ -338,6 +337,7 @@ export async function handleMessage(sock, m, db, saveDB) {
       return; // El bot secundario ignora todos los demás comandos
     }
   }
+  sock.sendPresenceUpdate('composing', remoteJid)
 
   if (isGroup && db.groups?.[remoteJid]?.botOn === false) {
     if (commandNameForCheck === "bot" && argsForCheck[1]?.toLowerCase() === "on") {
