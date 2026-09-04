@@ -119,19 +119,29 @@ export function formatProfileText(user, pushName, displayJid) {
   const genre = user.genre ? GENRES[user.genre] || user.genre : "No definido";
   const birthday = user.birthday || "No definido";
 
-  // user.marriedTo ahora es siempre un LID. Para mostrarlo lo limpiamos igual,
-  // el "@numero" que se ve en el texto es solo cosmético (el mentions[] real
-  // es el que hace que WhatsApp etiquete a la persona).
   const marriedClean = user.marriedTo ? jidNormalizedUser(user.marriedTo) : null;
   const married = marriedClean
     ? `@${marriedClean.split("@")[0]}`
     : "Soltero/a";
 
+  // --- CORRECCIÓN AQUÍ ---
+  // 1. Normalizamos el JID canónico (que es el LID) para obtener el JID real (número).
+  const normalizedDisplayJid = displayJid ? jidNormalizedUser(displayJid) : "Desconocido";
+  
+  // 2. Extraemos solo la parte del número (sin el sufijo del dispositivo/dominio).
+  const phoneNumber = normalizedDisplayJid.split("@")[0];
+  
+  // 3. El nombre visible ahora es el número de teléfono. Esto reemplaza al pushName en la vista.
+  const profileName = phoneNumber;
+  // --- FIN CORRECCIÓN ---
+
   let text = `╭〔 👤 𝐏𝐄𝐑𝐅𝐈𝐋 〕⬣\n`;
   text += `┃ 📋 𝐃𝐀𝐓𝐎𝐒 𝐃𝐄 𝐔𝐒𝐔𝐀𝐑𝐈𝐎\n`;
   text += `╰━━━━━━━━━━━━⬣\n\n`;
-  text += `┃ 👤 ${fytBold("Nombre")} › *${`@${pushName}` || "Usuario"}*\n`;
-  text += `┃ 🆔 ${fytBold("ID")} › ${displayJid.split("@")[0]}\n\n`;
+  // Usamos el profileName (que ahora es el número) precedido de '@'
+  text += `┃ 👤 ${fytBold("Nombre")} › *${`@${profileName}`}*\n`; // <- Muestra "@59597..." pero formateado de forma limpia
+  text += `┃ 🆔 ${fytBold("ID")} › ${displayJid.split("@")[0]}\n\n`; // <- Muestra el ID original (LID)
+
   text += `┃ ⚧️ ${fytBold("Género")} › ${genre}\n`;
   text += `┃ 🎂 ${fytBold("Cumpleaños")} › ${birthday}\n`;
   text += `┃ 🎈 ${fytBold("Edad")} › ${yearsOld !== null ? yearsOld : "Indefinido"}\n\n`;
@@ -143,7 +153,6 @@ export function formatProfileText(user, pushName, displayJid) {
   text += `╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣`;
   return text;
 }
-
 export const DEFAULT_PFP =
   "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
@@ -210,6 +219,13 @@ export function getProfileUser(db, remoteJid, jid, legacyJid = null) {
 
     get birthday() { return globalUser.birthday; },
     set birthday(val) { globalUser.birthday = val; },
+
+    // Nombre visible (pushName) guardado la última vez que este usuario
+    // usó el bot. Sirve de respaldo cuando socket.store.contacts está
+    // vacío (recién reiniciado el bot) y por eso no puede resolver el
+    // nombre de alguien que otra persona está mencionando.
+    get pushName() { return globalUser.pushName || null; },
+    set pushName(val) { globalUser.pushName = val; },
 
     get marriedTo() { return globalUser.marriedTo; },
     set marriedTo(val) { globalUser.marriedTo = val; },
