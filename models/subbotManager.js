@@ -82,7 +82,7 @@ export function getMaxSubBots() {
       ? max
       : 30;
   } catch {
-    return 15;
+    return 30;
   }
 }
 
