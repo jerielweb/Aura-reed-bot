@@ -1,3 +1,4 @@
+// setBirth.js
 import { getProfileUser, parseBirthday } from "../../models/profileUtils.js";
 import { getDBSync } from "../../models/db.js";
 import { fytBold } from "../../models/TextStyle.js";
@@ -32,12 +33,18 @@ export default {
       );
     }
 
-    // Esto ahora modifica el perfil global unificado
+    // Obtener usuario
     const user = getProfileUser(db, remoteJid, normalizedSender);
+    
+    // **IMPORTANTE**: Asignar al objeto global
     user.birthday = birthday;
+    
+    // Forzar guardado en db.users
+    db.users[normalizedSender] = user._globalUser;
+    
     if (typeof saveDB === "function") saveDB(db);
     
-    // Si manejas save global, asegúrate de guardarlo también si es necesario
+    // También guardar la DB global si existe
     const globalDb = getDBSync();
     if (globalDb.save) globalDb.save();
 
@@ -45,6 +52,7 @@ export default {
     text += `┃ ✅ ${fytBold("CUMPLEAÑOS GUARDADO")}\n╰━━━━━━━━━━━━⬣\n\n`;
     text += `┃ > Fecha: *${birthday}*\n\n`;
     text += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;
+    
     await socket.sendMessage(
       remoteJid,
       { text, mentions: [normalizedSender] },

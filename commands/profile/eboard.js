@@ -65,23 +65,26 @@ export default {
     const pageUsers = allSorted.slice(startIndex, startIndex + pageSize);
 
     const medals = ["🥇", "🥈", "🥉", "🎖️"];
-    let text = `╭━━〔 ✨ ${fytBold("XP BOARD")} ✨ 〕━━⬣\n`;
+    let text = `╭──〔 ✨ ${fytBold("XP BOARD")} ✨ 〕──⬣\n`;
     text += `┃ 📊 Ranking global de niveles y experiencia\n`;
     text += `┃ 📄 Página: ${currentPage}/${totalPages}\n`;
-    text += `╰━━━━━━━━━━━━━━━━⬣\n\n`;
+    text += `╰────────────────⬣\n\n`;
 
     const mentions = [];
     pageUsers.forEach((u, i) => {
       const rank = startIndex + i + 1;
       const medal = rank <= 3 ? medals[rank - 1] : medals[3];
-
-      text += `┃ ${medal} *#${rank}* ➔ @${u.jid.split("@")[0]}\n`;
+      
+      // Para menciones, usamos el JID directamente
+      const mentionJid = u.jid;
+      
+      text += `┃ ${medal} *#${rank}* └ @${mentionJid.split("@")[0]}\n`;
       text += `┃ 📊 Nivel *${u.level}* | XP: ${formatter(u.xp)}\n\n`;
-
-      mentions.push(u.jid);
+      
+      mentions.push(mentionJid);
     });
 
-    text += `╰━━〔 ⚡ ${fytBold("AURA PROFILE")} ⚡ 〕━━⬣`;
+    text += `╰──〔 ⚡ ${fytBold("AURA PROFILE")} ⚡ 〕──⬣`;
 
     await socket.sendMessage(
       targetJid,

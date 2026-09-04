@@ -1,3 +1,4 @@
+// profileUtils.js
 import { resolveLidToRealJid, resolveToLid } from "./utils.js";
 import { getGroupUser } from "./groupDb.js";
 import formatter from "../controllers/functions/formatNumbers.js";
@@ -35,10 +36,6 @@ export function addProfileXp(user, amount = 1) {
  * Resuelve el jid objetivo (mencionado, o el remitente si no hay mención)
  * SIEMPRE a LID. Esta es la única identidad que usamos para leer/guardar
  * datos de usuario (matrimonio, xp, genero, cumpleaños, etc).
- *
- * IMPORTANTE: ya no devuelve el jid real (@s.whatsapp.net) — si necesitas
- * el número real para llamadas a la API de WhatsApp (foto de perfil,
- * contacto), conviértelo aparte con resolveLidToRealJid().
  */
 export async function resolveTargetJid(
   message,
@@ -48,13 +45,13 @@ export async function resolveTargetJid(
 ) {
   let targetJid = null;
   const ctx = message.message?.extendedTextMessage?.contextInfo;
-
+  
   if (ctx?.mentionedJid?.length > 0) {
     targetJid = ctx.mentionedJid[0];
   } else if (ctx?.participant) {
     targetJid = ctx.participant;
   }
-
+  
   const raw = targetJid || fallbackJid;
   return resolveToLid(raw, socket, remoteJid);
 }
@@ -63,13 +60,13 @@ export function parseBirthday(input) {
   if (!input) return null;
   const normalized = input.replace(/-/g, "/").trim();
   const parts = normalized.split("/").map((p) => p.trim());
-
+  
   if (parts.length < 2 || parts.length > 3) return null;
-
+  
   const day = parseInt(parts[0], 10);
   const month = parseInt(parts[1], 10);
   const year = parts[2] !== undefined ? parseInt(parts[2], 10) : null;
-
+  
   if (
     isNaN(day) ||
     isNaN(month) ||
@@ -84,7 +81,7 @@ export function parseBirthday(input) {
     (isNaN(year) || year < 1900 || year > new Date().getFullYear())
   )
     return null;
-
+  
   const dd = String(day).padStart(2, "0");
   const mm = String(month).padStart(2, "0");
   return year ? `${dd}/${mm}/${year}` : `${dd}/${mm}`;
@@ -94,19 +91,19 @@ export function calculateAge(birthdayStr) {
   if (!birthdayStr) return null;
   const parts = birthdayStr.split("/");
   if (parts.length < 3) return null;
-
+  
   const day = parseInt(parts[0], 10);
   const month = parseInt(parts[1], 10) - 1;
   const year = parseInt(parts[2], 10);
-
+  
   const today = new Date();
   let age = today.getFullYear() - year;
   const m = today.getMonth() - month;
-
+  
   if (m < 0 || (m === 0 && today.getDate() < day)) {
     age--;
   }
-
+  
   return age >= 0 ? age : null;
 }
 
@@ -118,30 +115,21 @@ export function formatProfileText(user, pushName, displayJid) {
   const yearsOld = calculateAge(user.birthday);
   const genre = user.genre ? GENRES[user.genre] || user.genre : "No definido";
   const birthday = user.birthday || "No definido";
-
+  
   const marriedClean = user.marriedTo ? jidNormalizedUser(user.marriedTo) : null;
-  const married = marriedClean
-    ? `@${marriedClean.split("@")[0]}`
-    : "Soltero/a";
-
-  // --- CORRECCIÓN AQUÍ ---
-  // 1. Normalizamos el JID canónico (que es el LID) para obtener el JID real (número).
-  const normalizedDisplayJid = displayJid ? jidNormalizedUser(displayJid) : "Desconocido";
+  const married = marriedClean ?
+    `@${marriedClean.split("@")[0]}` :
+    "Soltero/a";
   
-  // 2. Extraemos solo la parte del número (sin el sufijo del dispositivo/dominio).
-  const phoneNumber = normalizedDisplayJid.split("@")[0];
+  // Para la mención, necesitamos el número de teléfono
+  const phoneNumber = displayJid.split("@")[0];
   
-  // 3. El nombre visible ahora es el número de teléfono. Esto reemplaza al pushName en la vista.
-  const profileName = phoneNumber;
-  // --- FIN CORRECCIÓN ---
-
   let text = `╭〔 👤 𝐏𝐄𝐑𝐅𝐈𝐋 〕⬣\n`;
   text += `┃ 📋 𝐃𝐀𝐓𝐎𝐒 𝐃𝐄 𝐔𝐒𝐔𝐀𝐑𝐈𝐎\n`;
   text += `╰━━━━━━━━━━━━⬣\n\n`;
-  // Usamos el profileName (que ahora es el número) precedido de '@'
-  text += `┃ 👤 ${fytBold("Nombre")} › *${`@${profileName}`}*\n`; // <- Muestra "@59597..." pero formateado de forma limpia
-  text += `┃ 🆔 ${fytBold("ID")} › ${displayJid.split("@")[0]}\n\n`; // <- Muestra el ID original (LID)
-
+  text += `┃ 👤 ${fytBold("Usuario")} › @${phoneNumber}\n`;
+  text += `┃ 🆔 ${fytBold("ID")} › ${phoneNumber}\n\n`;
+  
   text += `┃ ⚧️ ${fytBold("Género")} › ${genre}\n`;
   text += `┃ 🎂 ${fytBold("Cumpleaños")} › ${birthday}\n`;
   text += `┃ 🎈 ${fytBold("Edad")} › ${yearsOld !== null ? yearsOld : "Indefinido"}\n\n`;
@@ -153,6 +141,7 @@ export function formatProfileText(user, pushName, displayJid) {
   text += `╰〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣`;
   return text;
 }
+
 export const DEFAULT_PFP =
   "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 
@@ -165,21 +154,18 @@ export async function getProfilePictureUrl(socket, jid) {
 }
 
 /**
- * Obtiene (o crea) el usuario global, usando SIEMPRE `jid` (debe ser LID)
- * como clave canónica.
- *
- * @param {string} legacyJid - Opcional. Si el usuario tenía datos guardados
- *   con una clave vieja (jid real, de antes de unificar a LID), pásala aquí
- *   para migrar automáticamente esos datos a la clave LID la primera vez
- *   que se lean. Así nadie pierde su matrimonio/xp/etc ya guardado.
+ * Obtiene (o crea) el usuario.
+ * - Datos GLOBALES (género, cumpleaños, pareja, XP, nivel): en db.users
+ * - Datos LOCALES (economía): en db.groups[remoteJid].users
  */
 export function getProfileUser(db, remoteJid, jid, legacyJid = null) {
+  // 1. Economía local (por grupo)
   let localEconomy = getGroupUser(db, remoteJid, jid, { coins: 0, bank: 0 });
-
+  
+  // 2. Datos globales
   if (!db.users) db.users = {};
-
-  // 🔄 Migración suave: mover datos de la clave vieja (jid real) a la
-  // clave LID nueva, si aplica. Solo una vez, la primera vez que se detecta.
+  
+  // Migración suave: mover datos de clave vieja a nueva
   if (
     legacyJid &&
     legacyJid !== jid &&
@@ -189,7 +175,8 @@ export function getProfileUser(db, remoteJid, jid, legacyJid = null) {
     db.users[jid] = db.users[legacyJid];
     delete db.users[legacyJid];
   }
-
+  
+  // Crear usuario global si no existe
   if (!db.users[jid]) {
     db.users[jid] = {
       xp: 0,
@@ -199,37 +186,36 @@ export function getProfileUser(db, remoteJid, jid, legacyJid = null) {
       marriedTo: null,
     };
   }
-  let globalUser = db.users[jid];
-
+  
+  // Referencia al objeto global
+  const globalUser = db.users[jid];
+  
+  // 3. Retornar objeto con getters/setters que manejen ambos almacenes
   return {
+    // Economía (local por grupo)
     get coins() { return localEconomy.coins || 0; },
     set coins(val) { localEconomy.coins = val; },
-
+    
     get bank() { return localEconomy.bank || 0; },
     set bank(val) { localEconomy.bank = val; },
-
-    get xp() { return globalUser.xp; },
+    
+    // Perfil (global)
+    get xp() { return globalUser.xp || 0; },
     set xp(val) { globalUser.xp = val; },
-
-    get level() { return globalUser.level; },
+    
+    get level() { return globalUser.level || calculateLevel(globalUser.xp || 0); },
     set level(val) { globalUser.level = val; },
-
-    get genre() { return globalUser.genre; },
+    
+    get genre() { return globalUser.genre || null; },
     set genre(val) { globalUser.genre = val; },
-
-    get birthday() { return globalUser.birthday; },
+    
+    get birthday() { return globalUser.birthday || null; },
     set birthday(val) { globalUser.birthday = val; },
-
-    // Nombre visible (pushName) guardado la última vez que este usuario
-    // usó el bot. Sirve de respaldo cuando socket.store.contacts está
-    // vacío (recién reiniciado el bot) y por eso no puede resolver el
-    // nombre de alguien que otra persona está mencionando.
-    get pushName() { return globalUser.pushName || null; },
-    set pushName(val) { globalUser.pushName = val; },
-
-    get marriedTo() { return globalUser.marriedTo; },
+    
+    get marriedTo() { return globalUser.marriedTo || null; },
     set marriedTo(val) { globalUser.marriedTo = val; },
-
+    
+    // Referencias internas
     _localEconomy: localEconomy,
     _globalUser: globalUser,
     _jid: jid,
