@@ -2,6 +2,7 @@ import { resolveLidToRealJid } from "./utils.js";
 import { getGroupUser } from "./groupDb.js";
 import formatter from "../controllers/functions/formatNumbers.js";
 import { fytBold } from "./TextStyle.js";
+import { jidNormalizedUser } from "@whiskeysockets/baileys";
 
 export const GENRES = {
   hombre: "Hombre",
@@ -108,8 +109,11 @@ export function formatProfileText(user, pushName, jid) {
   const yearsOld = calculateAge(user.birthday);
   const genre = user.genre ? GENRES[user.genre] || user.genre : "No definido";
   const birthday = user.birthday || "No definido";
-  const married = users.marriedTo
-    ? `@${user.marriedTo.split("@")[0]}`
+  
+  // Usamos jidNormalizedUser para extraer los dígitos limpios de la pareja guardada (sea LID o JID)
+  const marriedClean = user.marriedTo ? jidNormalizedUser(user.marriedTo) : null;
+  const married = marriedClean
+    ? `@${marriedClean.split("@")[0]}`
     : "Soltero/a";
 
   let text = `╭〔 👤 𝐏𝐄𝐑𝐅𝐈𝐋 〕⬣\n`;
@@ -140,18 +144,9 @@ export async function getProfilePictureUrl(socket, jid) {
   }
 }
 
-/**
- * Obtiene de manera híbrida la economía local por grupo (usando getGroupUser)
- * y unifica el perfil social de forma 100% global.
- * 
- * ⚡ IMPORTANTE: Ahora usa el parámetro 'db' directamente en lugar de getDBSync()
- * para garantizar que todos los cambios se guarden correctamente.
- */
 export function getProfileUser(db, remoteJid, jid) {
-  // 1. Economía local sincronizada exactamente con los comandos de economía y wallet
   let localEconomy = getGroupUser(db, remoteJid, jid, { coins: 0, bank: 0 });
 
-  // 2. Perfil social global (obtenido desde el parámetro db directamente)
   if (!db.users) db.users = {};
   if (!db.users[jid]) {
     db.users[jid] = {
@@ -164,7 +159,6 @@ export function getProfileUser(db, remoteJid, jid) {
   }
   let globalUser = db.users[jid];
 
-  // 3. Retorna un objeto unificado que conecta la economía local y los datos sociales globales
   return {
     get coins() { return localEconomy.coins || 0; },
     set coins(val) { localEconomy.coins = val; },
