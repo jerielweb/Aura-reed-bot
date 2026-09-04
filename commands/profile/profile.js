@@ -1,4 +1,11 @@
-// profile.js (o el comando que muestre el perfil)
+// profile.js - VERSIÓN COMPLETA CORREGIDA
+import { 
+  getProfileUser, 
+  formatProfileText, 
+  resolveTargetJid  // ✅ IMPORTA ESTA FUNCIÓN
+} from "../../models/profileUtils.js";
+import { jidNormalizedUser } from "@whiskeysockets/baileys";
+
 export default {
   name: ["profile", "perfil", "pf"],
   category: "profile",
@@ -25,10 +32,12 @@ export default {
     console.log('📝 [profile] Usuario obtenido:', {
       genre: user.genre,
       birthday: user.birthday,
-      marriedTo: user.marriedTo
+      marriedTo: user.marriedTo,
+      xp: user.xp,
+      level: user.level
     });
     
-    // ✅ Generar texto
+    // ✅ Generar texto (pasamos null como pushName porque no lo usamos)
     const text = formatProfileText(user, null, targetJid);
     
     // ✅ Menciones
