@@ -1,4 +1,4 @@
-import { resolveLidToRealJid } from "./utils.js";
+import { resolveLidToRealJid, resolveToLid } from "./utils.js";
 import { getGroupUser } from "./groupDb.js";
 import formatter from "../controllers/functions/formatNumbers.js";
 import { fytBold } from "./TextStyle.js";
@@ -31,6 +31,15 @@ export function addProfileXp(user, amount = 1) {
   user.level = calculateLevel(user.xp);
 }
 
+/**
+ * Resuelve el jid objetivo (mencionado, o el remitente si no hay mención)
+ * SIEMPRE a LID. Esta es la única identidad que usamos para leer/guardar
+ * datos de usuario (matrimonio, xp, genero, cumpleaños, etc).
+ *
+ * IMPORTANTE: ya no devuelve el jid real (@s.whatsapp.net) — si necesitas
+ * el número real para llamadas a la API de WhatsApp (foto de perfil,
+ * contacto), conviértelo aparte con resolveLidToRealJid().
+ */
 export async function resolveTargetJid(
   message,
   socket,
@@ -46,8 +55,8 @@ export async function resolveTargetJid(
     targetJid = ctx.participant;
   }
 
-  if (!targetJid) return fallbackJid;
-  return resolveLidToRealJid(targetJid, socket, remoteJid);
+  const raw = targetJid || fallbackJid;
+  return resolveToLid(raw, socket, remoteJid);
 }
 
 export function parseBirthday(input) {
@@ -101,7 +110,7 @@ export function calculateAge(birthdayStr) {
   return age >= 0 ? age : null;
 }
 
-export function formatProfileText(user, pushName, jid) {
+export function formatProfileText(user, pushName, displayJid) {
   const coins = user.coins || 0;
   const bank = user.bank || 0;
   const xp = user.xp || 0;
@@ -109,8 +118,10 @@ export function formatProfileText(user, pushName, jid) {
   const yearsOld = calculateAge(user.birthday);
   const genre = user.genre ? GENRES[user.genre] || user.genre : "No definido";
   const birthday = user.birthday || "No definido";
-  
-  // Usamos jidNormalizedUser para extraer los dígitos limpios de la pareja guardada (sea LID o JID)
+
+  // user.marriedTo ahora es siempre un LID. Para mostrarlo lo limpiamos igual,
+  // el "@numero" que se ve en el texto es solo cosmético (el mentions[] real
+  // es el que hace que WhatsApp etiquete a la persona).
   const marriedClean = user.marriedTo ? jidNormalizedUser(user.marriedTo) : null;
   const married = marriedClean
     ? `@${marriedClean.split("@")[0]}`
@@ -120,7 +131,7 @@ export function formatProfileText(user, pushName, jid) {
   text += `┃ 📋 𝐃𝐀𝐓𝐎𝐒 𝐃𝐄 𝐔𝐒𝐔𝐀𝐑𝐈𝐎\n`;
   text += `╰━━━━━━━━━━━━⬣\n\n`;
   text += `┃ 👤 ${fytBold("Nombre")} › *${`@${pushName}` || "Usuario"}*\n`;
-  text += `┃ 🆔 ${fytBold("ID")} › ${jid.split("@")[0]}\n\n`;
+  text += `┃ 🆔 ${fytBold("ID")} › ${displayJid.split("@")[0]}\n\n`;
   text += `┃ ⚧️ ${fytBold("Género")} › ${genre}\n`;
   text += `┃ 🎂 ${fytBold("Cumpleaños")} › ${birthday}\n`;
   text += `┃ 🎈 ${fytBold("Edad")} › ${yearsOld !== null ? yearsOld : "Indefinido"}\n\n`;
@@ -144,10 +155,32 @@ export async function getProfilePictureUrl(socket, jid) {
   }
 }
 
-export function getProfileUser(db, remoteJid, jid) {
+/**
+ * Obtiene (o crea) el usuario global, usando SIEMPRE `jid` (debe ser LID)
+ * como clave canónica.
+ *
+ * @param {string} legacyJid - Opcional. Si el usuario tenía datos guardados
+ *   con una clave vieja (jid real, de antes de unificar a LID), pásala aquí
+ *   para migrar automáticamente esos datos a la clave LID la primera vez
+ *   que se lean. Así nadie pierde su matrimonio/xp/etc ya guardado.
+ */
+export function getProfileUser(db, remoteJid, jid, legacyJid = null) {
   let localEconomy = getGroupUser(db, remoteJid, jid, { coins: 0, bank: 0 });
 
   if (!db.users) db.users = {};
+
+  // 🔄 Migración suave: mover datos de la clave vieja (jid real) a la
+  // clave LID nueva, si aplica. Solo una vez, la primera vez que se detecta.
+  if (
+    legacyJid &&
+    legacyJid !== jid &&
+    !db.users[jid] &&
+    db.users[legacyJid]
+  ) {
+    db.users[jid] = db.users[legacyJid];
+    delete db.users[legacyJid];
+  }
+
   if (!db.users[jid]) {
     db.users[jid] = {
       xp: 0,
@@ -182,6 +215,7 @@ export function getProfileUser(db, remoteJid, jid) {
     set marriedTo(val) { globalUser.marriedTo = val; },
 
     _localEconomy: localEconomy,
-    _globalUser: globalUser
+    _globalUser: globalUser,
+    _jid: jid,
   };
 }

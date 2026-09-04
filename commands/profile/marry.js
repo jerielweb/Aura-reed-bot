@@ -62,8 +62,11 @@ export default {
     );
     // Guardamos la clave principal del usuario (puede ser LID)
     const senderKey = resolvedSender || senderRaw || jidRemitente;
+    // Clave legacy: si el usuario ya tenía datos guardados con su jid real
+    // (de antes de unificar todo a LID), se migran automáticamente al leer.
+    const legacySenderJid = jidNormalizedUser(senderRaw || jidRemitente);
     const group = ensureGroup(db, remoteJid);
-    const user = getProfileUser(db, remoteJid, senderKey);
+    const user = getProfileUser(db, remoteJid, senderKey, legacySenderJid);
     
     let targetKey = await resolveTargetFromMessage(
       message,

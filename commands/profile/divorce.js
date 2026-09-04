@@ -1,4 +1,4 @@
-﻿import { resolveLidToRealJid } from "../../models/utils.js";
+import { resolveToLid } from "../../models/utils.js";
 import { getProfileUser } from "../../models/profileUtils.js";
 import { ensureGroup } from "../../models/groupDb.js";
 import { fytBold } from "../../models/TextStyle.js";
@@ -10,14 +10,15 @@ import {
 } from "../../models/marriageUtils.js";
 import { jidNormalizedUser } from "@whiskeysockets/baileys";
 
+// Igual que en marry.js: siempre resolvemos a LID, es la única identidad
+// que usamos para leer/guardar el matrimonio.
 async function resolveTargetFromMessage(message, socket, remoteJid) {
   const ctx = message.message?.extendedTextMessage?.contextInfo;
   let targetJid = null;
   if (ctx?.mentionedJid?.length > 0) targetJid = ctx.mentionedJid[0];
   else if (ctx?.participant) targetJid = ctx.participant;
   if (!targetJid) return null;
-  const resolved = await resolveLidToRealJid(targetJid, socket, remoteJid);
-  return resolved ? jidNormalizedUser(resolved) : null;
+  return resolveToLid(targetJid, socket, remoteJid);
 }
 
 export default {
@@ -39,11 +40,15 @@ export default {
       return await socket.sendMessage(remoteJid, { text }, { quoted: message });
     }
 
-    const normalizedSender = jidNormalizedUser(jidRemitente);
+    // Clave LID del remitente — igual que marry.js (antes era jidNormalizedUser,
+    // que producía una clave distinta a la usada al casarse).
+    const resolvedSender = await resolveToLid(jidRemitente, socket, remoteJid);
+    const normalizedSender = resolvedSender || jidNormalizedUser(jidRemitente);
+    const legacySenderJid = jidNormalizedUser(jidRemitente);
+
     const group = ensureGroup(db, remoteJid);
-    const user = getProfileUser(db, remoteJid, normalizedSender);
+    const user = getProfileUser(db, remoteJid, normalizedSender, legacySenderJid);
     let targetJid = await resolveTargetFromMessage(message, socket, remoteJid);
-    if (targetJid) targetJid = jidNormalizedUser(targetJid);
     const pending = getMarriagePending(group);
 
     if (!targetJid && pending?.to === normalizedSender) {
@@ -108,6 +113,12 @@ export default {
 
       user.marriedTo = null;
       partner.marriedTo = null;
+
+      // Forzar reasignación para que el Proxy guarde en SQLite
+      // (igual que hace marry.js al casar).
+      db.users[normalizedSender] = user._globalUser;
+      db.users[targetJid] = partner._globalUser;
+
       clearMarriagePending(group);
       if (typeof saveDB === "function") saveDB(db);
 
