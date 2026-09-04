@@ -1,4 +1,4 @@
-// setBirth.js - VERSIÓN SIMPLIFICADA
+// setBirth.js - CORREGIDO
 import { getProfileUser, parseBirthday } from "../../models/profileUtils.js";
 import { fytBold } from "../../models/TextStyle.js";
 import { jidNormalizedUser } from "@whiskeysockets/baileys";
@@ -11,6 +11,9 @@ export default {
     const remoteJid = message.key.remoteJid;
     const normalizedSender = jidNormalizedUser(jidRemitente);
     const input = args.join(" ");
+
+    console.log('📝 [setBirth] Usuario:', normalizedSender);
+    console.log('📝 [setBirth] Fecha ingresada:', input);
 
     if (!input) {
       let text = `╭〔 ⚠️ ${fytBold("FALTA INFORMACIÓN")} 〕⬣\n`;
@@ -34,12 +37,18 @@ export default {
 
     // ✅ Obtener usuario y asignar cumpleaños
     const user = getProfileUser(db, remoteJid, normalizedSender);
-    user.birthday = birthday; // Esto automáticamente guarda en db.users
+    user.birthday = birthday;
+    
+    console.log('📝 [setBirth] Guardado:', {
+      jid: normalizedSender,
+      birthday: birthday,
+      dbUsers: db.users[normalizedSender]
+    });
     
     // ✅ Guardar en disco
     if (typeof saveDB === "function") saveDB(db);
 
-    let text = `╭〔 🎂${fytBold("PERFIL")} 〕\n`;
+    let text = `╭〔 🎂 ${fytBold("PERFIL")} 〕\n`;
     text += `┃ ✅ ${fytBold("CUMPLEAÑOS GUARDADO")}\n╰━━━━━━━━━━━━⬣\n\n`;
     text += `┃ > Fecha: *${birthday}*\n\n`;
     text += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;

@@ -1,35 +1,40 @@
-// profile.js - VERSIÓN COMPLETA CORREGIDA
+// profile.js - VERSIÓN CORREGIDA
 import { 
   getProfileUser, 
-  formatProfileText, 
-  resolveTargetJid  // ✅ IMPORTA ESTA FUNCIÓN
+  formatProfileText,
+  resolveTargetJid
 } from "../../models/profileUtils.js";
 import { jidNormalizedUser } from "@whiskeysockets/baileys";
 
 export default {
-  name: ["profile", "perfil", "pf"],
+  name: ["profile", "perfil", "pf", "me"],
   category: "profile",
   description: "Muestra tu perfil o el de otro usuario.",
   execute: async (socket, message, args, { db, jidRemitente }) => {
     const remoteJid = message.key.remoteJid;
     
-    // ✅ Resolver el JID objetivo
-    let targetJid = await resolveTargetJid(
-      message,
-      socket,
-      remoteJid,
-      jidRemitente,
-    );
+    // ✅ IMPORTANTE: Si no hay mención, usar el JID del remitente
+    let targetJid = null;
+    const ctx = message.message?.extendedTextMessage?.contextInfo;
+    
+    // ✅ Verificar si hay mención
+    if (ctx?.mentionedJid?.length > 0) {
+      targetJid = ctx.mentionedJid[0];
+    } else {
+      // ✅ Si no hay mención, usar el remitente
+      targetJid = jidRemitente;
+    }
+    
+    // ✅ Normalizar el JID
     targetJid = jidNormalizedUser(targetJid);
     
-    // ✅ LOG PARA DEBUG
-    console.log('📝 [profile] Buscando usuario:', targetJid);
+    console.log('📝 [profile] Usuario objetivo:', targetJid);
+    console.log('📝 [profile] Remitente original:', jidRemitente);
     
     // ✅ Obtener usuario
     const user = getProfileUser(db, remoteJid, targetJid);
     
-    // ✅ LOG PARA DEBUG
-    console.log('📝 [profile] Usuario obtenido:', {
+    console.log('📝 [profile] Datos del usuario:', {
       genre: user.genre,
       birthday: user.birthday,
       marriedTo: user.marriedTo,
@@ -37,7 +42,7 @@ export default {
       level: user.level
     });
     
-    // ✅ Generar texto (pasamos null como pushName porque no lo usamos)
+    // ✅ Generar texto
     const text = formatProfileText(user, null, targetJid);
     
     // ✅ Menciones
