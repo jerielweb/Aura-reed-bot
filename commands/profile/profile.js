@@ -7,29 +7,21 @@ import {
 import { jidNormalizedUser } from "@whiskeysockets/baileys";
 
 export default {
-  name: ["profile", "perfil", "pf", "me"],
+  name: ["profile", "perfil", "pf"],
   category: "profile",
   description: "Muestra tu perfil o el de otro usuario.",
   execute: async (socket, message, args, { db, jidRemitente }) => {
     const remoteJid = message.key.remoteJid;
     
-    // ✅ IMPORTANTE: Si no hay mención, usar el JID del remitente
-    let targetJid = null;
+    // ✅ Obtener el JID objetivo
+    let targetJid = jidNormalizedUser(jidRemitente);
     const ctx = message.message?.extendedTextMessage?.contextInfo;
     
-    // ✅ Verificar si hay mención
     if (ctx?.mentionedJid?.length > 0) {
-      targetJid = ctx.mentionedJid[0];
-    } else {
-      // ✅ Si no hay mención, usar el remitente
-      targetJid = jidRemitente;
+      targetJid = jidNormalizedUser(ctx.mentionedJid[0]);
     }
     
-    // ✅ Normalizar el JID
-    targetJid = jidNormalizedUser(targetJid);
-    
     console.log('📝 [profile] Usuario objetivo:', targetJid);
-    console.log('📝 [profile] Remitente original:', jidRemitente);
     
     // ✅ Obtener usuario
     const user = getProfileUser(db, remoteJid, targetJid);
@@ -42,20 +34,25 @@ export default {
       level: user.level
     });
     
-    // ✅ Generar texto
-    const text = formatProfileText(user, null, targetJid);
+    // ✅ OBTENER EL OBJETO COMPLETO (texto + mención de pareja)
+    const result = formatProfileText(user, null, targetJid);
     
-    // ✅ Menciones
+    // ✅ Construir menciones
     const mentions = [targetJid];
+    
+    // ✅ Si tiene pareja, agregarla a las menciones
     if (user.marriedTo) {
       const marriedJid = jidNormalizedUser(user.marriedTo);
       mentions.push(marriedJid);
     }
     
-    // ✅ Enviar mensaje
+    // ✅ Enviar mensaje con el texto y las menciones
     await socket.sendMessage(
       remoteJid,
-      { text, mentions },
+      { 
+        text: result.text,  // ✅ USAR result.text
+        mentions: mentions 
+      },
       { quoted: message }
     );
   },
