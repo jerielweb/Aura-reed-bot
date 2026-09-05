@@ -1,10 +1,11 @@
-import yts from "yt-search";
+import axios from "axios";
 import formatter from "../../controllers/functions/formatNumbers.js";
 import { fytBold } from "../../models/TextStyle.js";
 
 const YT_REGEX = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
 const LEMPI_API_KEY = "oboe";
 const LEMPI_QUALITY = 1080;
+const ALYACORE_KEY = "oboe";
 
 function extractVideoId(url) {
   const patterns = [
@@ -28,6 +29,19 @@ async function fetchLempiVideo(youtubeUrl, quality = LEMPI_QUALITY) {
     throw new Error("La API no pudo procesar el video.");
   }
   return data;
+}
+
+async function searchYouTube(query) {
+  const response = await axios.get(
+    `https://api.alyacore.xyz/search/yt?query=${encodeURIComponent(query)}&key=${ALYACORE_KEY}`,
+  );
+  const results = response.data?.result;
+
+  if (!response.data?.status || !Array.isArray(results) || !results.length) {
+    throw new Error("No se encontró ningún video.");
+  }
+
+  return results[0].url;
 }
 
 export default {
@@ -55,22 +69,9 @@ export default {
     try {
       let finalUrl = text;
 
-      // Si NO es un link de YouTube, buscamos con yt-search para resolver la URL
+      // Si NO es un link de YouTube, usamos la búsqueda de Alyacore.
       if (!YT_REGEX.test(text)) {
-        const search = await yts(text);
-        if (!search.videos?.length) {
-          await socket.sendMessage(remoteJid, {
-            react: { text: "❌", key: message.key },
-          });
-          return await socket.sendMessage(
-            remoteJid,
-            {
-              text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("SIN RESULTADOS")}\n╰━━━━━━━━━━━━⬣\n\n┃ > No se encontro ningun video.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
-            },
-            { quoted: message },
-          );
-        }
-        finalUrl = search.videos[0].url;
+        finalUrl = await searchYouTube(text);
       } else {
         const videoId = extractVideoId(text);
         if (!videoId) throw new Error("URL de YouTube no válida");

@@ -321,12 +321,12 @@ export async function handleMessage(sock, m, db, saveDB) {
   const cleanJid = (jid) =>
     jid ? String(jid).split("@")[0].split(":")[0] : null;
 
-  const groupPrimaryBot = isGroup ? db.groups?.[remoteJid]?.prefix : null;
-
   if (isGroup && db.groups?.[remoteJid]?.primaryBot) {
     const groupPrimaryBotJid = db.groups[remoteJid].primaryBot;
-    const currentBotNum = cleanJid(sock.user?.id || sock.user?.jid);
-    const primaryBotNum = cleanJid(groupPrimaryBotJid);
+    const normalizeBotNumber = (jid) =>
+      cleanJid(jid)?.replace(/\D/g, "") || null;
+    const currentBotNum = normalizeBotNumber(sock.user?.id || sock.user?.jid);
+    const primaryBotNum = normalizeBotNumber(groupPrimaryBotJid);
 
     const isPrimaryCmd = ["setprimary", "primary"].includes(
       commandNameForCheck,
@@ -336,9 +336,6 @@ export async function handleMessage(sock, m, db, saveDB) {
       return;
     }
   }
-
-  // 🟢 INICIAR ESTADO DE "ESCRIBIENDO" (Pasa las validaciones del primario)
-  await sock.sendPresenceUpdate("composing", remoteJid);
 
   if (isGroup && db.groups?.[remoteJid]?.botOn === false) {
     if (
@@ -582,6 +579,9 @@ export async function handleMessage(sock, m, db, saveDB) {
             { quoted: m },
           );
         }
+
+        // Activar "escribiendo" solo para comandos válidos y autorizados.
+        await sock.sendPresenceUpdate("composing", remoteJid);
 
         try {
           await cmd.execute(sock, m, args, {

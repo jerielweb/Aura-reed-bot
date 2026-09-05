@@ -1,9 +1,9 @@
-import yts from "yt-search";
 import axios from "axios";
 import { fytBold } from "../../models/TextStyle.js";
 import formatter from "../../controllers/functions/formatNumbers.js";
 
 const YT_REGEX = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
+const ALYACORE_KEY = "oboe";
 
 function extractVideoId(url) {
   const patterns = [
@@ -16,6 +16,23 @@ function extractVideoId(url) {
     if (match?.[1]) return match[1];
   }
   return null;
+}
+
+function parseViews(views = "0") {
+  return Number(String(views).replace(/[^\d]/g, "")) || 0;
+}
+
+async function searchYouTube(query) {
+  const response = await axios.get(
+    `https://api.alyacore.xyz/search/yt?query=${encodeURIComponent(query)}&key=${ALYACORE_KEY}`,
+  );
+  const results = response.data?.result;
+
+  if (!response.data?.status || !Array.isArray(results) || !results.length) {
+    throw new Error("No se encontró ningún video.");
+  }
+
+  return results[0];
 }
 
 export default {
@@ -42,24 +59,20 @@ export default {
 
     try {
       let finalUrl = text;
-      let videoData = null;
+      let videoData;
 
       if (!YT_REGEX.test(text)) {
-        const search = await yts(text);
-        if (!search.videos?.length)
-          throw new Error("No se encontró ningún video.");
-        videoData = search.videos[0];
+        videoData = await searchYouTube(text);
         finalUrl = videoData.url;
       } else {
         const videoId = extractVideoId(text);
         if (!videoId) throw new Error("URL de YouTube no válida");
         finalUrl = `https://youtube.com/watch?v=${videoId}`;
-        videoData = await yts({ videoId });
       }
 
-      // Solicitud a la API externa de Alyacore
+      const searchData = videoData || {};
       const apiResponse = await axios.get(
-        `https://api.alyacore.xyz/dl/fastytmp3?url=${encodeURIComponent(finalUrl)}&key=oboe`,
+        `https://api.alyacore.xyz/dl/ytmp3converter?url=${encodeURIComponent(finalUrl)}&key=${ALYACORE_KEY}`,
       );
       const res = apiResponse.data;
 
@@ -67,16 +80,14 @@ export default {
         throw new Error("El servicio de descarga no respondió correctamente.");
       }
 
-      const title = videoData.title || res.data.title || "Video de YouTube";
-      const author = videoData.author?.name || res.data.author || "Desconocido";
-      const duration =
-        videoData.duration?.timestamp || res.data.duration || "??";
-      const views = typeof videoData.views === "number" ? videoData.views : 0;
-      const ytURL = `https://youtu.be/${videoData.videoId || extractVideoId(finalUrl)}`;
+      const title = res.data.title || searchData.title || "Video de YouTube";
+      const author = res.data.author || searchData.autor || "Desconocido";
+      const duration = res.data.duration || searchData.duration || "??";
+      const views = parseViews(searchData.views);
+      const ytURL = searchData.url || finalUrl;
       const thumbnail =
-        videoData.thumbnail ||
-        videoData.image ||
         res.data.thumbnail ||
+        searchData.banner ||
         `https://i.ytimg.com/vi/${extractVideoId(finalUrl)}/hqdefault.jpg`;
       const audioUrl = res.data.dl;
 
