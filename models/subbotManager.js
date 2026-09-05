@@ -8,30 +8,20 @@ import makeWASocket, {
 import pino from "pino";
 import fs from "fs";
 import path from "path";
-import {
-  fileURLToPath,
-} from "url";
+import { fileURLToPath } from "url";
 
 import chalk from "chalk";
 import QRCode from "qrcode";
 
 import { Boom } from "@hapi/boom";
 
-import {
-  handleMessage,
-} from "../controllers/msgHandler.js";
+import { handleMessage } from "../controllers/msgHandler.js";
 
-import {
-  handleGroupUpdate,
-} from "../controllers/groupEvents.js";
+import { handleGroupUpdate } from "../controllers/groupEvents.js";
 
-import {
-  stripEconomyFromUsers,
-} from "./groupDb.js";
+import { stripEconomyFromUsers } from "./groupDb.js";
 
-import {
-  getDBSync,
-} from "./db.js";
+import { getDBSync } from "./db.js";
 
 import {
   getSubBotDB,
@@ -45,18 +35,12 @@ import {
 // SOCKET PRINCIPAL
 // ============================================================
 
-export function setMainSocket(
-  sock,
-) {
-  global.mainSocket =
-    sock;
+export function setMainSocket(sock) {
+  global.mainSocket = sock;
 }
 
 export function getMainSocket() {
-  return (
-    global.mainSocket ||
-    null
-  );
+  return global.mainSocket || null;
 }
 
 // ============================================================
@@ -68,19 +52,11 @@ export const SUB_LIMIT_MESSAGE =
 
 export function getMaxSubBots() {
   try {
-    const db =
-      getDBSync();
+    const db = getDBSync();
 
-    const max =
-      Number(
-        db.maxSubBots,
-      );
+    const max = Number(db.maxSubBots);
 
-    return Number.isFinite(
-      max,
-    ) && max >= 0
-      ? max
-      : 30;
+    return Number.isFinite(max) && max >= 0 ? max : 30;
   } catch {
     return 30;
   }
@@ -90,98 +66,48 @@ export function getMaxSubBots() {
 // RUTAS
 // ============================================================
 
-const ROOT_DIR =
-  path.join(
-    path.dirname(
-      fileURLToPath(
-        import.meta.url,
-      ),
-    ),
-    "..",
-  );
+const ROOT_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-const sessionsDir =
-  path.join(
-    ROOT_DIR,
-    "sessions",
-    "subbots",
-  );
+const sessionsDir = path.join(ROOT_DIR, "sessions", "subbots");
 
-const databaseDir =
-  path.join(
-    ROOT_DIR,
-    "database",
-  );
+const databaseDir = path.join(ROOT_DIR, "database");
 
-const subbotsJsonPath =
-  path.join(
-    databaseDir,
-    "subbots.json",
-  );
+const subbotsJsonPath = path.join(databaseDir, "subbots.json");
 
-if (
-  !fs.existsSync(
-    sessionsDir,
-  )
-) {
-  fs.mkdirSync(
-    sessionsDir,
-    {
-      recursive: true,
-    },
-  );
+if (!fs.existsSync(sessionsDir)) {
+  fs.mkdirSync(sessionsDir, {
+    recursive: true,
+  });
 }
 
 // ============================================================
 // SOCKETS ACTIVOS
 // ============================================================
 
-const activeSubBots =
-  new Map();
+const activeSubBots = new Map();
 
 // ============================================================
 // SESIONES
 // ============================================================
 
 export function listActiveSubBotSessions() {
-  if (
-    !fs.existsSync(
-      sessionsDir,
-    )
-  ) {
+  if (!fs.existsSync(sessionsDir)) {
     return [];
   }
 
   return fs
-    .readdirSync(
-      sessionsDir,
-      {
-        withFileTypes: true,
-      },
-    )
-    .filter(
-      (entry) =>
-        entry.isDirectory(),
-    )
-    .map(
-      (entry) =>
-        entry.name,
-    )
-    .filter(
-      (name) =>
-        fs.existsSync(
-          path.join(
-            sessionsDir,
-            name,
-            "session.db",
-          ),
-        ),
+    .readdirSync(sessionsDir, {
+      withFileTypes: true,
+    })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .filter((name) =>
+      fs.existsSync(path.join(sessionsDir, name, "session.db")),
     );
 }
 
 export function countActiveSubBots() {
-  return listActiveSubBotSessions()
-    .length;
+  return listActiveSubBotSessions().length;
 }
 
 // ============================================================
@@ -195,37 +121,22 @@ export function countActiveSubBots() {
 // (549XXXXXXXXXX). Si no lo agregamos aquí, el ID que guardamos
 // (carpeta de sesión / subbots.json) nunca calza con el JID real
 // una vez conectado, y por eso el número "cambia de formato".
-function applyCountryMobilePrefix(
-  digits,
-) {
+function applyCountryMobilePrefix(digits) {
   if (!digits) return digits;
 
   // Argentina: 54 + 10 dígitos (12 en total) sin el "9" de celular.
-  if (
-    digits.startsWith("54") &&
-    digits.length === 12
-  ) {
+  if (digits.startsWith("54") && digits.length === 12) {
     return `549${digits.slice(2)}`;
   }
 
   return digits;
 }
 
-export function resolveSubBotSenderId(
-  phoneNumber,
-  jidRemitente,
-) {
+export function resolveSubBotSenderId(phoneNumber, jidRemitente) {
   if (phoneNumber) {
-    const digits = String(
-      phoneNumber,
-    ).replace(
-      /\D/g,
-      "",
-    );
+    const digits = String(phoneNumber).replace(/\D/g, "");
 
-    return applyCountryMobilePrefix(
-      digits,
-    );
+    return applyCountryMobilePrefix(digits);
   }
 
   if (jidRemitente) {
@@ -237,9 +148,7 @@ export function resolveSubBotSenderId(
       .split(":")[0]
       .replace(/\D/g, "");
 
-    return applyCountryMobilePrefix(
-      digits,
-    );
+    return applyCountryMobilePrefix(digits);
   }
 
   return null;
@@ -249,34 +158,18 @@ export function resolveSubBotSenderId(
 // ESTADO DEL SLOT
 // ============================================================
 
-export function getSubBotSlotStatus(
-  senderId,
-) {
-  const max =
-    getMaxSubBots();
+export function getSubBotSlotStatus(senderId) {
+  const max = getMaxSubBots();
 
-  const id =
-    resolveSubBotSenderId(
-      null,
-      senderId,
-    );
+  const id = resolveSubBotSenderId(null, senderId);
 
-  const active =
-    listActiveSubBotSessions();
+  const active = listActiveSubBotSessions();
 
-  const count =
-    active.length;
+  const count = active.length;
 
-  const hasOwn =
-    id
-      ? active.includes(id)
-      : false;
+  const hasOwn = id ? active.includes(id) : false;
 
-  const available =
-    Math.max(
-      0,
-      max - count,
-    );
+  const available = Math.max(0, max - count);
 
   return {
     id,
@@ -291,18 +184,8 @@ export function getSubBotSlotStatus(
 // PERMITIR REGISTRO
 // ============================================================
 
-export function canRegisterSubBot(
-  senderId,
-) {
-  const {
-    id,
-    max,
-    available,
-    hasOwn,
-  } =
-    getSubBotSlotStatus(
-      senderId,
-    );
+export function canRegisterSubBot(senderId) {
+  const { id, max, available, hasOwn } = getSubBotSlotStatus(senderId);
 
   if (!id) {
     return false;
@@ -327,9 +210,7 @@ export function canRegisterSubBot(
 // SINCRONIZAR JSON
 // ============================================================
 
-export function syncSubBotsJson(
-  mainBotNumber = null,
-) {
+export function syncSubBotsJson(mainBotNumber = null) {
   try {
     if (!fs.existsSync(databaseDir)) {
       fs.mkdirSync(databaseDir, { recursive: true });
@@ -342,9 +223,7 @@ export function syncSubBotsJson(
 
     if (fs.existsSync(subbotsJsonPath)) {
       try {
-        const parsed = JSON.parse(
-          fs.readFileSync(subbotsJsonPath, "utf-8"),
-        );
+        const parsed = JSON.parse(fs.readFileSync(subbotsJsonPath, "utf-8"));
         if (parsed && typeof parsed === "object") {
           currentData = parsed;
         }
@@ -390,12 +269,7 @@ export function syncSubBotsJson(
     }
 
     const cleanNum = (jid) =>
-      jid
-        ? String(jid)
-            .split("@")[0]
-            .split(":")[0]
-            .replace(/\D/g, "")
-        : null;
+      jid ? String(jid).split("@")[0].split(":")[0].replace(/\D/g, "") : null;
 
     const mainNum = mainBotNumber
       ? cleanNum(mainBotNumber)
@@ -413,10 +287,7 @@ export function syncSubBotsJson(
       ),
     );
   } catch (error) {
-    console.error(
-      "[SUB-BOT] Error al sincronizar subbots.json:",
-      error,
-    );
+    console.error("[SUB-BOT] Error al sincronizar subbots.json:", error);
   }
 }
 
@@ -433,24 +304,25 @@ export function getRegisteredSubBots() {
   try {
     if (!fs.existsSync(subbotsJsonPath)) return [];
 
-    const data = JSON.parse(
-      fs.readFileSync(subbotsJsonPath, "utf-8"),
-    );
+    const data = JSON.parse(fs.readFileSync(subbotsJsonPath, "utf-8"));
 
     const subbotsObj = data?.subbots || {};
     const results = [];
 
     // Si es un objeto, recorremos sus claves y valores
-    const keys = Array.isArray(subbotsObj) ? subbotsObj : Object.keys(subbotsObj);
+    const keys = Array.isArray(subbotsObj)
+      ? subbotsObj
+      : Object.keys(subbotsObj);
 
     for (const key of keys) {
       const cleanId = String(key).replace(/\D/g, "");
-      
+
       // Ignoramos si no es un número de teléfono válido (muy corto)
       if (!cleanId || cleanId.length < 5) continue;
 
       // El estado activo real lo manda el Map de sockets activos o el JSON
-      const isActive = activeSubBots.has(cleanId) || Boolean(subbotsObj[key]?.active);
+      const isActive =
+        activeSubBots.has(cleanId) || Boolean(subbotsObj[key]?.active);
 
       results.push({
         id: cleanId,
@@ -463,7 +335,6 @@ export function getRegisteredSubBots() {
     return [];
   }
 }
-
 
 export async function getSubBotsInGroup(groupJid) {
   const result = [];
@@ -485,21 +356,16 @@ export async function getSubBotsInGroup(groupJid) {
   return result;
 }
 
-
 // ============================================================
 // DESTRUIR SOCKET
 // ============================================================
 
-async function destroySubBotSocket(
-  senderId,
-  subSock,
-) {
+async function destroySubBotSocket(senderId, subSock) {
   if (!subSock) {
     return;
   }
 
-  subSock.isClosedManually =
-    true;
+  subSock.isClosedManually = true;
 
   try {
     subSock.ev.removeAllListeners();
@@ -510,9 +376,7 @@ async function destroySubBotSocket(
   } catch {}
 
   try {
-    activeSubBots.delete(
-      senderId,
-    );
+    activeSubBots.delete(senderId);
   } catch {}
 
   // Persistir inmediatamente que el Sub-Bot quedó inactivo.
@@ -523,9 +387,7 @@ async function destroySubBotSocket(
   // Muy importante:
   // libera DB y cache del sub-bot.
   try {
-    closeSubBotDB(
-      senderId,
-    );
+    closeSubBotDB(senderId);
   } catch {}
 }
 
@@ -533,76 +395,40 @@ async function destroySubBotSocket(
 // DETENER SUB-BOT
 // ============================================================
 
-export async function stopSubBot(
-  senderId,
-) {
-  const sessionPath =
-    path.join(
-      sessionsDir,
-      senderId,
-    );
+export async function stopSubBot(senderId) {
+  const sessionPath = path.join(sessionsDir, senderId);
 
-  let handled =
-    false;
+  let handled = false;
 
-  if (
-    activeSubBots.has(
-      senderId,
-    )
-  ) {
+  if (activeSubBots.has(senderId)) {
     try {
-      const subSock =
-        activeSubBots.get(
-          senderId,
-        );
+      const subSock = activeSubBots.get(senderId);
 
       try {
-        subSock.isClosedManually =
-          true;
+        subSock.isClosedManually = true;
 
-        await subSock
-          .logout()
-          .catch(
-            () => {},
-          );
+        await subSock.logout().catch(() => {});
       } catch {}
 
-      await destroySubBotSocket(
-        senderId,
-        subSock,
-      );
+      await destroySubBotSocket(senderId, subSock);
 
-      handled =
-        true;
+      handled = true;
     } catch (e) {
-      console.error(
-        `Error cerrando socket de sub-bot ${senderId}:`,
-        e.message,
-      );
+      console.error(`Error cerrando socket de sub-bot ${senderId}:`, e.message);
     }
   } else {
     try {
-      closeSubBotDB(
-        senderId,
-      );
+      closeSubBotDB(senderId);
     } catch {}
   }
 
-  if (
-    fs.existsSync(
-      sessionPath,
-    )
-  ) {
-    fs.rmSync(
-      sessionPath,
-      {
-        recursive: true,
-        force: true,
-      },
-    );
+  if (fs.existsSync(sessionPath)) {
+    fs.rmSync(sessionPath, {
+      recursive: true,
+      force: true,
+    });
 
-    handled =
-      true;
+    handled = true;
   }
 
   syncSubBotsJson();
@@ -615,12 +441,9 @@ export async function stopSubBot(
 // ============================================================
 
 export async function loadAllSubBots() {
-  const sessions =
-    listActiveSubBotSessions();
+  const sessions = listActiveSubBotSessions();
 
-  if (
-    sessions.length === 0
-  ) {
+  if (sessions.length === 0) {
     return;
   }
 
@@ -630,28 +453,13 @@ export async function loadAllSubBots() {
     ),
   );
 
-  for (
-    const senderId of
-      sessions
-  ) {
+  for (const senderId of sessions) {
     try {
-      await createSubBot(
-        null,
-        null,
-        "autoload",
-        null,
-        senderId,
-      );
+      await createSubBot(null, null, "autoload", null, senderId);
 
       // Evita levantar todos los sockets
       // simultáneamente.
-      await new Promise(
-        (resolve) =>
-          setTimeout(
-            resolve,
-            3000,
-          ),
-      );
+      await new Promise((resolve) => setTimeout(resolve, 3000));
     } catch (e) {
       console.error(
         `[SUB-BOT] Error levantando la sesión automática ${senderId}:`,
@@ -672,64 +480,39 @@ export async function createSubBot(
   phoneNumber = null,
   autoSenderId = null,
 ) {
-  const isAutoload =
-    type === "autoload";
+  const isAutoload = type === "autoload";
 
-  const remoteJid =
-    isAutoload
-      ? null
-      : m?.key?.remoteJid;
+  const remoteJid = isAutoload ? null : m?.key?.remoteJid;
 
-  const sender =
-    isAutoload
-      ? null
-      : m?.key?.participantPn ||
-        m?.key?.participantAlt ||
-        m?.key?.participant ||
-        m?.key?.remoteJidAlt ||
-        m?.key?.remoteJid;
+  const sender = isAutoload
+    ? null
+    : m?.key?.participantPn ||
+      m?.key?.participantAlt ||
+      m?.key?.participant ||
+      m?.key?.remoteJidAlt ||
+      m?.key?.remoteJid;
 
   const senderId =
     autoSenderId ||
-    resolveSubBotSenderId(
-      phoneNumber,
-      null,
-    ) ||
-    resolveSubBotSenderId(
-      null,
-      sender,
-    );
+    resolveSubBotSenderId(phoneNumber, null) ||
+    resolveSubBotSenderId(null, sender);
 
   if (!senderId) {
     return;
   }
 
-  const sessionPath =
-    path.join(
-      sessionsDir,
-      senderId,
-    );
+  const sessionPath = path.join(sessionsDir, senderId);
 
   // ==========================================================
   // COMPROBAR LÍMITE
   // ==========================================================
 
-  if (
-    !isAutoload &&
-    !canRegisterSubBot(
-      senderId,
-    )
-  ) {
-    if (
-      sock &&
-      remoteJid &&
-      m
-    ) {
+  if (!isAutoload && !canRegisterSubBot(senderId)) {
+    if (sock && remoteJid && m) {
       await sock.sendMessage(
         remoteJid,
         {
-          text:
-            SUB_LIMIT_MESSAGE,
+          text: SUB_LIMIT_MESSAGE,
         },
         {
           quoted: m,
@@ -743,26 +526,16 @@ export async function createSubBot(
   // ==========================================================
   // LIMPIAR SESIÓN ANTERIOR
   // ==========================================================
-    if (
-    !isAutoload &&
-    fs.existsSync(
-      sessionPath,
-    )
-  ) {
-    fs.rmSync(
-      sessionPath,
-      {
-        recursive: true,
-        force: true,
-      },
-    );
+  if (!isAutoload && fs.existsSync(sessionPath)) {
+    fs.rmSync(sessionPath, {
+      recursive: true,
+      force: true,
+    });
   }
 
-  let isConnected =
-    false;
+  let isConnected = false;
 
-  let codeRequested =
-    false;
+  let codeRequested = false;
 
   let timeout;
 
@@ -771,66 +544,42 @@ export async function createSubBot(
   // ==========================================================
 
   if (!isAutoload) {
-    timeout =
-      setTimeout(
-        async () => {
-          if (isConnected) {
-            return;
-          }
+    timeout = setTimeout(async () => {
+      if (isConnected) {
+        return;
+      }
 
-          const oldSock =
-            activeSubBots.get(
-              senderId,
-            );
+      const oldSock = activeSubBots.get(senderId);
 
-          if (oldSock) {
-            await destroySubBotSocket(
-              senderId,
-              oldSock,
-            );
-          } else {
-            try {
-              closeSubBotDB(
-                senderId,
-              );
-            } catch {}
-          }
+      if (oldSock) {
+        await destroySubBotSocket(senderId, oldSock);
+      } else {
+        try {
+          closeSubBotDB(senderId);
+        } catch {}
+      }
 
-          if (
-            sock &&
-            remoteJid &&
-            m
-          ) {
-            await sock.sendMessage(
-              remoteJid,
-              {
-                text:
-                  "⏳ El tiempo de vinculación ha expirado (60 segundos). Inténtalo de nuevo.",
-              },
-              {
-                quoted: m,
-              },
-            );
-          }
+      if (sock && remoteJid && m) {
+        await sock.sendMessage(
+          remoteJid,
+          {
+            text: "⏳ El tiempo de vinculación ha expirado (60 segundos). Inténtalo de nuevo.",
+          },
+          {
+            quoted: m,
+          },
+        );
+      }
 
-          if (
-            fs.existsSync(
-              sessionPath,
-            )
-          ) {
-            fs.rmSync(
-              sessionPath,
-              {
-                recursive: true,
-                force: true,
-              },
-            );
-          }
+      if (fs.existsSync(sessionPath)) {
+        fs.rmSync(sessionPath, {
+          recursive: true,
+          force: true,
+        });
+      }
 
-          syncSubBotsJson();
-        },
-        60000,
-      );
+      syncSubBotsJson();
+    }, 60000);
   }
 
   // ==========================================================
@@ -841,26 +590,15 @@ export async function createSubBot(
     let version;
 
     try {
-      const fetched =
-        await Promise.race([
-          fetchLatestWaWebVersion(),
+      const fetched = await Promise.race([
+        fetchLatestWaWebVersion(),
 
-          new Promise(
-            (_, reject) =>
-              setTimeout(
-                () =>
-                  reject(
-                    new Error(
-                      "Timeout",
-                    ),
-                  ),
-                5000,
-              ),
-          ),
-        ]);
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Timeout")), 5000),
+        ),
+      ]);
 
-      version =
-        fetched.version;
+      version = fetched.version;
     } catch {
       console.log(
         chalk.yellow(
@@ -869,396 +607,250 @@ export async function createSubBot(
       );
     }
 
-    const {
-      state,
-      saveCreds,
-    } =
-      await useMultiFileAuthState(
-        sessionPath,
-      );
+    const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
 
     // ========================================================
     // SOCKET
     // ========================================================
 
-    const subSock =
-      makeWASocket({
-        ...(version
-          ? { version }
-          : {}),
+    const subSock = makeWASocket({
+      ...(version ? { version } : {}),
 
-        auth: {
-          creds:
-            state.creds,
+      auth: {
+        creds: state.creds,
 
-          keys:
-            makeCacheableSignalKeyStore(
-              state.keys,
-              pino({
-                level: "silent",
-              }),
-            ),
-        },
-
-        cachedGroupMetadata:
-          async (jid) =>
-            groupMetadataCache.get(
-              jid,
-            ),
-
-        logger:
+        keys: makeCacheableSignalKeyStore(
+          state.keys,
           pino({
-            level:
-              "silent",
+            level: "silent",
           }),
+        ),
+      },
 
-        printQRInTerminal:
-          false,
+      cachedGroupMetadata: async (jid) => groupMetadataCache.get(jid),
 
-        browser: [
-          "Ubuntu",
-          "Chrome",
-          "20.0.04",
-        ],
+      logger: pino({
+        level: "silent",
+      }),
 
-        connectTimeoutMs:
-          60000,
+      printQRInTerminal: false,
 
-        defaultQueryTimeoutMs:
-          0,
+      browser: ["Ubuntu", "Chrome", "20.0.04"],
 
-        keepAliveIntervalMs:
-          15000,
+      connectTimeoutMs: 60000,
 
-        syncFullHistory:
-          false,
+      defaultQueryTimeoutMs: 0,
 
-        markOnlineOnConnect:
-          true,
-      });
+      keepAliveIntervalMs: 15000,
 
-    subSock.isSubBot =
-      true;
+      syncFullHistory: false,
 
-    subSock.subBotId =
-      senderId;
+      markOnlineOnConnect: true,
+    });
 
-    subSock.isClosedManually =
-      false;
+    subSock.isSubBot = true;
 
-    wrapGroupMetadataCache(
-      subSock,
-    );
+    subSock.subBotId = senderId;
 
-    activeSubBots.set(
-      senderId,
-      subSock,
-    );
+    subSock.isClosedManually = false;
+
+    wrapGroupMetadataCache(subSock);
+
+    activeSubBots.set(senderId, subSock);
 
     // ========================================================
     // CREDENCIALES
     // ========================================================
 
-    subSock.ev.on(
-      "creds.update",
-      saveCreds,
-    );
+    subSock.ev.on("creds.update", saveCreds);
 
     // ========================================================
     // MENSAJES
     // ========================================================
 
-    subSock.ev.on(
-      "messages.upsert",
-      async ({
-        messages,
-        type: msgType,
-      }) => {
-        if (
-          msgType !==
-          "notify"
-        ) {
-          return;
-        }
+    subSock.ev.on("messages.upsert", async ({ messages, type: msgType }) => {
+      if (msgType !== "notify") {
+        return;
+      }
 
-        const msg =
-          messages[0];
+      const msg = messages[0];
 
-        if (!msg) {
-          return;
-        }
+      if (!msg) {
+        return;
+      }
 
-        const db =
-          await getSubBotDB(
-            senderId,
-          );
+      const db = await getSubBotDB(senderId);
 
-        await handleMessage(
-          subSock,
-          msg,
-          db,
-          () =>
-            saveSubBotDB(
-              senderId,
-            ),
-        );
-      },
-    );
+      await handleMessage(subSock, msg, db, () => saveSubBotDB(senderId));
+    });
 
     // ========================================================
     // GRUPOS
     // ========================================================
 
-    subSock.ev.on(
-      "group-participants.update",
-      async (update) => {
-        await handleGroupUpdate(
-          subSock,
-          update,
-          () =>
-            getSubBotDB(
-              senderId,
-            ),
-        );
-      },
-    );
+    subSock.ev.on("group-participants.update", async (update) => {
+      await handleGroupUpdate(subSock, update, () => getSubBotDB(senderId));
+    });
 
     // ========================================================
     // CONEXIÓN
     // ========================================================
 
-    subSock.ev.on(
-      "connection.update",
-      async (
-        update,
-      ) => {
-        const {
-          connection,
-          lastDisconnect,
-          qr,
-        } = update;
+    subSock.ev.on("connection.update", async (update) => {
+      const { connection, lastDisconnect, qr } = update;
 
-        // ====================================================
-        // QR
-        // ====================================================
+      // ====================================================
+      // QR
+      // ====================================================
 
-        if (
-          qr &&
-          type === "qr" &&
-          !isConnected &&
-          !isAutoload &&
-          sock &&
-          remoteJid &&
-          m
-        ) {
-          const qrBuffer =
-            await QRCode.toBuffer(
-              qr,
-            );
+      if (
+        qr &&
+        type === "qr" &&
+        !isConnected &&
+        !isAutoload &&
+        sock &&
+        remoteJid &&
+        m
+      ) {
+        const qrBuffer = await QRCode.toBuffer(qr);
 
-          await sock.sendMessage(
-            remoteJid,
-            {
-              image:
-                qrBuffer,
+        await sock.sendMessage(
+          remoteJid,
+          {
+            image: qrBuffer,
 
-              caption:
-                "〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐀𝐂𝐓𝐈𝐕𝐄 〕⬣",
-            },
-            {
-              quoted: m,
-            },
-          );
-        }
-
-        // ====================================================
-        // CERRADO
-        // ====================================================
-
-        if (
-          connection !==
-          "close"
-        ) {
-          if (
-            connection ===
-            "open"
-          ) {
-            const wasConnected =
-              isConnected;
-
-            isConnected =
-              true;
-
-            if (
-              timeout
-            ) {
-              clearTimeout(
-                timeout,
-              );
-
-              timeout =
-                null;
-            }
-
-            console.log(
-              chalk.green(
-                `✅ Sub-Bot (${senderId}) restablecido y corriendo de forma independiente.`,
-              ),
-            );
-
-            syncSubBotsJson();
-
-            if (
-              !wasConnected &&
-              !isAutoload &&
-              sock &&
-              remoteJid &&
-              m
-            ) {
-              await sock.sendMessage(
-                remoteJid,
-                {
-                  text:
-                    "╭〔 ✅ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n\n┃ 🤖 ¡𝐒𝐮𝐛-𝐛𝐨𝐭 𝐯𝐢𝐧𝐜𝐮𝐥𝐚𝐝𝐨 𝐜𝐨𝐧 𝐞́𝐱𝐢𝐭𝐨!\n┃ ⚡ Ahora el bot está activo en tu cuenta\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣",
-                },
-                {
-                  quoted: m,
-                },
-              );
-            }
-          }
-
-          return;
-        }
-
-        // ====================================================
-        // OBTENER RAZÓN
-        // ====================================================
-
-        const error =
-          lastDisconnect?.error;
-
-        const reason =
-          error
-            ?.output
-            ?.statusCode ||
-          error?.statusCode ||
-          new Boom(error)
-            ?.output
-            ?.statusCode;
-
-        console.log(
-          `[SUB-BOT] Conexión cerrada para ${senderId}. Código: ${
-            reason ||
-            "N/A"
-          }.`,
+            caption: "〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐀𝐂𝐓𝐈𝐕𝐄 〕⬣",
+          },
+          {
+            quoted: m,
+          },
         );
+      }
 
-        const shouldResetSession =
-          [
-            DisconnectReason.loggedOut,
-            DisconnectReason.badSession,
-            DisconnectReason.forbidden,
-            DisconnectReason.multideviceMismatch,
-          ].includes(
-            reason,
-          );
+      // ====================================================
+      // CERRADO
+      // ====================================================
 
-        if (
-          timeout
-        ) {
-          clearTimeout(
-            timeout,
-          );
+      if (connection !== "close") {
+        if (connection === "open") {
+          const wasConnected = isConnected;
 
-          timeout =
-            null;
-        }
+          isConnected = true;
 
-        // ====================================================
-        // SESIÓN INVÁLIDA
-        // ====================================================
+          if (timeout) {
+            clearTimeout(timeout);
 
-        if (
-          shouldResetSession
-        ) {
-          console.log(
-            `[SUB-BOT] Desvinculación detectada. Limpiando datos de sesión.`,
-          );
-
-          await destroySubBotSocket(
-            senderId,
-            subSock,
-          );
-
-          if (
-            fs.existsSync(
-              sessionPath,
-            )
-          ) {
-            try {
-              fs.rmSync(
-                sessionPath,
-                {
-                  recursive:
-                    true,
-                  force:
-                    true,
-                },
-              );
-            } catch {}
+            timeout = null;
           }
+
+          console.log(
+            chalk.green(
+              `✅ Sub-Bot (${senderId}) restablecido y corriendo de forma independiente.`,
+            ),
+          );
 
           syncSubBotsJson();
 
-          return;
+          if (!wasConnected && !isAutoload && sock && remoteJid && m) {
+            await sock.sendMessage(
+              remoteJid,
+              {
+                text: "╭〔 ✅ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n\n┃ 🤖 ¡𝐒𝐮𝐛-𝐛𝐨𝐭 𝐯𝐢𝐧𝐜𝐮𝐥𝐚𝐝𝐨 𝐜𝐨𝐧 𝐞́𝐱𝐢𝐭𝐨!\n┃ ⚡ Ahora el bot está activo en tu cuenta\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣",
+              },
+              {
+                quoted: m,
+              },
+            );
+          }
         }
 
-        // ====================================================
-        // RECONEXIÓN
-        // ====================================================
-                if (
-          !subSock.isClosedManually
-        ) {
-          console.log(
-            `[SUB-BOT] Reconectando sesión caída de ${senderId} en 7 segundos...`,
-          );
+        return;
+      }
 
-          // Liberar el socket anterior
-          // antes de crear uno nuevo.
-          await destroySubBotSocket(
-            senderId,
-            subSock,
-          );
+      // ====================================================
+      // OBTENER RAZÓN
+      // ====================================================
 
-          setTimeout(
-            () => {
-              start().catch(
-                (err) => {
-                  console.error(
-                    `[SUB-BOT] Error reconectando ${senderId}:`,
-                    err.message,
-                  );
-                },
-              );
-            },
-            7000,
-          );
+      const error = lastDisconnect?.error;
+
+      const reason =
+        error?.output?.statusCode ||
+        error?.statusCode ||
+        new Boom(error)?.output?.statusCode;
+
+      console.log(
+        `[SUB-BOT] Conexión cerrada para ${senderId}. Código: ${
+          reason || "N/A"
+        }.`,
+      );
+
+      const shouldResetSession = [
+        DisconnectReason.loggedOut,
+        DisconnectReason.badSession,
+        DisconnectReason.forbidden,
+        DisconnectReason.multideviceMismatch,
+      ].includes(reason);
+
+      if (timeout) {
+        clearTimeout(timeout);
+
+        timeout = null;
+      }
+
+      // ====================================================
+      // SESIÓN INVÁLIDA
+      // ====================================================
+
+      if (shouldResetSession) {
+        console.log(
+          `[SUB-BOT] Desvinculación detectada. Limpiando datos de sesión.`,
+        );
+
+        await destroySubBotSocket(senderId, subSock);
+
+        if (fs.existsSync(sessionPath)) {
+          try {
+            fs.rmSync(sessionPath, {
+              recursive: true,
+              force: true,
+            });
+          } catch {}
         }
-      },
-    );
+
+        syncSubBotsJson();
+
+        return;
+      }
+
+      // ====================================================
+      // RECONEXIÓN
+      // ====================================================
+      if (!subSock.isClosedManually) {
+        console.log(
+          `[SUB-BOT] Reconectando sesión caída de ${senderId} en 7 segundos...`,
+        );
+
+        // Liberar el socket anterior
+        // antes de crear uno nuevo.
+        await destroySubBotSocket(senderId, subSock);
+
+        setTimeout(() => {
+          start().catch((err) => {
+            console.error(
+              `[SUB-BOT] Error reconectando ${senderId}:`,
+              err.message,
+            );
+          });
+        }, 7000);
+      }
+    });
 
     // ========================================================
     // ESTADO DE REGISTRO
     // ========================================================
 
     const isRegistered =
-      state.creds &&
-      (
-        state.creds
-          .registered ||
-        state.creds.me
-      );
+      state.creds && (state.creds.registered || state.creds.me);
 
     // ========================================================
     // PAIRING CODE
@@ -1271,8 +863,7 @@ export async function createSubBot(
       !codeRequested &&
       !isAutoload
     ) {
-      codeRequested =
-        true;
+      codeRequested = true;
 
       (async () => {
         try {
@@ -1280,41 +871,19 @@ export async function createSubBot(
             `[SUB-BOT] Esperando canal seguro para generar código de ${senderId}...`,
           );
 
-          await subSock
-            .waitForSocketOpen();
+          await subSock.waitForSocketOpen();
 
-          await new Promise(
-            (resolve) =>
-              setTimeout(
-                resolve,
-                4000,
-              ),
-          );
+          await new Promise((resolve) => setTimeout(resolve, 4000));
 
-          let code =
-            await subSock
-              .requestPairingCode(
-                phoneNumber,
-              );
+          let code = await subSock.requestPairingCode(phoneNumber);
 
-          code =
-            code
-              ?.match(
-                /.{1,4}/g,
-              )
-              ?.join("-") ||
-            code;
+          code = code?.match(/.{1,4}/g)?.join("-") || code;
 
-          if (
-            sock &&
-            remoteJid &&
-            m
-          ) {
+          if (sock && remoteJid && m) {
             await sock.sendMessage(
               remoteJid,
               {
-                text:
-                  `*${code.toUpperCase()}*`,
+                text: `*${code.toUpperCase()}*`,
               },
               {
                 quoted: m,
@@ -1322,25 +891,15 @@ export async function createSubBot(
             );
           }
 
-          console.log(
-            `[SUB-BOT] Código entregado con éxito para ${senderId}`,
-          );
+          console.log(`[SUB-BOT] Código entregado con éxito para ${senderId}`);
         } catch (err) {
-          console.error(
-            "Error solicitando código en sub-bot:",
-            err,
-          );
+          console.error("Error solicitando código en sub-bot:", err);
         }
       })();
     }
   }
 
-  start().catch(
-    (err) => {
-      console.error(
-        `[SUB-BOT] Error iniciando ${senderId}:`,
-        err.message,
-      );
-    },
-  );
+  start().catch((err) => {
+    console.error(`[SUB-BOT] Error iniciando ${senderId}:`, err.message);
+  });
 }

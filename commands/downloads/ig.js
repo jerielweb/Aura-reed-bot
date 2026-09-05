@@ -7,7 +7,8 @@ import {
 import crypto from "crypto";
 import { fytBold } from "../../models/TextStyle.js";
 
-const IG_REGEX = /(?:instagram\.com|instagr\.am)\/(?:(?:reels?|p|tv)\/([A-Za-z0-9_-]+)|stories\/[^/]+\/(\d+))/;
+const IG_REGEX =
+  /(?:instagram\.com|instagr\.am)\/(?:(?:reels?|p|tv)\/([A-Za-z0-9_-]+)|stories\/[^/]+\/(\d+))/;
 
 async function sendAlbumMessage(socket, jid, array, quoted) {
   const userJid = jidNormalizedUser(
@@ -51,40 +52,48 @@ async function sendAlbumMessage(socket, jid, array, quoted) {
 }
 
 async function downloadInstagram(url) {
-  if (!IG_REGEX.test(url)) throw new Error('Enlace de Instagram inválido.');
+  if (!IG_REGEX.test(url)) throw new Error("Enlace de Instagram inválido.");
 
-  const apiRes = await fetch(`https://api.delirius.online/download/instagramv2?url=${encodeURIComponent(url)}`);
+  const apiRes = await fetch(
+    `https://api.delirius.online/download/instagramv2?url=${encodeURIComponent(url)}`,
+  );
   const apiJson = await apiRes.json();
 
   if (!apiJson || !apiJson.status || !apiJson.data || !apiJson.data.download) {
-    throw new Error('No se pudo procesar el enlace con el servicio de descarga.');
+    throw new Error(
+      "No se pudo procesar el enlace con el servicio de descarga.",
+    );
   }
 
   const data = apiJson.data;
   const downloadItems = data.download;
 
   const images = downloadItems
-    .filter(item => item.type === 'image' && item.url)
-    .map(item => item.url);
+    .filter((item) => item.type === "image" && item.url)
+    .map((item) => item.url);
 
   if (images.length > 0) {
     return {
-      type: 'images',
-      title: data.caption || '',
-      images: images
+      type: "images",
+      title: data.caption || "",
+      images: images,
     };
   }
 
-  const videoItem = downloadItems.find(item => item.type === 'video' && item.url);
+  const videoItem = downloadItems.find(
+    (item) => item.type === "video" && item.url,
+  );
   if (videoItem) {
     return {
-      type: 'video',
-      title: data.caption || 'Sin título',
-      downloadUrl: videoItem.url
+      type: "video",
+      title: data.caption || "Sin título",
+      downloadUrl: videoItem.url,
     };
   }
 
-  throw new Error('No se encontró contenido multimedia disponible en este enlace.');
+  throw new Error(
+    "No se encontró contenido multimedia disponible en este enlace.",
+  );
 }
 
 export default {
@@ -105,7 +114,7 @@ export default {
         { quoted: message },
       );
     }
-    
+
     await socket.sendMessage(remoteJid, {
       react: { text: "⏳", key: message.key },
     });
@@ -113,7 +122,7 @@ export default {
     try {
       const result = await downloadInstagram(text);
 
-      if (result.type === 'video') {
+      if (result.type === "video") {
         const caption = `╭〔 📸 ${fytBold("INSTAGRAM VIDEO")} 〕━⬣\n\n┃ ➥ ${fytBold(result.title || "Sin título")}\n\n╰〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕⬣`;
 
         await socket.sendMessage(
@@ -121,12 +130,14 @@ export default {
           {
             video: { url: result.downloadUrl },
             mimetype: "video/mp4",
-            caption: caption
+            caption: caption,
           },
-          { quoted: message }
+          { quoted: message },
         );
-      } else if (result.type === 'images') {
-        const mediaArray = result.images.map((imgUrl) => ({ url: imgUrl })).filter((m) => m.url && m.url.startsWith("http"));
+      } else if (result.type === "images") {
+        const mediaArray = result.images
+          .map((imgUrl) => ({ url: imgUrl }))
+          .filter((m) => m.url && m.url.startsWith("http"));
 
         if (mediaArray.length === 0) {
           throw new Error("Sin imágenes válidas");
@@ -140,10 +151,14 @@ export default {
         }));
 
         if (album.length < 2) {
-          await socket.sendMessage(remoteJid, {
-            image: { url: album[0].image.url },
-            caption: albumCaption
-          }, { quoted: message });
+          await socket.sendMessage(
+            remoteJid,
+            {
+              image: { url: album[0].image.url },
+              caption: albumCaption,
+            },
+            { quoted: message },
+          );
         } else {
           await sendAlbumMessage(socket, remoteJid, album, message);
         }

@@ -35,7 +35,7 @@ const searchStickerly = (query) =>
       "https://api.alyacore.xyz/stickerly/search",
       {
         params: { query, key: "oboe" },
-      }
+      },
     );
     return data;
   });
@@ -46,7 +46,7 @@ const getPackDetail = (url) =>
       "https://api.alyacore.xyz/stickerly/detail",
       {
         params: { url, key: "oboe" },
-      }
+      },
     );
     return data;
   });
@@ -71,11 +71,7 @@ export default {
       text += `┃ > Ejemplo: ${prefix || "."}spack gatos\n\n`;
       text += `╰〔 ⚡${fytBold("SYSTEM ALERT")} 〕⬣`;
 
-      return await socket.sendMessage(
-        remoteJid,
-        { text },
-        { quoted: message }
-      );
+      return await socket.sendMessage(remoteJid, { text }, { quoted: message });
     }
 
     await socket.sendMessage(remoteJid, {
@@ -100,7 +96,7 @@ export default {
         return await socket.sendMessage(
           remoteJid,
           { text },
-          { quoted: message }
+          { quoted: message },
         );
       }
 
@@ -128,7 +124,7 @@ export default {
         return await socket.sendMessage(
           remoteJid,
           { text },
-          { quoted: message }
+          { quoted: message },
         );
       }
 
@@ -146,7 +142,7 @@ export default {
       await socket.sendMessage(
         remoteJid,
         { text: infoText },
-        { quoted: message }
+        { quoted: message },
       );
 
       const stickerList = [];
@@ -154,8 +150,8 @@ export default {
         try {
           const buf = await toBuffer(s.imageUrl);
           const webp = await toWebp(buf, s.isAnimated);
-          
-          // Baileys espera que 'url' o 'buffer' (como stream/Buffer) se pasen correctamente según la versión interna, 
+
+          // Baileys espera que 'url' o 'buffer' (como stream/Buffer) se pasen correctamente según la versión interna,
           // probemos pasando el Buffer directamente en la propiedad 'url' o usando un objeto compatible con generateWAMessageMedia.
           stickerList.push({
             url: s.imageUrl, // Algunas versiones de Baileys leen directamente la URL o el buffer procesado en 'data'
@@ -191,7 +187,7 @@ export default {
         return await socket.sendMessage(
           remoteJid,
           { text },
-          { quoted: message }
+          { quoted: message },
         );
       }
 
@@ -202,7 +198,11 @@ export default {
 
       // Mandar individualmente o usar el formato plano que acepta Baileys en prepareWAMessageMedia
       for (const stkBuf of formattedStickers) {
-        await socket.sendMessage(remoteJid, { sticker: stkBuf }, { quoted: message });
+        await socket.sendMessage(
+          remoteJid,
+          { sticker: stkBuf },
+          { quoted: message },
+        );
         await delay(500); // Pequeño delay para evitar flood
       }
 

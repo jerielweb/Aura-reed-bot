@@ -4,6 +4,7 @@ import {
   calculateLevel,
   xpToNextLevel,
   resolveTargetJid,
+  migrateProfileIdentity,
 } from "../../models/profileUtils.js";
 import { resolveLidToRealJid } from "../../models/utils.js";
 
@@ -21,8 +22,9 @@ export default {
       jidRemitente,
     );
 
-    const user = getProfileUser(db, remoteJid, targetLid);
     const realJid = await resolveLidToRealJid(targetLid, socket, remoteJid);
+    migrateProfileIdentity(db, remoteJid, targetLid, realJid);
+    const user = getProfileUser(db, remoteJid, realJid);
 
     const xp = user.xp || 0;
     const level = user.level || calculateLevel(xp);

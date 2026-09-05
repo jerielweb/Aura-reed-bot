@@ -9,7 +9,8 @@ export default {
   execute: async (socket, message, args) => {
     const remoteJid = message.key.remoteJid;
 
-    const quoted = message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
+    const quoted =
+      message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
     const isImage = message.message?.imageMessage;
     const isQuotedImage = quoted?.imageMessage;
 
@@ -19,7 +20,7 @@ export default {
         {
           text: "╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐅𝐀𝐋𝐓𝐀 𝐈𝐌𝐀𝐆𝐄𝐍\n╰━━━━━━━━━━━━⬣\n\n┃ > Responde a una imagen o envía una\n┃ > imagen con el comando .hd [2 o 4]\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣",
         },
-        { quoted: message }
+        { quoted: message },
       );
     }
 
@@ -42,7 +43,7 @@ export default {
       const mediaBuffer = await downloadMediaMessage(
         targetMessage,
         "buffer",
-        {}
+        {},
       );
 
       const form = new FormData();
@@ -62,7 +63,7 @@ export default {
           },
           responseType: "arraybuffer",
           timeout: 60000,
-        }
+        },
       );
 
       const resultBuffer = Buffer.from(response.data);
@@ -70,7 +71,9 @@ export default {
       const contentType = response.headers["content-type"];
       if (contentType && contentType.includes("application/json")) {
         const errorJson = JSON.parse(resultBuffer.toString("utf-8"));
-        throw new Error(errorJson.message || errorJson.error || "Error en la API");
+        throw new Error(
+          errorJson.message || errorJson.error || "Error en la API",
+        );
       }
 
       await socket.sendMessage(
@@ -79,14 +82,19 @@ export default {
           image: resultBuffer,
           caption: `╭━━━━〔 ✨ 𝐈𝐌𝐀𝐆𝐄 𝐇𝐃 〕━━━⬣\n\n┃ ➥ 𝐄𝐬𝐜𝐚𝐥𝐚 › ${scale}x\n\n╰━━〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 𝐀𝐂𝐓𝐈𝐕𝐄 〕━━⬣`,
         },
-        { quoted: message }
+        { quoted: message },
       );
 
       await socket.sendMessage(remoteJid, {
         react: { text: "✅", key: message.key },
       });
     } catch (error) {
-      console.error("Error en comando HD:", error?.response?.data ? Buffer.from(error.response.data).toString('utf-8') : error.message);
+      console.error(
+        "Error en comando HD:",
+        error?.response?.data
+          ? Buffer.from(error.response.data).toString("utf-8")
+          : error.message,
+      );
       await socket.sendMessage(remoteJid, {
         react: { text: "❌", key: message.key },
       });
@@ -95,7 +103,7 @@ export default {
         {
           text: `╭〔 ❌ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ⚠️ 𝐄𝐑𝐑𝐎𝐑 𝐇𝐃\n╰━━━━━━━━━━━━⬣\n\n┃ > No se pudo procesar la imagen.\n\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`,
         },
-        { quoted: message }
+        { quoted: message },
       );
     }
   },

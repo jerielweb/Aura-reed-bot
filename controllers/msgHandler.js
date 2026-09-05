@@ -30,7 +30,10 @@ async function getGroupMetadataSafe(sock, remoteJid) {
     }
     return metadata;
   } catch (error) {
-    console.error(`[groupMetadataCache] Error o rate-limit obteniendo metadatos de ${remoteJid}:`, error.message);
+    console.error(
+      `[groupMetadataCache] Error o rate-limit obteniendo metadatos de ${remoteJid}:`,
+      error.message,
+    );
     return null; // Retorna null para evitar tumbar la ejecución en caso de error 429
   }
 }
@@ -59,7 +62,10 @@ async function importCommandFile(relPath, bust = false) {
     const { default: cmd } = await import(spec);
     return cmd || null;
   } catch (e) {
-    console.error(chalk.red(`[Comandos] Error cargando ${relPath}:`), e.message);
+    console.error(
+      chalk.red(`[Comandos] Error cargando ${relPath}:`),
+      e.message,
+    );
     return null;
   }
 }
@@ -89,7 +95,9 @@ function scheduleReload(cat, file) {
 
       if (!fs.existsSync(absPath)) {
         if (loadedFiles.delete(relPath)) {
-          console.log(chalk.yellow(`[Comandos] 🗑️ Eliminado: ${file} (${cat})`));
+          console.log(
+            chalk.yellow(`[Comandos] 🗑️ Eliminado: ${file} (${cat})`),
+          );
         }
         return;
       }
@@ -211,7 +219,7 @@ export async function handleMessage(sock, m, db, saveDB) {
     if (db && typeof db.run === "function") {
       await db.run(
         "INSERT OR REPLACE INTO messages (id, jid, message) VALUES (?, ?, ?)",
-        [m.key.id, remoteJid, JSON.stringify(m.message)]
+        [m.key.id, remoteJid, JSON.stringify(m.message)],
       );
     }
   } catch (e) {}
@@ -234,7 +242,10 @@ export async function handleMessage(sock, m, db, saveDB) {
         return;
       }
     } catch (e) {
-      console.error("[handleMessage] Error al verificar/borrar usuario silenciado:", e);
+      console.error(
+        "[handleMessage] Error al verificar/borrar usuario silenciado:",
+        e,
+      );
     }
   }
 
@@ -288,18 +299,27 @@ export async function handleMessage(sock, m, db, saveDB) {
   if (activeHangmanGames.has(hangmanKey) && !esComando) {
     const game = activeHangmanGames.get(hangmanKey);
     const quotedId = m.message?.extendedTextMessage?.contextInfo?.stanzaId;
-    const isReplyToGame = game.lastMessage?.key?.id && quotedId === game.lastMessage.key.id;
+    const isReplyToGame =
+      game.lastMessage?.key?.id && quotedId === game.lastMessage.key.id;
 
     const shouldIntercept = isReplyToGame || !isGroup;
 
     if (shouldIntercept) {
-      const wasGameMove = await processHangmanGuess(sock, m, text, prefix, db, saveDB);
+      const wasGameMove = await processHangmanGuess(
+        sock,
+        m,
+        text,
+        prefix,
+        db,
+        saveDB,
+      );
       if (wasGameMove) return;
     }
   }
 
   // 🤖 VERIFICACIÓN DE BOT PRIMARIO
-  const cleanJid = (jid) => (jid ? String(jid).split("@")[0].split(":")[0] : null);
+  const cleanJid = (jid) =>
+    jid ? String(jid).split("@")[0].split(":")[0] : null;
 
   const groupPrimaryBot = isGroup ? db.groups?.[remoteJid]?.prefix : null;
 
@@ -308,20 +328,25 @@ export async function handleMessage(sock, m, db, saveDB) {
     const currentBotNum = cleanJid(sock.user?.id || sock.user?.jid);
     const primaryBotNum = cleanJid(groupPrimaryBotJid);
 
-    const isPrimaryCmd = ["setprimary", "primary"].includes(commandNameForCheck);
+    const isPrimaryCmd = ["setprimary", "primary"].includes(
+      commandNameForCheck,
+    );
 
     if (currentBotNum !== primaryBotNum && !isPrimaryCmd) {
-      return; 
+      return;
     }
   }
 
   // 🟢 INICIAR ESTADO DE "ESCRIBIENDO" (Pasa las validaciones del primario)
-  await sock.sendPresenceUpdate('composing', remoteJid);
+  await sock.sendPresenceUpdate("composing", remoteJid);
 
   if (isGroup && db.groups?.[remoteJid]?.botOn === false) {
-    if (commandNameForCheck === "bot" && argsForCheck[1]?.toLowerCase() === "on") {
+    if (
+      commandNameForCheck === "bot" &&
+      argsForCheck[1]?.toLowerCase() === "on"
+    ) {
     } else if (esComando) {
-      await sock.sendPresenceUpdate('paused', remoteJid);
+      await sock.sendPresenceUpdate("paused", remoteJid);
       return await sock.sendMessage(
         remoteJid,
         {
@@ -330,7 +355,7 @@ export async function handleMessage(sock, m, db, saveDB) {
         { quoted: m },
       );
     } else {
-      await sock.sendPresenceUpdate('paused', remoteJid);
+      await sock.sendPresenceUpdate("paused", remoteJid);
       return;
     }
   }
@@ -367,7 +392,11 @@ export async function handleMessage(sock, m, db, saveDB) {
 
             if (p.id && p.id.endsWith("@lid")) {
               try {
-                const resolved = await resolveLidToRealJid(p.id, sock, remoteJid);
+                const resolved = await resolveLidToRealJid(
+                  p.id,
+                  sock,
+                  remoteJid,
+                );
                 if (resolved && !resolved.endsWith("@lid")) {
                   realJid = resolved;
                 }
@@ -381,24 +410,40 @@ export async function handleMessage(sock, m, db, saveDB) {
               return jid.split("@")[0].split(":")[0];
             };
 
-            const num = extractNum(realJid) || extractNum(p.jid) || extractNum(p.phoneNumber);
+            const num =
+              extractNum(realJid) ||
+              extractNum(p.jid) ||
+              extractNum(p.phoneNumber);
             const isSender = p.id === senderRaw || realJid === jidRemitente;
-            
-            const validUsername = p.username && !p.username.includes("@") && !/^\d+$/.test(p.username) ? p.username : null;
-            const displayHandle = validUsername || p.notify || (isSender ? m.pushName : null) || num || "usuario";
+
+            const validUsername =
+              p.username &&
+              !p.username.includes("@") &&
+              !/^\d+$/.test(p.username)
+                ? p.username
+                : null;
+            const displayHandle =
+              validUsername ||
+              p.notify ||
+              (isSender ? m.pushName : null) ||
+              num ||
+              "usuario";
 
             return {
               ...p,
               jid: realJid,
               phoneNumber: num ? `+${num}` : undefined,
-              username: displayHandle.startsWith("@") ? displayHandle : `@${displayHandle}`,
+              username: displayHandle.startsWith("@")
+                ? displayHandle
+                : `@${displayHandle}`,
             };
-          })
+          }),
         );
       }
 
-      const clean = (id) => (id ? String(id).split("@")[0].split(":")[0] : null);
-      
+      const clean = (id) =>
+        id ? String(id).split("@")[0].split(":")[0] : null;
+
       const senderBase = clean(senderRaw);
       const botBase = clean(sock.user?.id);
 
@@ -406,20 +451,29 @@ export async function handleMessage(sock, m, db, saveDB) {
         const pId = clean(p.id);
         const pJid = clean(p.jid);
         const pPhone = clean(p.phoneNumber);
-        
-        return senderBase && (pId === senderBase || pJid === senderBase || pPhone === senderBase);
+
+        return (
+          senderBase &&
+          (pId === senderBase || pJid === senderBase || pPhone === senderBase)
+        );
       });
 
       const botParticipant = groupMetadata.participants?.find((p) => {
         const pId = clean(p.id);
         const pJid = clean(p.jid);
         const pPhone = clean(p.phoneNumber);
-        
-        return botBase && (pId === botBase || pJid === botBase || pPhone === botBase);
+
+        return (
+          botBase && (pId === botBase || pJid === botBase || pPhone === botBase)
+        );
       });
 
-      isAdmin = userParticipant?.admin === "admin" || userParticipant?.admin === "superadmin";
-      isBotAdmin = botParticipant?.admin === "admin" || botParticipant?.admin === "superadmin";
+      isAdmin =
+        userParticipant?.admin === "admin" ||
+        userParticipant?.admin === "superadmin";
+      isBotAdmin =
+        botParticipant?.admin === "admin" ||
+        botParticipant?.admin === "superadmin";
     }
   }
 
@@ -431,7 +485,7 @@ export async function handleMessage(sock, m, db, saveDB) {
     !isAdmin &&
     !isOwner
   ) {
-    await sock.sendPresenceUpdate('paused', remoteJid);
+    await sock.sendPresenceUpdate("paused", remoteJid);
     return;
   }
 
@@ -464,7 +518,7 @@ export async function handleMessage(sock, m, db, saveDB) {
       sock,
     });
     // 🔴 DETENER ESTADO DE "ESCRIBIENDO" (Mensaje normal sin comando)
-    await sock.sendPresenceUpdate('paused', remoteJid);
+    await sock.sendPresenceUpdate("paused", remoteJid);
   } else {
     const args = text.slice(prefix.length).trim().split(/ +/);
     const commandName = args.shift().toLowerCase();
@@ -494,7 +548,7 @@ export async function handleMessage(sock, m, db, saveDB) {
         const requiresOwner =
           cmd.ownerOnly !== false && cmd.category === "owner";
         if (requiresOwner && !isOwner) {
-          await sock.sendPresenceUpdate('paused', remoteJid);
+          await sock.sendPresenceUpdate("paused", remoteJid);
           return await sock.sendMessage(
             remoteJid,
             { text: Rstr.onlyOwner },
@@ -505,7 +559,7 @@ export async function handleMessage(sock, m, db, saveDB) {
           (cmd.category === "group" || cmd.category === "economy") &&
           !isGroup
         ) {
-          await sock.sendPresenceUpdate('paused', remoteJid);
+          await sock.sendPresenceUpdate("paused", remoteJid);
           return await sock.sendMessage(
             remoteJid,
             { text: Rstr.onlyGroup },
@@ -513,7 +567,7 @@ export async function handleMessage(sock, m, db, saveDB) {
           );
         }
         if (isGroup && !isCategoryEnabled(remoteJid, cmd.category, db)) {
-          await sock.sendPresenceUpdate('paused', remoteJid);
+          await sock.sendPresenceUpdate("paused", remoteJid);
           return await sock.sendMessage(
             remoteJid,
             { text: catOff({ CAT_CMD: cmd.category, prefix }) },
@@ -521,7 +575,7 @@ export async function handleMessage(sock, m, db, saveDB) {
           );
         }
         if (cmd.adminOnly && !isAdmin) {
-          await sock.sendPresenceUpdate('paused', remoteJid);
+          await sock.sendPresenceUpdate("paused", remoteJid);
           return await sock.sendMessage(
             remoteJid,
             { text: Rstr.onlyAdmin },
@@ -559,7 +613,7 @@ export async function handleMessage(sock, m, db, saveDB) {
           );
         } finally {
           // 🔴 DETENER ESTADO DE "ESCRIBIENDO" (Al finalizar el comando con éxito o error)
-          await sock.sendPresenceUpdate('paused', remoteJid);
+          await sock.sendPresenceUpdate("paused", remoteJid);
         }
         return;
       }
@@ -567,7 +621,7 @@ export async function handleMessage(sock, m, db, saveDB) {
 
     if (!commandFound) {
       // 🔴 DETENER ESTADO DE "ESCRIBIENDO" (Comando no encontrado)
-      await sock.sendPresenceUpdate('paused', remoteJid);
+      await sock.sendPresenceUpdate("paused", remoteJid);
       return await sock.sendMessage(
         remoteJid,
         {

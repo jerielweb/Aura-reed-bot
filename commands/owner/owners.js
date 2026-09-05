@@ -1,7 +1,8 @@
 export default {
   name: ["owners", "dueños", "propietarios", "owner"],
   category: "owner",
-  description: "Muestra la información de los propietarios del bot como tarjetas de contacto.",
+  description:
+    "Muestra la información de los propietarios del bot como tarjetas de contacto.",
   ownerOnly: false,
 
   execute: async (socket, message, args, { db }) => {
@@ -30,10 +31,12 @@ export default {
       const isSender = jid === senderJid;
 
       // Solo usa message.pushName si es tu JID, para los demás recurre a tu nombre o número
-      const pushName = isSender && message.pushName ? message.pushName : (socket.contacts?.[jid]?.name || `+${numero}`);
+      const pushName =
+        isSender && message.pushName
+          ? message.pushName
+          : socket.contacts?.[jid]?.name || `+${numero}`;
 
-      const vcard = 
-`BEGIN:VCARD
+      const vcard = `BEGIN:VCARD
 VERSION:3.0
 FN:${pushName}
 ORG:${rol};
@@ -51,7 +54,7 @@ END:VCARD`;
           contacts: contactsList,
         },
       },
-      { quoted: message }
+      { quoted: message },
     );
   },
 };

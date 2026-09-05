@@ -1,6 +1,4 @@
-import {
-  jidNormalizedUser,
-} from "@whiskeysockets/baileys";
+import { jidNormalizedUser } from "@whiskeysockets/baileys";
 
 import {
   countActiveSubBots,
@@ -8,48 +6,30 @@ import {
   getRegisteredSubBots,
 } from "../../models/subbotManager.js";
 
-
 // ============================================================
 // NORMALIZAR JID / NÚMERO
 // ============================================================
 
 function normalizeNumber(jid) {
   if (!jid) return "";
-  return String(jid)
-    .split("@")[0]
-    .split(":")[0]
-    .replace(/\D/g, "");
+  return String(jid).split("@")[0].split(":")[0].replace(/\D/g, "");
 }
-
-
 
 // ============================================================
 // COMANDO BOTS
 // ============================================================
 
 export default {
-  name: [
-    "bots",
-    "subbots",
-    "lista-bots",
-  ],
+  name: ["bots", "subbots", "lista-bots"],
 
   category: "owner",
 
-  description:
-    "Muestra los Sub-Bots activos y cuáles están en el grupo.",
+  description: "Muestra los Sub-Bots activos y cuáles están en el grupo.",
 
   ownerOnly: false,
 
-  execute: async (
-    socket,
-    message,
-    args,
-    { prefix },
-  ) => {
-
+  execute: async (socket, message, args, { prefix }) => {
     try {
-
       const remoteJid = message.key.remoteJid;
 
       if (!remoteJid) {
@@ -66,18 +46,15 @@ export default {
 
       let text = `╭〔 🔌 AURA REED 〕⬣\n`;
 
-
       // ========================================================
       // PRIVADO (Muestra todos los registrados y su estado)
       // ========================================================
 
       if (!isGroup) {
-
         text += `┃ 🤖 𝐒𝐔𝐁-𝐁𝐎𝐓𝐒\n`;
         text += `┣━━━━━━━━━━━━⬣\n`;
         text += `┃ 📊 𝐀𝐜𝐭𝐢𝐯𝐨𝐬: *${activeCount}/${maxSubs}*\n`;
         text += `┃ 📁 𝐑𝐞𝐠𝐢𝐬𝐭𝐫𝐚𝐝𝐨𝐬: *${registeredBots.length}*\n\n`;
-
 
         if (registeredBots.length === 0) {
           text += `┃ > No hay Sub-Bots registrados.\n`;
@@ -94,13 +71,10 @@ export default {
           });
         }
 
-
-      // ========================================================
-      // GRUPO (Clasifica activos en grupo, fuera e inactivos)
-      // ========================================================
-
+        // ========================================================
+        // GRUPO (Clasifica activos en grupo, fuera e inactivos)
+        // ========================================================
       } else {
-
         let groupMetadata = null;
 
         try {
@@ -118,7 +92,6 @@ export default {
             { quoted: message },
           );
         }
-
 
         // ======================================================
         // OBTENER PARTICIPANTES DEL GRUPO DE FORMA SEGURA
@@ -148,7 +121,6 @@ export default {
           }
         }
 
-
         // ======================================================
         // COMPARAR SUB-BOTS REGISTRADOS
         // (solo los que pertenecen a este grupo; el resto se oculta)
@@ -157,7 +129,6 @@ export default {
         const botsInGroup = [];
         const inactiveBots = [];
 
-
         for (const bot of registeredBots) {
           const id = normalizeNumber(bot.id || bot.jid || bot.key);
 
@@ -165,7 +136,7 @@ export default {
 
           // Validación flexible para evitar cruces fallidos por prefijos de país
           const isInGroup = Array.from(participantNumbers).some(
-            (p) => p === id || p.endsWith(id) || id.endsWith(p)
+            (p) => p === id || p.endsWith(id) || id.endsWith(p),
           );
 
           // Si el sub-bot no está en el grupo, se oculta por completo.
@@ -178,7 +149,6 @@ export default {
           }
         }
 
-
         // ======================================================
         // CABECERA GRUPO
         // ======================================================
@@ -187,7 +157,6 @@ export default {
         text += `┣━━━━━━━━━━━━⬣\n`;
         text += `┃ 📊 𝐀𝐜𝐭𝐢𝐯𝐨𝐬 𝐠𝐥𝐨𝐛𝐚𝐥: *${activeCount}/${maxSubs}*\n`;
         text += `┃ ⚡ 𝐄𝐧 𝐞𝐬𝐭𝐞 𝐠rupo: *${botsInGroup.length}*\n\n`;
-
 
         // ======================================================
         // BOTS EN EL GRUPO
@@ -206,7 +175,6 @@ export default {
           text += `┃ > No hay Sub-Bots activos aquí.\n\n`;
         }
 
-
         // ======================================================
         // INACTIVOS (pero presentes en el grupo)
         // ======================================================
@@ -221,7 +189,6 @@ export default {
         }
       }
 
-
       // ========================================================
       // PIE DE PÁGINA
       // ========================================================
@@ -229,7 +196,6 @@ export default {
       text += `┣━━━━━━━━━━━━⬣\n`;
       text += `┃ 💡 _Usa ${prefix}code o ${prefix}qr_\n`;
       text += `╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`;
-
 
       // ========================================================
       // ENVIAR MENSAJE
@@ -245,7 +211,6 @@ export default {
           quoted: message,
         },
       );
-
     } catch (error) {
       console.error("[BOTS] Error ejecutando comando:", error);
 

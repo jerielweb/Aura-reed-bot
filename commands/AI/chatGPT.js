@@ -37,7 +37,7 @@ export default {
     });
 
     const copilotUrls = [
-      `https://api.alyacore.xyz/ai/chatgpt?text=${encodeURIComponent(prompt)}&key=${global.Apis.apiAiya.apikey}`
+      `https://api.alyacore.xyz/ai/chatgpt?text=${encodeURIComponent(prompt)}&key=${global.Apis.apiAiya.apikey}`,
     ];
 
     const extractText = (data) => {

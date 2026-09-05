@@ -1,11 +1,11 @@
 import { fytBold } from "../../models/TextStyle.js";
 import { resolveLidToRealJid } from "./../../models/utils.js";
 
-
 export default {
   name: ["unmute", "desilenciar"],
   category: "admin",
-  description: "Quita el silencio a un usuario para que sus mensajes no se borren.",
+  description:
+    "Quita el silencio a un usuario para que sus mensajes no se borren.",
   adminOnly: true,
 
   execute: async (socket, message, args, { db, saveDB, isBotAdmin }) => {
@@ -15,7 +15,7 @@ export default {
       return socket.sendMessage(
         remoteJid,
         { text: "⚠️ Este comando solo se puede usar en grupos." },
-        { quoted: message }
+        { quoted: message },
       );
     }
     if (!isBotAdmin) {
@@ -25,7 +25,11 @@ export default {
       noAdminText += `┃ > No pude desilenciar al usuario.\n`;
       noAdminText += `┃ > Necesito ser administrador del grupo.\n\n`;
       noAdminText += `╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`;
-      return socket.sendMessage(remoteJid, { text: noAdminText }, { quoted: message });
+      return socket.sendMessage(
+        remoteJid,
+        { text: noAdminText },
+        { quoted: message },
+      );
     }
 
     // Resolver el objetivo etiquetado o respondido
@@ -49,7 +53,11 @@ export default {
       errorText += `┃ > Etiqueta o responde al mensaje del\n`;
       errorText += `┃ > usuario que deseas desilenciar.\n\n`;
       errorText += `╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`;
-      return socket.sendMessage(remoteJid, { text: errorText }, { quoted: message });
+      return socket.sendMessage(
+        remoteJid,
+        { text: errorText },
+        { quoted: message },
+      );
     }
 
     const mutedUsers = db.groups?.[remoteJid]?.mutedUsers || [];
@@ -59,8 +67,11 @@ export default {
     if (!isMuted) {
       return socket.sendMessage(
         remoteJid,
-        { text: `⚠️ El usuario ${userTag} no está silenciado.`, mentions: [targetJid] },
-        { quoted: message }
+        {
+          text: `⚠️ El usuario ${userTag} no está silenciado.`,
+          mentions: [targetJid],
+        },
+        { quoted: message },
       );
     }
 
@@ -77,7 +88,7 @@ export default {
     return socket.sendMessage(
       remoteJid,
       { text, mentions: [targetJid] },
-      { quoted: message }
+      { quoted: message },
     );
   },
 };

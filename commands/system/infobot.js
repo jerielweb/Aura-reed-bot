@@ -2,21 +2,30 @@ import fs from "fs";
 import os from "os";
 import process from "process";
 import { fytBold } from "../../models/TextStyle.js";
-import { prepareWAMessageMedia, generateWAMessageFromContent } from "@whiskeysockets/baileys";
-import { countActiveSubBots, getMaxSubBots } from "../../models/subbotManager.js";
+import {
+  prepareWAMessageMedia,
+  generateWAMessageFromContent,
+} from "@whiskeysockets/baileys";
+import {
+  countActiveSubBots,
+  getMaxSubBots,
+} from "../../models/subbotManager.js";
 import { categories } from "./../../controllers/consts/cat.js";
 
 const mediaCacheMap = new Map();
 
 // Detecta el nombre del Servidor / Host
 function getServerName() {
-  const envName = process.env.SERVER_NAME || process.env.P_SERVER_LOCATION || process.env.P_SERVER_NAME;
+  const envName =
+    process.env.SERVER_NAME ||
+    process.env.P_SERVER_LOCATION ||
+    process.env.P_SERVER_NAME;
   if (envName) return envName;
 
   const host = os.hostname();
   // Si es un ID de contenedor (hash largo o UUID)
   if (host.includes("-") || host.length > 20 || /^[a-f0-9]+$/i.test(host)) {
-    return "Akirax Node ⚡";
+    return "LOCALHOST";
   }
 
   return host;
@@ -120,10 +129,10 @@ export default {
       memory.total > 0
         ? ((memory.used / memory.total) * 100).toFixed(1)
         : "0.0";
-        
+
     // Conteo de seciones
-    const bots = countActiveSubBots()
-    const MaxBots = getMaxSubBots() 
+    const bots = countActiveSubBots();
+    const MaxBots = getMaxSubBots();
 
     // ── ESTRUCTURA VISUAL UI ──
     let textoInfo = `╭━━〔 ${tituloEstilizado} 〕━━⬣\n`;

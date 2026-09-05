@@ -8,7 +8,8 @@ import crypto from "crypto";
 import { fytBold } from "../../models/TextStyle.js";
 
 const USER_ID = "6679412";
-const API_KEY = "2faa230764f8b4c823f54b2022fd240d2f9fa4a4e6fee5f89e76d0ca2fbf586967e3ccc14c5fa298239c87ffd8ae7256afd6ca49928b58ef2002ad1004c0da28";
+const API_KEY =
+  "2faa230764f8b4c823f54b2022fd240d2f9fa4a4e6fee5f89e76d0ca2fbf586967e3ccc14c5fa298239c87ffd8ae7256afd6ca49928b58ef2002ad1004c0da28";
 
 async function sendAlbumMessage(socket, jid, array, quoted) {
   const userJid = jidNormalizedUser(
@@ -75,7 +76,7 @@ export default {
 
     try {
       const url = `https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&tags=${encodeURIComponent(query)}&limit=100&api_key=${API_KEY}&user_id=${USER_ID}`;
-      
+
       const res = await fetch(url);
       const data = await res.json();
 
@@ -109,10 +110,14 @@ export default {
       }));
 
       if (album.length < 2) {
-        await socket.sendMessage(remoteJid, {
-          image: { url: album[0].image.url },
-          caption: captionText
-        }, { quoted: message });
+        await socket.sendMessage(
+          remoteJid,
+          {
+            image: { url: album[0].image.url },
+            caption: captionText,
+          },
+          { quoted: message },
+        );
       } else {
         await sendAlbumMessage(socket, remoteJid, album, message);
       }

@@ -1,7 +1,7 @@
 // setBirth.js
 import { getProfileUser, parseBirthday } from "../../models/profileUtils.js";
 import { fytBold } from "../../models/TextStyle.js";
-import { resolveToLid, resolveLidToRealJid } from "../../models/utils.js";
+import { resolveLidToRealJid } from "../../models/utils.js";
 
 export default {
   name: ["setbirth", "setbirt", "cumple", "cumpleaños"],
@@ -31,13 +31,11 @@ export default {
       );
     }
 
-    const lid = await resolveToLid(jidRemitente, socket, remoteJid);
-    const user = getProfileUser(db, remoteJid, lid);
+    const realJid = await resolveLidToRealJid(jidRemitente, socket, remoteJid);
+    const user = getProfileUser(db, remoteJid, realJid);
     user.birthday = birthday;
 
     if (typeof saveDB === "function") saveDB(db);
-
-    const realJid = await resolveLidToRealJid(lid, socket, remoteJid);
 
     let text = `╭〔 🎂 ${fytBold("PERFIL")} 〕⬣\n`;
     text += `┃ ✅ ${fytBold("CUMPLEAÑOS GUARDADO")}\n╰━━━━━━━━━━━━⬣\n\n`;

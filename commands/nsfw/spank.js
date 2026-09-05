@@ -34,7 +34,7 @@ export default {
           " " +
           fytBold("le dio una nalgada a") +
           " @" +
-          targetJid.split("@")[0]
+          targetJid.split("@")[0];
       } else {
         caption = senderTag + " " + fytBold("se dio una nalgada");
       }

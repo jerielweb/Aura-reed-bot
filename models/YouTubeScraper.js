@@ -1,23 +1,25 @@
 import axios from "axios";
 
 const API_BASE = "https://embed.dlsrv.online";
-const YT_REGEX = /(?:youtube\.com\/(?:watch\?v=|shorts\/|live\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/;
-const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+const YT_REGEX =
+  /(?:youtube\.com\/(?:watch\?v=|shorts\/|live\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/;
+const USER_AGENT =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
 function apiHeaders(videoId) {
   return {
-    "accept": "*/*",
+    accept: "*/*",
     "accept-language": "es-419,es;q=0.9,es-ES;q=0.8,en;q=0.7",
     "content-type": "application/json",
-    "origin": API_BASE,
-    "referer": `${API_BASE}/v2/full?videoId=${videoId}`,
+    origin: API_BASE,
+    referer: `${API_BASE}/v2/full?videoId=${videoId}`,
     "user-agent": USER_AGENT,
     "sec-ch-ua": '"Not_A Brand";v="8", "Chromium";v="120"',
     "sec-ch-ua-mobile": "?0",
     "sec-ch-ua-platform": '"Windows"',
     "sec-fetch-dest": "empty",
     "sec-fetch-mode": "cors",
-    "sec-fetch-site": "same-origin"
+    "sec-fetch-site": "same-origin",
   };
 }
 
@@ -29,11 +31,12 @@ async function getInfo(videoId) {
   const res = await axios.post(
     `${API_BASE}/api/info`,
     { videoId },
-    { headers: apiHeaders(videoId) }
+    { headers: apiHeaders(videoId) },
   );
 
   const data = res.data;
-  if (data.status !== "info" || !data.info) throw new Error("No se pudo obtener información del video.");
+  if (data.status !== "info" || !data.info)
+    throw new Error("No se pudo obtener información del video.");
 
   const videos = [];
   for (const f of data.info.formats || []) {
@@ -49,8 +52,9 @@ async function getInfo(videoId) {
     title: data.info.title || "YouTube",
     author: data.info.author || "",
     duration: Number(data.info.duration) || 0,
-    thumbnail: data.info.thumbnail || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
-    videos
+    thumbnail:
+      data.info.thumbnail || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+    videos,
   };
 }
 
@@ -58,12 +62,17 @@ async function getDownload(videoId, format, quality) {
   const res = await axios.post(
     `${API_BASE}/api/download/${format}`,
     { videoId, format, quality: String(quality) },
-    { headers: apiHeaders(videoId) }
+    { headers: apiHeaders(videoId) },
   );
 
   const data = res.data;
-  if (data.status !== "tunnel" || !data.url) throw new Error("No se pudo obtener el enlace directo.");
-  return { url: data.url, filename: data.filename || "", duration: Number(data.duration) || 0 };
+  if (data.status !== "tunnel" || !data.url)
+    throw new Error("No se pudo obtener el enlace directo.");
+  return {
+    url: data.url,
+    filename: data.filename || "",
+    duration: Number(data.duration) || 0,
+  };
 }
 
 export async function getVideo(url, quality = "1080") {
@@ -74,12 +83,20 @@ export async function getVideo(url, quality = "1080") {
   const available = info.videos.map((v) => v.quality);
   let q = String(quality).replace(/p$/i, "");
   if (available.length && !available.includes(q)) {
-    q = available.find((a) => Number(a) <= Number(q)) || available[available.length - 1];
+    q =
+      available.find((a) => Number(a) <= Number(q)) ||
+      available[available.length - 1];
   }
 
   const tunnel = await getDownload(videoId, "mp4", q);
   const size = info.videos.find((v) => v.quality === q)?.size || 0;
-  return { ...info, quality: q, size, downloadUrl: tunnel.url, filename: tunnel.filename };
+  return {
+    ...info,
+    quality: q,
+    size,
+    downloadUrl: tunnel.url,
+    filename: tunnel.filename,
+  };
 }
 
 export async function getAudio(url) {
@@ -88,7 +105,12 @@ export async function getAudio(url) {
 
   const info = await getInfo(videoId);
   const tunnel = await getDownload(videoId, "mp3", "128");
-  return { ...info, bitrate: "128", downloadUrl: tunnel.url, filename: tunnel.filename };
+  return {
+    ...info,
+    bitrate: "128",
+    downloadUrl: tunnel.url,
+    filename: tunnel.filename,
+  };
 }
 
 export function formatDuration(seconds) {

@@ -9,7 +9,21 @@ export default {
     sock,
     message,
     args,
-    { prefix, db, saveDB, isOwner, isAdmin, isBotAdmin, owners, groupMetadata, numeroReal, jidRemitente, senderRaw, rawParticipant, rawMentionedJid }
+    {
+      prefix,
+      db,
+      saveDB,
+      isOwner,
+      isAdmin,
+      isBotAdmin,
+      owners,
+      groupMetadata,
+      numeroReal,
+      jidRemitente,
+      senderRaw,
+      rawParticipant,
+      rawMentionedJid,
+    },
   ) => {
     const remoteJid = message.key.remoteJid;
 
@@ -55,7 +69,9 @@ export default {
           .filter((id) => id.split("@")[0].split(":")[0] !== botBase);
 
         const admins = participants.filter((p) => p.admin).map((p) => p.id);
-        usersToCryOrKick = usersToCryOrKick.filter((id) => !admins.includes(id));
+        usersToCryOrKick = usersToCryOrKick.filter(
+          (id) => !admins.includes(id),
+        );
       }
     }
 

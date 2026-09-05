@@ -109,7 +109,10 @@ export default {
 
       // Descargamos el video y lo convertimos a Buffer antes de enviarlo
       const videoRes = await fetch(videoUrl);
-      if (!videoRes.ok) throw new Error(`No se pudo descargar el video (estado ${videoRes.status})`);
+      if (!videoRes.ok)
+        throw new Error(
+          `No se pudo descargar el video (estado ${videoRes.status})`,
+        );
       const videoBuffer = Buffer.from(await videoRes.arrayBuffer());
 
       await socket.sendMessage(

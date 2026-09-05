@@ -30,9 +30,7 @@ export default {
 
     const status = args[0]?.toLowerCase();
 
-    if (
-      ["on", "1", "true", "activar", "enable"].includes(status)
-    ) {
+    if (["on", "1", "true", "activar", "enable"].includes(status)) {
       db.groups[remoteJid].onlyAdmin = true;
       saveDB(db);
       let text = `╭〔 🛡️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n`;

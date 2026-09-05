@@ -14,7 +14,7 @@ export async function handleGroupUpdate(
   const botId = sock.user?.id
     ? sock.user.id.split("@")[0].split(":")[0] + "@s.whatsapp.net"
     : null;
-    
+
   const groupPrimaryBot = groupData?.primaryBot;
   if (groupPrimaryBot && botId && groupPrimaryBot !== botId) {
     console.log(

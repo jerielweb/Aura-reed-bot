@@ -15,11 +15,7 @@ async function fetchJson(url) {
 }
 
 function normalize(apiResult, motorName) {
-  if (
-    !apiResult ||
-    !apiResult.status ||
-    !apiResult.data
-  ) {
+  if (!apiResult || !apiResult.status || !apiResult.data) {
     throw new Error(
       `[${motorName}] No se encontraron resultados para esta aplicación`,
     );
@@ -30,7 +26,7 @@ function normalize(apiResult, motorName) {
   const name = data.name || "Aplicación Desconocida";
   const packageId = data.package || "com.unknown";
   const size = data.size || "N/A";
-  const lastUpdated = data.lastUpdated || "N/A"; 
+  const lastUpdated = data.lastUpdated || "N/A";
   const banner = data.banner || null;
   const dl = data.dl;
 

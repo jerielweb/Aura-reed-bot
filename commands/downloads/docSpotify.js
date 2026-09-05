@@ -4,7 +4,8 @@ import axios from "axios";
 export default {
   name: ["spotifydoc", "docsplay", "dsp", "dspdl"],
   category: "download",
-  description: "Descarga canciones de Spotify por enlace o búsqueda como documento.",
+  description:
+    "Descarga canciones de Spotify por enlace o búsqueda como documento.",
 
   execute: async (socket, message, args, { prefix }) => {
     const text = args.join(" ").trim();
@@ -17,7 +18,11 @@ export default {
       errorText += `┃ > Ingresa el nombre de una canción o\n`;
       errorText += `┃ > un enlace válido de Spotify.\n\n`;
       errorText += `╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`;
-      return socket.sendMessage(remoteJid, { text: errorText }, { quoted: message });
+      return socket.sendMessage(
+        remoteJid,
+        { text: errorText },
+        { quoted: message },
+      );
     }
 
     await socket.sendMessage(remoteJid, {
@@ -60,7 +65,8 @@ export default {
       caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ > ${fytBold("Artista")} › ${song.artist}\n`;
       caption += `┃ > ${fytBold("Álbum")} › ${song.album || "Desconocido"}\n`;
-      if (song.duration) caption += `┃ > ${fytBold("Duración")} › ${song.duration}\n`;
+      if (song.duration)
+        caption += `┃ > ${fytBold("Duración")} › ${song.duration}\n`;
       if (trackUrl) caption += `┃ > ${fytBold("Link")} › ${trackUrl}\n`;
       caption += `┃ > ${fytBold("Tipo")} › Documento (MP3)\n`;
       caption += `╰━━━━━━━━━━━━⬣\n`;
@@ -74,7 +80,7 @@ export default {
             image: { url: song.coverHd || song.cover },
             caption,
           },
-          { quoted: message }
+          { quoted: message },
         );
       }
 
@@ -86,7 +92,7 @@ export default {
           mimetype: "audio/mpeg",
           fileName: `${song.artist} - ${song.title}.mp3`,
         },
-        { quoted: message }
+        { quoted: message },
       );
 
       await socket.sendMessage(remoteJid, {
@@ -104,7 +110,11 @@ export default {
       textErr += `┃ > ${error.message || "Ocurrió un error inesperado."}\n\n`;
       textErr += `╰〔 ⚡ ${fytBold("SYSTEM ALERT")} 〕⬣`;
 
-      await socket.sendMessage(remoteJid, { text: textErr }, { quoted: message });
+      await socket.sendMessage(
+        remoteJid,
+        { text: textErr },
+        { quoted: message },
+      );
     }
   },
 };

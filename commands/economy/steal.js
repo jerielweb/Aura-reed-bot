@@ -12,7 +12,7 @@ export default {
     // 1. Validar que se haya mencionado a alguien
     const mencionadoRaw =
       message.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
-    
+
     if (!mencionadoRaw) {
       return await socket.sendMessage(
         remoteJid,

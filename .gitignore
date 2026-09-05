@@ -1,6 +1,8 @@
 node_modules
 tmp
+temp
 .env
 package-lock.json
 tests
 database
+sessions

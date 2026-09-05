@@ -8,12 +8,7 @@ export default {
   category: "system",
   description:
     "Envía un reporte de bug o sugerencia al grupo de soporte usando el bot principal.",
-  async execute(
-    sock,
-    m,
-    args,
-    { prefix, groupMetadata, jidRemitente },
-  ) {
+  async execute(sock, m, args, { prefix, groupMetadata, jidRemitente }) {
     const remoteJid = m.key.remoteJid;
     const reportText = args.join(" ").trim();
 
@@ -48,7 +43,10 @@ export default {
 
     try {
       // Usa el socket del Bot Principal si está disponible, de lo contrario usa el socket actual
-      const mainSock = (typeof getMainSocket === "function" ? getMainSocket() : null) || global.mainSocket || sock;
+      const mainSock =
+        (typeof getMainSocket === "function" ? getMainSocket() : null) ||
+        global.mainSocket ||
+        sock;
 
       await mainSock.sendMessage(REPORT_GROUP_JID, {
         text: textForReport,
@@ -64,7 +62,10 @@ export default {
         { quoted: m },
       );
     } catch (err) {
-      console.error("[Report Command] Error al enviar reporte al grupo desde el bot principal:", err);
+      console.error(
+        "[Report Command] Error al enviar reporte al grupo desde el bot principal:",
+        err,
+      );
       await sock.sendMessage(remoteJid, { react: { text: "❌", key: m.key } });
       await sock.sendMessage(
         remoteJid,

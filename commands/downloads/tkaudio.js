@@ -1,6 +1,6 @@
-import os from 'os';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import os from "os";
+import path from "path";
+import { fileURLToPath } from "url";
 import axios from "axios";
 import { exec } from "child_process";
 import { promisify } from "util";
@@ -10,7 +10,7 @@ import formatter from "../../controllers/functions/formatNumbers.js";
 import { fytBold } from "../../models/TextStyle.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const customTemp = path.join(__dirname, "../../temp");
+const customTemp = path.join(__dirname, "../../tmp");
 
 process.env.TMPDIR = customTemp;
 process.env.TEMP = customTemp;
@@ -36,7 +36,11 @@ async function DL_TIKTOK_AUDIO(input) {
       const alyaUrl = `https://api.alyacore.xyz/search/tiktok?query=${encodeURIComponent(input)}&key=oboe`;
       const { data: alyaData } = await axios.get(alyaUrl, { timeout: 15000 });
 
-      if (alyaData.status && Array.isArray(alyaData.data) && alyaData.data.length > 0) {
+      if (
+        alyaData.status &&
+        Array.isArray(alyaData.data) &&
+        alyaData.data.length > 0
+      ) {
         targetUrl = alyaData.data[0].url;
       }
     }
@@ -46,32 +50,34 @@ async function DL_TIKTOK_AUDIO(input) {
     }
 
     const URL_TIKTOK = `https://www.tikwm.com/api/?url=${encodeURIComponent(targetUrl)}`;
-    const dateCreate = (ts) => new Date(Number(ts) * 1000).toLocaleDateString('es-ES');
-    
+    const dateCreate = (ts) =>
+      new Date(Number(ts) * 1000).toLocaleDateString("es-ES");
+
     const { data } = await axios.get(URL_TIKTOK, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json, text/plain, */*',
-        'Referer': 'https://www.tikwm.com/',
-        'Origin': 'https://www.tikwm.com'
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "application/json, text/plain, */*",
+        Referer: "https://www.tikwm.com/",
+        Origin: "https://www.tikwm.com",
       },
-      timeout: 15000
+      timeout: 15000,
     });
-    
+
     if (data.code === 0 && data.data && data.data.play) {
       const r = data.data;
       return {
         video_dl: r.play,
         cover: r.origin_cover,
         title: r.title || "Audio de TikTok",
-        authorNick: r.author?.nickname || 'Desconocido',
+        authorNick: r.author?.nickname || "Desconocido",
         likes: formatter(r.digg_count || 0),
         views: formatter(r.play_count || 0),
         shares: formatter(r.share_count || 0),
         collect: formatter(r.collect_count || 0),
         comments: formatter(r.comment_count || 0),
         time: dateCreate(r.create_time || 0),
-        tk_url: `https://www.tiktok.com/@${r.author.unique_id}/video/${r.id}`
+        tk_url: `https://www.tiktok.com/@${r.author.unique_id}/video/${r.id}`,
       };
     }
     throw new Error("No se pudieron extraer los datos del video con TikWM.");
@@ -83,8 +89,9 @@ async function DL_TIKTOK_AUDIO(input) {
 async function descargarAArchivo(url, destPath) {
   const response = await fetch(url, {
     headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-    }
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    },
   });
 
   if (!response.ok) {
@@ -95,15 +102,18 @@ async function descargarAArchivo(url, destPath) {
   await new Promise((resolve, reject) => {
     const reader = response.body.getReader();
     function pump() {
-      reader.read().then(({ done, value }) => {
-        if (done) {
-          fileStream.end();
-          resolve();
-          return;
-        }
-        fileStream.write(Buffer.from(value));
-        pump();
-      }).catch(reject);
+      reader
+        .read()
+        .then(({ done, value }) => {
+          if (done) {
+            fileStream.end();
+            resolve();
+            return;
+          }
+          fileStream.write(Buffer.from(value));
+          pump();
+        })
+        .catch(reject);
     }
     pump();
   });
@@ -113,7 +123,7 @@ async function processAudioFile(inputP, outP) {
   // Extrae el audio del video descargado y lo convierte a mp3 limpio con buen bitrate
   await execAsync(
     `ffmpeg -y -i "${inputP}" -vn -c:a libmp3lame -b:a 128k "${outP}"`,
-    { maxBuffer: 1024 * 1024 * 10 }
+    { maxBuffer: 1024 * 1024 * 10 },
   );
 }
 
@@ -122,8 +132,9 @@ const MAX_INPUT_MB = 500;
 export default {
   name: ["tka", "ttaudio", "tkmusic", "tiktokaudio", "tta"],
   category: "downloads",
-  description: "Descarga el audio de un video de TikTok manteniendo metadatos y formato de audio.",
-  
+  description:
+    "Descarga el audio de un video de TikTok manteniendo metadatos y formato de audio.",
+
   execute: async (socket, message, args) => {
     const remoteJid = message.key.remoteJid;
     const text = args.join(" ").trim();
@@ -137,15 +148,15 @@ export default {
         { quoted: message },
       );
     }
-    
+
     await socket.sendMessage(remoteJid, {
       react: { text: "⏳", key: message.key },
     });
 
-    const id = crypto.randomBytes(8).toString('hex');
+    const id = crypto.randomBytes(8).toString("hex");
     const inputP = path.join(tmp, `tta_in_${id}.mp4`);
     const outP = path.join(tmp, `tta_out_${id}.mp3`);
-    
+
     try {
       const result = await DL_TIKTOK_AUDIO(text);
 
@@ -154,12 +165,18 @@ export default {
       const sizeMB = fs.statSync(inputP).size / (1024 * 1024);
 
       if (sizeMB > MAX_INPUT_MB) {
-        await socket.sendMessage(remoteJid, { react: { text: "❌", key: message.key } });
-        try { fs.unlinkSync(inputP); } catch {}
+        await socket.sendMessage(remoteJid, {
+          react: { text: "❌", key: message.key },
+        });
+        try {
+          fs.unlinkSync(inputP);
+        } catch {}
         return await socket.sendMessage(
           remoteJid,
-          { text: `😦 ¡Mae ponete serio! 💀🙏\n Este video pesa más que una vieja de Kilos Mortales.` },
-          { quoted: message }
+          {
+            text: `😦 ¡Mae ponete serio! 💀🙏\n Este video pesa más que una vieja de Kilos Mortales.`,
+          },
+          { quoted: message },
         );
       }
 
@@ -170,22 +187,22 @@ export default {
       caption += `┃ ➥ ${fytBold(result.title)}\n\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ > ${fytBold("Autor")} › ${result.authorNick}\n`;
-      caption += `┃ > ${fytBold("Fecha")} › ${result.time}\n` 
+      caption += `┃ > ${fytBold("Fecha")} › ${result.time}\n`;
       caption += `┃ > ${fytBold("Vistas")} › ${result.views}\n`;
       caption += `┃ > ${fytBold("Likes")} › ${result.likes}\n`;
       caption += `┃ > ${fytBold("Comentarios")} › ${result.comments}\n`;
       caption += `┃ > ${fytBold("Favoritos")} › ${result.collect}\n`;
       caption += `┃ > ${fytBold("Compartidos")} › ${result.shares}\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
-      caption += `┃ > ${fytBold("Url")} › ${result.tk_url}\n`
+      caption += `┃ > ${fytBold("Url")} › ${result.tk_url}\n`;
       caption += `╰〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕⬣`;
-      
+
       // 1. Enviamos la imagen con los detalles completos
       await socket.sendMessage(
         remoteJid,
         {
           image: { url: result.cover },
-          caption: caption
+          caption: caption,
         },
         { quoted: message },
       );
@@ -196,12 +213,14 @@ export default {
         {
           audio: { url: outP },
           mimetype: "audio/mp4",
-          fileName: `${result.authorNick} - ${result.title}.mp3`.replace(/[/\\?%*:|"<>]/g, ''),
-          ptt: false
+          fileName: `${result.authorNick} - ${result.title}.mp3`.replace(
+            /[/\\?%*:|"<>]/g,
+            "",
+          ),
+          ptt: false,
         },
         { quoted: message },
       );
-
 
       await socket.sendMessage(remoteJid, {
         react: { text: "✅", key: message.key },
@@ -212,7 +231,10 @@ export default {
         react: { text: "❌", key: message.key },
       });
 
-      const errorMsg = error.message || JSON.stringify(error) || "Ocurrió un error inesperado.";
+      const errorMsg =
+        error.message ||
+        JSON.stringify(error) ||
+        "Ocurrió un error inesperado.";
 
       await socket.sendMessage(
         remoteJid,
@@ -222,8 +244,12 @@ export default {
         { quoted: message },
       );
     } finally {
-      try { if (fs.existsSync(inputP)) fs.unlinkSync(inputP); } catch {}
-      try { if (fs.existsSync(outP)) fs.unlinkSync(outP); } catch {}
+      try {
+        if (fs.existsSync(inputP)) fs.unlinkSync(inputP);
+      } catch {}
+      try {
+        if (fs.existsSync(outP)) fs.unlinkSync(outP);
+      } catch {}
     }
   },
 };

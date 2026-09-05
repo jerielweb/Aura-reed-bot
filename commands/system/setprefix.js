@@ -21,7 +21,8 @@ export default {
     }
 
     const input = args[0]?.toLowerCase();
-    const currentPrefix = db.groups?.[remoteJid]?.prefix || "Multiprefijo (. # / !)";
+    const currentPrefix =
+      db.groups?.[remoteJid]?.prefix || "Multiprefijo (. # / !)";
 
     // 1. Restablecer (reset) a multiprefijo
     if (["reset", "del", "delete", "off", "clear"].includes(input)) {
@@ -60,7 +61,8 @@ export default {
 
     // 🛑 4. VALIDACIÓN DE SEGURIDAD
     // 1 solo carácter, solo símbolos, pero PROHIBIDA la barra invertida (\)
-    const isValidPrefix = /^[^a-zA-Z0-9\s]{1}$/.test(newPrefix) && newPrefix !== "\\";
+    const isValidPrefix =
+      /^[^a-zA-Z0-9\s]{1}$/.test(newPrefix) && newPrefix !== "\\";
 
     if (!isValidPrefix) {
       let text = `╭〔 ⚠️  ${fytBold("AURA REED")} 〕⬣\n`;

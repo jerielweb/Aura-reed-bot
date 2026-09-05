@@ -17,7 +17,11 @@ export default {
       errorText += `┃ > Por favor, proporciona un\n`;
       errorText += `┃ > enlace de Twitter\n\n`;
       errorText += `╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`;
-      return socket.sendMessage(remoteJid, { text: errorText }, { quoted: message });
+      return socket.sendMessage(
+        remoteJid,
+        { text: errorText },
+        { quoted: message },
+      );
     }
     if (!text.includes("x.com")) {
       let text = `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n`;
@@ -41,8 +45,14 @@ export default {
       const { data: res } = await axios.get(apiUrl);
 
       if (!res || !res.status || !res.data) {
-        await socket.sendMessage(remoteJid, { react: { text: "❌", key: message.key } });
-        return socket.sendMessage(remoteJid, { text: "❌ No se pudo obtener el contenido. Verifica el enlace." }, { quoted: message });
+        await socket.sendMessage(remoteJid, {
+          react: { text: "❌", key: message.key },
+        });
+        return socket.sendMessage(
+          remoteJid,
+          { text: "❌ No se pudo obtener el contenido. Verifica el enlace." },
+          { quoted: message },
+        );
       }
 
       const { type, result, thumbnail } = res.data;
@@ -57,12 +67,13 @@ export default {
 
         const bestVideo = sortedVideos[0];
 
-        await socket.sendMessage(remoteJid,
+        await socket.sendMessage(
+          remoteJid,
           {
             video: { url: bestVideo.url },
-            caption: `⬣〔 ${fytBold('TWITTER DOWNLOAD')} 〕⬣`,
+            caption: `⬣〔 ${fytBold("TWITTER DOWNLOAD")} 〕⬣`,
           },
-          { quoted: message }
+          { quoted: message },
         );
 
         // ✅ Reacción de éxito
@@ -72,15 +83,24 @@ export default {
       }
 
       // Si es una imagen
-      if (type === "image" || (typeof result === "string" && result.match(/\.(jpg|jpeg|png|webp)/i))) {
-        const imageUrl = typeof result === "string" ? result : (Array.isArray(result) ? result[0]?.url || result[0] : thumbnail);
+      if (
+        type === "image" ||
+        (typeof result === "string" && result.match(/\.(jpg|jpeg|png|webp)/i))
+      ) {
+        const imageUrl =
+          typeof result === "string"
+            ? result
+            : Array.isArray(result)
+              ? result[0]?.url || result[0]
+              : thumbnail;
 
-        await socket.sendMessage(remoteJid,
+        await socket.sendMessage(
+          remoteJid,
           {
             image: { url: imageUrl },
-            caption: `⬣〔 ${fytBold('TWITTER DOWNLOAD')} 〕⬣`,
+            caption: `⬣〔 ${fytBold("TWITTER DOWNLOAD")} 〕⬣`,
           },
-          { quoted: message }
+          { quoted: message },
         );
 
         // ✅ Reacción de éxito
@@ -98,9 +118,9 @@ export default {
           remoteJid,
           {
             [isVid ? "video" : "image"]: { url: mediaUrl },
-            caption: `⬣〔 ${fytBold('TWITTER DOWNLOAD')} 〕⬣`,
+            caption: `⬣〔 ${fytBold("TWITTER DOWNLOAD")} 〕⬣`,
           },
-          { quoted: message }
+          { quoted: message },
         );
 
         // ✅ Reacción de éxito
@@ -109,13 +129,24 @@ export default {
         });
       }
 
-      await socket.sendMessage(remoteJid, { react: { text: "❌", key: message.key } });
-      return socket.sendMessage(remoteJid, { text: "❌ No se encontró ningún medio descargable en esa URL." }, { quoted: message });
-
+      await socket.sendMessage(remoteJid, {
+        react: { text: "❌", key: message.key },
+      });
+      return socket.sendMessage(
+        remoteJid,
+        { text: "❌ No se encontró ningún medio descargable en esa URL." },
+        { quoted: message },
+      );
     } catch (error) {
       console.error("[TWITTER CMD ERROR]:", error);
-      await socket.sendMessage(remoteJid, { react: { text: "❌", key: message.key } });
-      return socket.sendMessage(remoteJid, { text: "❌ Ocurrió un error al procesar la solicitud." }, { quoted: message });
+      await socket.sendMessage(remoteJid, {
+        react: { text: "❌", key: message.key },
+      });
+      return socket.sendMessage(
+        remoteJid,
+        { text: "❌ Ocurrió un error al procesar la solicitud." },
+        { quoted: message },
+      );
     }
   },
 };

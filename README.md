@@ -15,7 +15,6 @@ Aura Reed Bot es un bot de WhatsApp con comandos de entretenimiento, administrac
 - Versatil
 - Estable y rapido
 
-
 ## 🧱 Requisitos
 
 - Version de nodeJS mayor a 22 o superior
@@ -56,7 +55,6 @@ aura-reed-bot/
 - [𝕱𝖊𝖗𝖓𝖆𝖓𝖉𝖔](https://github.com/Fer2809fl)
 - [Jeriel](https://github.com/jerielweb)
 - [DuarteXV](https://github.com/DuarteXV)
-
 
 ## 📄 Licencia
 

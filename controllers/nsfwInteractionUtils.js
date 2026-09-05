@@ -159,12 +159,11 @@ async function ensureMp4(inputPath) {
   }
 
   console.log(chalk.gray(`[NSFW FFmpeg] Convirtiendo ${ext} → MP4 ...`));
-  await ffmpegSemaphore.run(
-    () =>
-      execAsync(
-        `"${ffmpegStatic}" -y -i "${inputPath}" -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -an "${mp4Path}"`,
-        { maxBuffer: 1024 * 1024 * 10 }
-      )
+  await ffmpegSemaphore.run(() =>
+    execAsync(
+      `"${ffmpegStatic}" -y -i "${inputPath}" -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -an "${mp4Path}"`,
+      { maxBuffer: 1024 * 1024 * 10 },
+    ),
   );
 
   return mp4Path;

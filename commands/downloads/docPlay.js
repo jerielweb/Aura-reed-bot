@@ -19,9 +19,18 @@ function extractVideoId(url) {
 }
 
 export default {
-  name: ["ytdmp3", "docplay", "docplayaudio", "dmp3", "dyta", "docaudio", "play doc"],
+  name: [
+    "ytdmp3",
+    "docplay",
+    "docplayaudio",
+    "dmp3",
+    "dyta",
+    "docaudio",
+    "play doc",
+  ],
   category: "downloads",
-  description: "Busca y descarga audio de YouTube como documento usando API externa",
+  description:
+    "Busca y descarga audio de YouTube como documento usando API externa",
   execute: async (socket, message, args) => {
     const remoteJid = message.key.remoteJid;
     const text = args.join(" ").trim();
@@ -46,7 +55,8 @@ export default {
 
       if (!YT_REGEX.test(text)) {
         const search = await yts(text);
-        if (!search.videos?.length) throw new Error("No se encontró ningún video.");
+        if (!search.videos?.length)
+          throw new Error("No se encontró ningún video.");
         videoData = search.videos[0];
         finalUrl = videoData.url;
       } else {
@@ -57,7 +67,9 @@ export default {
       }
 
       // Solicitud a la API externa de Alyacore
-      const apiResponse = await axios.get(`https://api.alyacore.xyz/dl/fastytmp3?url=${encodeURIComponent(finalUrl)}&key=oboe`);
+      const apiResponse = await axios.get(
+        `https://api.alyacore.xyz/dl/fastytmp3?url=${encodeURIComponent(finalUrl)}&key=oboe`,
+      );
       const res = apiResponse.data;
 
       if (!res || !res.status || !res.data || !res.data.dl) {
@@ -66,10 +78,15 @@ export default {
 
       const title = videoData.title || res.data.title || "Video de YouTube";
       const author = videoData.author?.name || res.data.author || "Desconocido";
-      const duration = videoData.duration?.timestamp || res.data.duration || "??";
+      const duration =
+        videoData.duration?.timestamp || res.data.duration || "??";
       const views = typeof videoData.views === "number" ? videoData.views : 0;
       const ytURL = `https://youtu.be/${videoData.videoId || extractVideoId(finalUrl)}`;
-      const thumbnail = videoData.thumbnail || videoData.image || res.data.thumbnail || `https://i.ytimg.com/vi/${extractVideoId(finalUrl)}/hqdefault.jpg`;
+      const thumbnail =
+        videoData.thumbnail ||
+        videoData.image ||
+        res.data.thumbnail ||
+        `https://i.ytimg.com/vi/${extractVideoId(finalUrl)}/hqdefault.jpg`;
       const audioUrl = res.data.dl;
 
       let caption = `╭〔 🎵 ${fytBold("YOUTUBE PLAY")} 〕━⬣\n\n`;
@@ -94,9 +111,10 @@ export default {
       const audio = await axios.get(audioUrl, {
         responseType: "arraybuffer",
         headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          "Referer": "https://www.youtube.com/"
-        }
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          Referer: "https://www.youtube.com/",
+        },
       });
       const audioBuffer = Buffer.from(audio.data);
 

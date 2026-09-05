@@ -65,9 +65,7 @@ export default {
 
     // 2. Manejo de texto puro (escrito en el comando o citado)
     const quotedText =
-      quotedMsg?.conversation ||
-      quotedMsg?.extendedTextMessage?.text ||
-      "";
+      quotedMsg?.conversation || quotedMsg?.extendedTextMessage?.text || "";
 
     const finalText = customText || quotedText;
 

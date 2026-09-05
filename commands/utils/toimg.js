@@ -11,7 +11,10 @@ import { ffmpegSemaphore } from "../../controllers/downloadUtils.js";
 
 const execAsync = promisify(exec);
 
-const customTemp = path.join(path.dirname(new URL(import.meta.url).pathname), "../../temp");
+const customTemp = path.join(
+  path.dirname(new URL(import.meta.url).pathname),
+  "../../temp",
+);
 if (!fs.existsSync(customTemp)) fs.mkdirSync(customTemp, { recursive: true });
 
 async function convertWebpToGif(buffer) {
@@ -21,12 +24,11 @@ async function convertWebpToGif(buffer) {
 
   await fs.promises.writeFile(tempIn, buffer);
 
-  await ffmpegSemaphore.run(
-    () =>
-      execAsync(
-        `"${ffmpegStatic}" -y -i "${tempIn}" -filter_complex "fps=15" -loop 0 -f gif "${tempOut}"`,
-        { maxBuffer: 1024 * 1024 * 10 }
-      )
+  await ffmpegSemaphore.run(() =>
+    execAsync(
+      `"${ffmpegStatic}" -y -i "${tempIn}" -filter_complex "fps=15" -loop 0 -f gif "${tempOut}"`,
+      { maxBuffer: 1024 * 1024 * 10 },
+    ),
   );
 
   const gifBuffer = await fs.promises.readFile(tempOut);

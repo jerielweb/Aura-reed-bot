@@ -14,21 +14,14 @@ const pendingMetadataRequests = new Map();
 function normalizeToJid(phone) {
   if (!phone) return null;
 
-  if (
-    typeof phone === "string" &&
-    phone.endsWith("@lid")
-  ) {
+  if (typeof phone === "string" && phone.endsWith("@lid")) {
     return null;
   }
 
   const base =
-    typeof phone === "number"
-      ? phone.toString()
-      : phone.replace(/\D/g, "");
+    typeof phone === "number" ? phone.toString() : phone.replace(/\D/g, "");
 
-  return base
-    ? `${base}@s.whatsapp.net`
-    : null;
+  return base ? `${base}@s.whatsapp.net` : null;
 }
 
 /**
@@ -46,62 +39,39 @@ function normalizeToJid(phone) {
  * Compartida entre resolveLidToRealJid y resolveToLid
  * para no duplicar la lógica de fetch/cache.
  */
-async function getCachedGroupMetadata(
-  client,
-  remoteJid,
-) {
-  const cached =
-    groupMetadataCache.get(remoteJid);
+async function getCachedGroupMetadata(client, remoteJid) {
+  const cached = groupMetadataCache.get(remoteJid);
 
-  if (
-    cached &&
-    Date.now() - cached.timestamp <= metadataTTL
-  ) {
+  if (cached && Date.now() - cached.timestamp <= metadataTTL) {
     return cached.metadata;
   }
 
-  if (
-    pendingMetadataRequests.has(remoteJid)
-  ) {
-    return await pendingMetadataRequests.get(
-      remoteJid,
-    );
+  if (pendingMetadataRequests.has(remoteJid)) {
+    return await pendingMetadataRequests.get(remoteJid);
   }
 
-  const fetchPromise =
-    (async () => {
-      try {
-        const res =
-          await client.groupMetadata(
-            remoteJid,
-          );
+  const fetchPromise = (async () => {
+    try {
+      const res = await client.groupMetadata(remoteJid);
 
-        groupMetadataCache.set(
-          remoteJid,
-          {
-            metadata: res,
-            timestamp: Date.now(),
-          },
-        );
+      groupMetadataCache.set(remoteJid, {
+        metadata: res,
+        timestamp: Date.now(),
+      });
 
-        return res;
-      } catch (error) {
-        if (cached?.metadata) {
-          return cached.metadata;
-        }
-
-        throw error;
-      } finally {
-        pendingMetadataRequests.delete(
-          remoteJid,
-        );
+      return res;
+    } catch (error) {
+      if (cached?.metadata) {
+        return cached.metadata;
       }
-    })();
 
-  pendingMetadataRequests.set(
-    remoteJid,
-    fetchPromise,
-  );
+      throw error;
+    } finally {
+      pendingMetadataRequests.delete(remoteJid);
+    }
+  })();
+
+  pendingMetadataRequests.set(remoteJid, fetchPromise);
 
   try {
     return await fetchPromise;
@@ -128,24 +98,16 @@ async function getCachedGroupMetadata(
  *    y devolver su id si es @lid).
  * 5. Fallback: jid real normalizado (no se pudo mapear a LID).
  */
-export async function resolveToLid(
-  id,
-  client,
-  remoteJid,
-) {
+export async function resolveToLid(id, client, remoteJid) {
   const input = id?.toString().trim();
 
   if (!input) {
     return input;
   }
 
-  const base = input
-    .split("@")[0]
-    .split(":")[0];
+  const base = input.split("@")[0].split(":")[0];
 
-  const isLid =
-    input.endsWith("@lid") ||
-    input.includes("@hosted.lid");
+  const isLid = input.endsWith("@lid") || input.includes("@hosted.lid");
 
   /*
    * Ya es LID: solo limpiar sufijo de dispositivo.
@@ -167,20 +129,14 @@ export async function resolveToLid(
    * ============================================================
    */
 
-  if (
-    client?.signalRepository?.lidMapping?.getLIDForPN
-  ) {
+  if (client?.signalRepository?.lidMapping?.getLIDForPN) {
     try {
       const pn = `${base}@s.whatsapp.net`;
 
-      const lid =
-        await client.signalRepository
-          .lidMapping
-          .getLIDForPN(pn);
+      const lid = await client.signalRepository.lidMapping.getLIDForPN(pn);
 
       if (lid) {
-        const cleanLid =
-          `${lid.split("@")[0].split(":")[0]}@lid`;
+        const cleanLid = `${lid.split("@")[0].split(":")[0]}@lid`;
 
         lidCache.set(cacheKey, cleanLid);
 
@@ -200,47 +156,27 @@ export async function resolveToLid(
    * ============================================================
    */
 
-  const isGroup =
-    remoteJid?.endsWith("@g.us");
+  const isGroup = remoteJid?.endsWith("@g.us");
 
   if (isGroup) {
     let metadata;
 
     try {
-      metadata =
-        await getCachedGroupMetadata(
-          client,
-          remoteJid,
-        );
+      metadata = await getCachedGroupMetadata(client, remoteJid);
     } catch (e) {
-      console.error(
-        "[resolveToLid] Error obteniendo metadata del grupo:",
-        e,
-      );
+      console.error("[resolveToLid] Error obteniendo metadata del grupo:", e);
     }
 
-    for (
-      const p of metadata?.participants || []
-    ) {
-      const pJidBase =
-        p?.jid
-          ?.split("@")[0]
-          ?.split(":")[0];
+    for (const p of metadata?.participants || []) {
+      const pJidBase = p?.jid?.split("@")[0]?.split(":")[0];
 
-      const pPhoneBase =
-        p?.phoneNumber
-          ?.toString()
-          .replace(/\D/g, "");
+      const pPhoneBase = p?.phoneNumber?.toString().replace(/\D/g, "");
 
       const matches =
-        (pJidBase && pJidBase === base) ||
-        (pPhoneBase && pPhoneBase === base);
+        (pJidBase && pJidBase === base) || (pPhoneBase && pPhoneBase === base);
 
       if (matches && p?.id?.endsWith("@lid")) {
-        const cleanLid =
-          `${p.id
-            .split("@")[0]
-            .split(":")[0]}@lid`;
+        const cleanLid = `${p.id.split("@")[0].split(":")[0]}@lid`;
 
         lidCache.set(cacheKey, cleanLid);
 
@@ -258,31 +194,23 @@ export async function resolveToLid(
    * participante no tiene LID registrado todavía).
    */
 
-  const fallback =
-    `${base}@s.whatsapp.net`;
+  const fallback = `${base}@s.whatsapp.net`;
 
   lidCache.set(cacheKey, fallback);
 
   return fallback;
 }
 
-export async function resolveLidToRealJid(
-  lid,
-  client,
-  remoteJid,
-) {
+export async function resolveLidToRealJid(lid, client, remoteJid) {
   const input = lid?.toString().trim();
 
   if (!input) {
     return input;
   }
 
-  const isGroup =
-    remoteJid?.endsWith("@g.us");
+  const isGroup = remoteJid?.endsWith("@g.us");
 
-  const isLid =
-    input.endsWith("@lid") ||
-    input.includes("@hosted.lid");
+  const isLid = input.endsWith("@lid") || input.includes("@hosted.lid");
 
   /*
    * ============================================================
@@ -291,9 +219,7 @@ export async function resolveLidToRealJid(
    */
 
   if (!isLid) {
-    const base = input
-      .split("@")[0]
-      .split(":")[0];
+    const base = input.split("@")[0].split(":")[0];
 
     if (!base) {
       return input;
@@ -318,31 +244,20 @@ export async function resolveLidToRealJid(
    * ============================================================
    */
 
-  if (
-    client?.signalRepository?.lidMapping?.getPNForLID
-  ) {
+  if (client?.signalRepository?.lidMapping?.getPNForLID) {
     try {
-      const cleanLid =
-        `${input.split("@")[0].split(":")[0]}@lid`;
+      const cleanLid = `${input.split("@")[0].split(":")[0]}@lid`;
 
-      const pn =
-        await client.signalRepository
-          .lidMapping
-          .getPNForLID(cleanLid);
+      const pn = await client.signalRepository.lidMapping.getPNForLID(cleanLid);
 
       if (pn) {
-        const resolvedJid =
-          pn.split(":")[0];
+        const resolvedJid = pn.split(":")[0];
 
-        const resolvedNormalized =
-          resolvedJid.endsWith("@s.whatsapp.net")
-            ? resolvedJid
-            : `${resolvedJid}@s.whatsapp.net`;
+        const resolvedNormalized = resolvedJid.endsWith("@s.whatsapp.net")
+          ? resolvedJid
+          : `${resolvedJid}@s.whatsapp.net`;
 
-        lidCache.set(
-          input,
-          resolvedNormalized,
-        );
+        lidCache.set(input, resolvedNormalized);
 
         return resolvedNormalized;
       }
@@ -364,9 +279,7 @@ export async function resolveLidToRealJid(
    */
 
   if (!isGroup) {
-    return `${input
-      .split("@")[0]
-      .split(":")[0]}@lid`;
+    return `${input.split("@")[0].split(":")[0]}@lid`;
   }
 
   /*
@@ -375,15 +288,11 @@ export async function resolveLidToRealJid(
    * ============================================================
    */
 
-  if (
-    input.endsWith("@s.whatsapp.net") &&
-    !input.includes(":")
-  ) {
+  if (input.endsWith("@s.whatsapp.net") && !input.includes(":")) {
     return input;
   }
 
-  const cached =
-    groupMetadataCache.get(remoteJid);
+  const cached = groupMetadataCache.get(remoteJid);
 
   let metadata;
 
@@ -393,65 +302,42 @@ export async function resolveLidToRealJid(
    * ============================================================
    */
 
-  if (
-    !cached ||
-    Date.now() - cached.timestamp > metadataTTL
-  ) {
+  if (!cached || Date.now() - cached.timestamp > metadataTTL) {
     /*
      * Evitar varias solicitudes simultáneas
      * de metadata para el mismo grupo.
      */
 
-    if (
-      pendingMetadataRequests.has(remoteJid)
-    ) {
-      metadata =
-        await pendingMetadataRequests.get(
-          remoteJid,
-        );
+    if (pendingMetadataRequests.has(remoteJid)) {
+      metadata = await pendingMetadataRequests.get(remoteJid);
     } else {
-      const fetchPromise =
-        (async () => {
-          try {
-            const res =
-              await client.groupMetadata(
-                remoteJid,
-              );
+      const fetchPromise = (async () => {
+        try {
+          const res = await client.groupMetadata(remoteJid);
 
-            groupMetadataCache.set(
-              remoteJid,
-              {
-                metadata: res,
-                timestamp: Date.now(),
-              },
-            );
+          groupMetadataCache.set(remoteJid, {
+            metadata: res,
+            timestamp: Date.now(),
+          });
 
-            return res;
-          } catch (error) {
-            if (cached?.metadata) {
-              return cached.metadata;
-            }
-
-            throw error;
-          } finally {
-            pendingMetadataRequests.delete(
-              remoteJid,
-            );
+          return res;
+        } catch (error) {
+          if (cached?.metadata) {
+            return cached.metadata;
           }
-        })();
 
-      pendingMetadataRequests.set(
-        remoteJid,
-        fetchPromise,
-      );
+          throw error;
+        } finally {
+          pendingMetadataRequests.delete(remoteJid);
+        }
+      })();
+
+      pendingMetadataRequests.set(remoteJid, fetchPromise);
 
       try {
-        metadata =
-          await fetchPromise;
+        metadata = await fetchPromise;
       } catch {
-        return `${input
-          .split("@")[0]
-          .split(":")[0]}@lid`;
+        return `${input.split("@")[0].split(":")[0]}@lid`;
       }
     }
   } else {
@@ -459,9 +345,7 @@ export async function resolveLidToRealJid(
   }
 
   if (!metadata) {
-    return `${input
-      .split("@")[0]
-      .split(":")[0]}@lid`;
+    return `${input.split("@")[0].split(":")[0]}@lid`;
   }
 
   /*
@@ -470,57 +354,35 @@ export async function resolveLidToRealJid(
    * ============================================================
    */
 
-  const lidBase =
-    input
-      .split("@")[0]
-      .split(":")[0];
+  const lidBase = input.split("@")[0].split(":")[0];
 
-  for (
-    const p of metadata.participants || []
-  ) {
-    const pIdBase =
-      p?.id
-        ?.split("@")[0]
-        ?.split(":")[0];
+  for (const p of metadata.participants || []) {
+    const pIdBase = p?.id?.split("@")[0]?.split(":")[0];
 
-    const pJidBase =
-      p?.jid
-        ?.split("@")[0]
-        ?.split(":")[0];
+    const pJidBase = p?.jid?.split("@")[0]?.split(":")[0];
 
     /*
      * Intentar obtener el número real.
      */
 
     const phone =
-      normalizeToJid(
-        p?.phoneNumber,
-      ) ||
-      (
-        pJidBase &&
-        !p?.jid?.endsWith("@lid")
-          ? `${pJidBase}@s.whatsapp.net`
-          : null
-      );
+      normalizeToJid(p?.phoneNumber) ||
+      (pJidBase && !p?.jid?.endsWith("@lid")
+        ? `${pJidBase}@s.whatsapp.net`
+        : null);
 
     /*
      * Encontramos al participante.
      */
 
-    if (
-      pIdBase === lidBase ||
-      pJidBase === lidBase
-    ) {
+    if (pIdBase === lidBase || pJidBase === lidBase) {
       /*
        * Si tenemos teléfono real,
        * guardarlo en cache.
        */
 
       if (phone) {
-        lidCache.set(
-          input,
-          phone,
-        );
+        lidCache.set(input, phone);
 
         return phone;
       }
@@ -534,25 +396,16 @@ export async function resolveLidToRealJid(
        * sí posee un LID válido, conservar ese LID.
        */
 
-      const fallbackLid =
-        p?.id?.endsWith("@lid")
-          ? p.id
-          : (
-              p?.jid?.endsWith("@lid")
-                ? p.jid
-                : null
-            );
+      const fallbackLid = p?.id?.endsWith("@lid")
+        ? p.id
+        : p?.jid?.endsWith("@lid")
+          ? p.jid
+          : null;
 
       if (fallbackLid) {
-        const cleanFallback =
-          `${fallbackLid
-            .split("@")[0]
-            .split(":")[0]}@lid`;
+        const cleanFallback = `${fallbackLid.split("@")[0].split(":")[0]}@lid`;
 
-        lidCache.set(
-          input,
-          cleanFallback,
-        );
+        lidCache.set(input, cleanFallback);
 
         return cleanFallback;
       }
@@ -565,8 +418,7 @@ export async function resolveLidToRealJid(
    * ============================================================
    */
 
-  const cleanInput =
-    `${lidBase}@lid`;
+  const cleanInput = `${lidBase}@lid`;
 
   return cleanInput;
 }
@@ -584,13 +436,9 @@ export function clearLidCache() {
 /**
  * Limpia metadata cacheada de un grupo específico.
  */
-export function clearGroupMetadataCache(
-  remoteJid,
-) {
+export function clearGroupMetadataCache(remoteJid) {
   if (remoteJid) {
-    groupMetadataCache.delete(
-      remoteJid,
-    );
+    groupMetadataCache.delete(remoteJid);
   }
 }
 
@@ -656,9 +504,6 @@ export const fyt = (texto) => {
 
   return texto
     .split("")
-    .map(
-      (letra) =>
-        mapa[letra] || letra,
-    )
+    .map((letra) => mapa[letra] || letra)
     .join("");
 };

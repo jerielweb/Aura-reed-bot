@@ -91,7 +91,7 @@ export default {
 
       // Limitado a 5 para mantener el álbum estable sin sobrecargar el servidor
       const items = res.data.slice(0, 10);
-      
+
       let captionText = `╭━━〔 ${fytBold("PINTEREST SEARCH")} 〕━━⬣\n`;
       captionText += `┃ 🔍 Pin: ${query}\n`;
       captionText += `┃ ⚙️ Motor: › Alya Core\n`;
@@ -99,7 +99,11 @@ export default {
 
       const mediaArray = items
         .map((item) => {
-          const url = item.hd || item.mini || item.image || (typeof item === 'string' ? item : "");
+          const url =
+            item.hd ||
+            item.mini ||
+            item.image ||
+            (typeof item === "string" ? item : "");
           return { url };
         })
         .filter((m) => m.url && m.url.startsWith("http"));
@@ -114,10 +118,14 @@ export default {
       }));
 
       if (album.length < 2) {
-        await socket.sendMessage(remoteJid, {
-          image: { url: album[0].image.url },
-          caption: captionText
-        }, { quoted: message });
+        await socket.sendMessage(
+          remoteJid,
+          {
+            image: { url: album[0].image.url },
+            caption: captionText,
+          },
+          { quoted: message },
+        );
       } else {
         await sendAlbumMessage(socket, remoteJid, album, message);
       }
@@ -130,10 +138,12 @@ export default {
       await socket.sendMessage(remoteJid, {
         react: { text: "❌", key: message.key },
       });
-      
-      const isRateLimit = error.message.includes("429") || error.message.includes("rate-overlimit");
-      const errorMsg = isRateLimit 
-        ? "El servicio de Pinterest está saturado temporalmente." 
+
+      const isRateLimit =
+        error.message.includes("429") ||
+        error.message.includes("rate-overlimit");
+      const errorMsg = isRateLimit
+        ? "El servicio de Pinterest está saturado temporalmente."
         : `No se encontraron resultados para "${query}".`;
 
       await socket.sendMessage(

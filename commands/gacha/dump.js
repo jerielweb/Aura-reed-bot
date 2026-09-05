@@ -5,7 +5,8 @@ import { makeGachaCtx } from "../../models/gachaCtx.js";
 export default {
   name: ["dump", "dumpear", "deshacer"],
   category: "gacha",
-  description: "🗑️ Elimina un personaje de tu harem a cambio de dinero. .dump <número> | .dump all",
+  description:
+    "🗑️ Elimina un personaje de tu harem a cambio de dinero. .dump <número> | .dump all",
   execute: async (socket, message, args, extra) => {
     const ctx = makeGachaCtx(socket, message, args, extra);
     const argsStr = ctx.args.join(" ").trim().toLowerCase();
@@ -13,7 +14,15 @@ export default {
 
     const harem = gacha.getUserHarem(userId);
     if (harem.length === 0) {
-      await ctx.reply(box("🗑️", "DUMP", "Tu harem está vacío...", [], "No tienes personajes."));
+      await ctx.reply(
+        box(
+          "🗑️",
+          "DUMP",
+          "Tu harem está vacío...",
+          [],
+          "No tienes personajes.",
+        ),
+      );
       return;
     }
 
@@ -38,7 +47,15 @@ export default {
       }
 
       if (vendidos === 0) {
-        await ctx.reply(box("🗑️", "DUMP", "No se pudo eliminar nada...", errors.length ? errors : [], "Revisa tu harem."));
+        await ctx.reply(
+          box(
+            "🗑️",
+            "DUMP",
+            "No se pudo eliminar nada...",
+            errors.length ? errors : [],
+            "Revisa tu harem.",
+          ),
+        );
         return;
       }
 
@@ -47,38 +64,74 @@ export default {
       const lines = [`💰 Recuperaste: *${totalGanancia.toLocaleString()} ¥*`];
       if (errors.length) lines.push(...errors.map((e) => `⚠️ ${e}`));
 
-      await ctx.reply(box("🗑️", "DUMP MASIVO", `${vendidos} personaje(s) eliminado(s)`, lines, `💵 Se agregaron *${totalGanancia.toLocaleString()} ¥* a tu billetera.`));
+      await ctx.reply(
+        box(
+          "🗑️",
+          "DUMP MASIVO",
+          `${vendidos} personaje(s) eliminado(s)`,
+          lines,
+          `💵 Se agregaron *${totalGanancia.toLocaleString()} ¥* a tu billetera.`,
+        ),
+      );
       return;
     }
 
     const num = parseInt(argsStr);
     if (isNaN(num) || num < 1 || num > harem.length) {
-      const fields = harem.slice(0, 10).map((c, i) => `${i + 1}. *${c.name}* — 💴 ${c.value.toLocaleString()} ¥`);
+      const fields = harem
+        .slice(0, 10)
+        .map(
+          (c, i) => `${i + 1}. *${c.name}* — 💴 ${c.value.toLocaleString()} ¥`,
+        );
       if (harem.length > 10) fields.push(`...y ${harem.length - 10} más`);
 
-      await ctx.reply(box("🗑️", "DUMP", "Uso:", [
-        `• *.dump <número>* — Eliminar por dinero`,
-        `• *.dump all* — Eliminar TODOS (excepto fav)`,
-        ``,
-        `📋 Tus personajes:`,
-        ...fields,
-      ], `💰 Recibirás entre 50%-70% del valor.`));
+      await ctx.reply(
+        box(
+          "🗑️",
+          "DUMP",
+          "Uso:",
+          [
+            `• *.dump <número>* — Eliminar por dinero`,
+            `• *.dump all* — Eliminar TODOS (excepto fav)`,
+            ``,
+            `📋 Tus personajes:`,
+            ...fields,
+          ],
+          `💰 Recibirás entre 50%-70% del valor.`,
+        ),
+      );
       return;
     }
 
     const fav = gacha.getFavorite(userId);
     const char = harem[num - 1];
     if (fav && char.id === fav.id) {
-      await ctx.reply(box("⚠️", "DUMP", `No puedes eliminar a tu favorito 💔`, [], "Usa *.fav remove* primero."));
+      await ctx.reply(
+        box(
+          "⚠️",
+          "DUMP",
+          `No puedes eliminar a tu favorito 💔`,
+          [],
+          "Usa *.fav remove* primero.",
+        ),
+      );
       return;
     }
 
     const price = gacha.sellCharacter(userId, char.id);
     ctx.addCoins(price);
 
-    await ctx.reply(box("🗑️", "DUMP COMPLETADO", `*${char.name}* eliminado`, [
-      `📖SERIE › ${char.series}`,
-      `💰 RECIBISTE › *${price.toLocaleString()} ¥*`,
-    ], `💵 Tienes ${gacha.getUserHaremCount(userId)} personajes restantes.`));
+    await ctx.reply(
+      box(
+        "🗑️",
+        "DUMP COMPLETADO",
+        `*${char.name}* eliminado`,
+        [
+          `📖SERIE › ${char.series}`,
+          `💰 RECIBISTE › *${price.toLocaleString()} ¥*`,
+        ],
+        `💵 Tienes ${gacha.getUserHaremCount(userId)} personajes restantes.`,
+      ),
+    );
   },
 };

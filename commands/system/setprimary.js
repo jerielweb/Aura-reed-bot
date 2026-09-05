@@ -3,7 +3,10 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { fytBold } from "./../../models/TextStyle.js";
 
-const ROOT_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const ROOT_DIR = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../..",
+);
 const subbotsJsonPath = path.join(ROOT_DIR, "database", "subbots.json");
 
 export default {
@@ -27,7 +30,8 @@ export default {
     }
 
     // Limpia cualquier JID o ID dejando únicamente los dígitos del número telefónico
-    const cleanNum = (jid) => (jid ? String(jid).split("@")[0].split(":")[0].replace(/\D/g, "") : null);
+    const cleanNum = (jid) =>
+      jid ? String(jid).split("@")[0].split(":")[0].replace(/\D/g, "") : null;
 
     const subCommand = args[0]?.toLowerCase();
     db.groups = db.groups || {};
@@ -113,7 +117,8 @@ export default {
     let globalBots = { mainBot: null, subbots: {} };
     if (fs.existsSync(subbotsJsonPath)) {
       try {
-        globalBots = JSON.parse(fs.readFileSync(subbotsJsonPath, "utf-8")) || globalBots;
+        globalBots =
+          JSON.parse(fs.readFileSync(subbotsJsonPath, "utf-8")) || globalBots;
       } catch {}
     }
 

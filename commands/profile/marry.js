@@ -41,7 +41,8 @@ export default {
 
     const userLid = await resolveToLid(jidRemitente, socket, remoteJid);
     const group = ensureGroup(db, remoteJid);
-    const user = getProfileUser(db, remoteJid, userLid);
+    const userJid = await resolveLidToRealJid(userLid, socket, remoteJid);
+    const user = getProfileUser(db, remoteJid, userJid);
     let targetLid = await resolveTargetFromMessage(message, socket, remoteJid);
     const pending = getMarriagePending(group);
 
@@ -78,7 +79,8 @@ export default {
       return await socket.sendMessage(remoteJid, { text }, { quoted: message });
     }
 
-    const partner = getProfileUser(db, remoteJid, targetLid);
+    const targetJid = await resolveLidToRealJid(targetLid, socket, remoteJid);
+    const partner = getProfileUser(db, remoteJid, targetJid);
 
     if (pending && pending.to === userLid && pending.from === targetLid) {
       if (pending.type !== "marry") {
@@ -114,7 +116,11 @@ export default {
       if (typeof saveDB === "function") saveDB(db);
 
       const userRealJid = await resolveLidToRealJid(userLid, socket, remoteJid);
-      const targetRealJid = await resolveLidToRealJid(targetLid, socket, remoteJid);
+      const targetRealJid = await resolveLidToRealJid(
+        targetLid,
+        socket,
+        remoteJid,
+      );
 
       let text = `╭〔 💍 ${fytBold("MATRIMONIO")} 〕⬣\n`;
       text += `┃ 💕 ¡${fytBold("CONFIRMADO")}!\n`;
@@ -133,7 +139,11 @@ export default {
     if (pending && pending.from === userLid) {
       if (pending.type === "marry") {
         const left = formatTimeLeft(pending.expiresAt);
-        const pendingToReal = await resolveLidToRealJid(pending.to, socket, remoteJid);
+        const pendingToReal = await resolveLidToRealJid(
+          pending.to,
+          socket,
+          remoteJid,
+        );
         let text = `╭〔 ⏳ ${fytBold("SOLICITUD PENDIENTE")} 〕⬣\n\n`;
         text += `┃ > Ya enviaste una solicitud de matrimonio.\n`;
         text += `┃ > Espera que @${pendingToReal.split("@")[0]} confirme con *${prefix}marry*.\n`;
@@ -147,13 +157,13 @@ export default {
       }
     }
 
-    if (
-      pending &&
-      pending.from !== userLid &&
-      pending.to !== userLid
-    ) {
+    if (pending && pending.from !== userLid && pending.to !== userLid) {
       const left = formatTimeLeft(pending.expiresAt);
-      const fromReal = await resolveLidToRealJid(pending.from, socket, remoteJid);
+      const fromReal = await resolveLidToRealJid(
+        pending.from,
+        socket,
+        remoteJid,
+      );
       const toReal = await resolveLidToRealJid(pending.to, socket, remoteJid);
       let text = `╭〔 ⏳ ${fytBold("SOLICITUD ACTIVA")} 〕⬣\n\n`;
       text += `┃ > Hay otra solicitud en curso entre @${fromReal.split("@")[0]} y @${toReal.split("@")[0]}.\n`;
@@ -167,7 +177,11 @@ export default {
     }
 
     if (user.marriedTo) {
-      const marriedReal = await resolveLidToRealJid(user.marriedTo, socket, remoteJid);
+      const marriedReal = await resolveLidToRealJid(
+        user.marriedTo,
+        socket,
+        remoteJid,
+      );
       if (user.marriedTo === targetLid) {
         let text = `╭〔 ⚠️ ${fytBold("YA CASADOS")} 〕⬣\n\n`;
         text += `┃ > Ya estás casado/a con @${marriedReal.split("@")[0]}.\n`;
@@ -191,7 +205,11 @@ export default {
     }
 
     if (partner.marriedTo) {
-      const partnerReal = await resolveLidToRealJid(targetLid, socket, remoteJid);
+      const partnerReal = await resolveLidToRealJid(
+        targetLid,
+        socket,
+        remoteJid,
+      );
       let text = `╭〔 ❌ ${fytBold("YA CASADO/A")} 〕⬣\n\n`;
       text += `┃ > Esa persona ya está casada.\n\n`;
       text += `╰〔 ⚡ ${fytBold("AURA REED")} 〕⬣`;
@@ -207,7 +225,11 @@ export default {
     const left = formatTimeLeft(group.marriagePending.expiresAt);
 
     const userRealJid = await resolveLidToRealJid(userLid, socket, remoteJid);
-    const targetRealJid = await resolveLidToRealJid(targetLid, socket, remoteJid);
+    const targetRealJid = await resolveLidToRealJid(
+      targetLid,
+      socket,
+      remoteJid,
+    );
 
     let text = `╭〔 💍 ${fytBold("MATRIMONIO")} 〕⬣\n`;
     text += `┃ ⏳ ${fytBold("ESPERANDO CONFIRMACIÓN")}\n`;

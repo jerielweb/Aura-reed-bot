@@ -17,7 +17,11 @@ export default {
       errorText += `┃ > Ingresa el nombre de una canción o\n`;
       errorText += `┃ > un enlace válido de Spotify.\n\n`;
       errorText += `╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`;
-      return socket.sendMessage(remoteJid, { text: errorText }, { quoted: message });
+      return socket.sendMessage(
+        remoteJid,
+        { text: errorText },
+        { quoted: message },
+      );
     }
 
     await socket.sendMessage(remoteJid, {
@@ -60,7 +64,8 @@ export default {
       caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ > ${fytBold("Artista")} › ${song.artist}\n`;
       caption += `┃ > ${fytBold("Álbum")} › ${song.album || "Desconocido"}\n`;
-      if (song.duration) caption += `┃ > ${fytBold("Duración")} › ${song.duration}\n`;
+      if (song.duration)
+        caption += `┃ > ${fytBold("Duración")} › ${song.duration}\n`;
       if (trackUrl) caption += `┃ > ${fytBold("Link")} › ${trackUrl}\n`;
       caption += `┃ > ${fytBold("Tipo")} › Audio (MP3)\n`;
       caption += `╰━━━━━━━━━━━━⬣\n`;
@@ -74,10 +79,14 @@ export default {
             image: { url: song.coverHd || song.cover },
             caption,
           },
-          { quoted: message }
+          { quoted: message },
         );
       } else {
-        await socket.sendMessage(remoteJid, { text: caption }, { quoted: message });
+        await socket.sendMessage(
+          remoteJid,
+          { text: caption },
+          { quoted: message },
+        );
       }
 
       // Envío del archivo como audio
@@ -88,7 +97,7 @@ export default {
           mimetype: "audio/mpeg",
           fileName: `${song.artist} - ${song.title}.mp3`,
         },
-        { quoted: message }
+        { quoted: message },
       );
 
       await socket.sendMessage(remoteJid, {
@@ -106,7 +115,11 @@ export default {
       textErr += `┃ > ${error.message || "Ocurrió un error inesperado."}\n\n`;
       textErr += `╰〔 ⚡ ${fytBold("SYSTEM ALERT")} 〕⬣`;
 
-      await socket.sendMessage(remoteJid, { text: textErr }, { quoted: message });
+      await socket.sendMessage(
+        remoteJid,
+        { text: textErr },
+        { quoted: message },
+      );
     }
   },
 };

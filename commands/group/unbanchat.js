@@ -16,7 +16,7 @@ export default {
         {
           text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ℹ️ Este chat no se encuentra baneado.\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
         },
-        { quoted: message }
+        { quoted: message },
       );
     }
 
@@ -33,7 +33,7 @@ export default {
     await socket.sendMessage(
       remoteJid,
       { text: menuTexto },
-      { quoted: message }
+      { quoted: message },
     );
   },
 };

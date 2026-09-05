@@ -5,7 +5,8 @@ import fs from "fs";
 const DATABASE_DIR = path.resolve("./database");
 const DB_FILE = path.join(DATABASE_DIR, "gacha.sqlite3");
 
-if (!fs.existsSync(DATABASE_DIR)) fs.mkdirSync(DATABASE_DIR, { recursive: true });
+if (!fs.existsSync(DATABASE_DIR))
+  fs.mkdirSync(DATABASE_DIR, { recursive: true });
 
 const db = new Database(DB_FILE);
 db.pragma("journal_mode = WAL");
@@ -91,8 +92,11 @@ function todayStr() {
 }
 
 function getGachaStats(userId) {
-  const row = db.prepare("SELECT * FROM gacha_stats WHERE user_id = ?").get(userId);
-  if (!row) return { totalRolls: 0, totalClaimed: 0, totalSold: 0, totalValue: 0 };
+  const row = db
+    .prepare("SELECT * FROM gacha_stats WHERE user_id = ?")
+    .get(userId);
+  if (!row)
+    return { totalRolls: 0, totalClaimed: 0, totalSold: 0, totalValue: 0 };
   return {
     totalRolls: row.total_rolls,
     totalClaimed: row.total_claimed,
@@ -112,11 +116,19 @@ function updateGachaStats(userId, fn) {
        total_claimed = excluded.total_claimed,
        total_sold = excluded.total_sold,
        total_value = excluded.total_value`,
-  ).run(userId, stats.totalRolls, stats.totalClaimed, stats.totalSold, stats.totalValue);
+  ).run(
+    userId,
+    stats.totalRolls,
+    stats.totalClaimed,
+    stats.totalSold,
+    stats.totalValue,
+  );
 }
 
 function getRandomCharacter() {
-  const row = db.prepare("SELECT * FROM gacha_characters ORDER BY RANDOM() LIMIT 1").get();
+  const row = db
+    .prepare("SELECT * FROM gacha_characters ORDER BY RANDOM() LIMIT 1")
+    .get();
   return rowToChar(row);
 }
 
@@ -127,13 +139,17 @@ function getCharacterCount() {
 function searchCharacters(query) {
   const q = `%${query}%`;
   const rows = db
-    .prepare("SELECT * FROM gacha_characters WHERE name LIKE ? OR series LIKE ? LIMIT 50")
+    .prepare(
+      "SELECT * FROM gacha_characters WHERE name LIKE ? OR series LIKE ? LIMIT 50",
+    )
     .all(q, q);
   return rows.map(rowToChar);
 }
 
 function addCharacter({ name, series, gender, booru_tag, value }) {
-  const dup = db.prepare("SELECT 1 FROM gacha_characters WHERE name = ? AND series = ?").get(name, series);
+  const dup = db
+    .prepare("SELECT 1 FROM gacha_characters WHERE name = ? AND series = ?")
+    .get(name, series);
   if (dup) throw new Error("DUPLICATE_CHARACTER");
   const rarity = computeRarity(value);
   db.prepare(
@@ -142,13 +158,13 @@ function addCharacter({ name, series, gender, booru_tag, value }) {
 }
 
 function giveCharacter(userId, charId) {
-  const owns = db.prepare("SELECT 1 FROM gacha_ownership WHERE user_id = ? AND char_id = ?").get(userId, charId);
+  const owns = db
+    .prepare("SELECT 1 FROM gacha_ownership WHERE user_id = ? AND char_id = ?")
+    .get(userId, charId);
   if (owns) throw new Error("CHARACTER_ALREADY_OWNED");
-  db.prepare("INSERT INTO gacha_ownership (user_id, char_id, obtained_at) VALUES (?,?,?)").run(
-    userId,
-    charId,
-    Date.now(),
-  );
+  db.prepare(
+    "INSERT INTO gacha_ownership (user_id, char_id, obtained_at) VALUES (?,?,?)",
+  ).run(userId, charId, Date.now());
   return true;
 }
 
@@ -165,7 +181,9 @@ function getUserHarem(userId) {
 }
 
 function getUserHaremCount(userId) {
-  return db.prepare("SELECT COUNT(*) as c FROM gacha_ownership WHERE user_id = ?").get(userId).c;
+  return db
+    .prepare("SELECT COUNT(*) as c FROM gacha_ownership WHERE user_id = ?")
+    .get(userId).c;
 }
 
 function getFavorite(userId) {
@@ -180,7 +198,9 @@ function getFavorite(userId) {
 }
 
 function setFavorite(userId, charId) {
-  const owns = db.prepare("SELECT 1 FROM gacha_ownership WHERE user_id = ? AND char_id = ?").get(userId, charId);
+  const owns = db
+    .prepare("SELECT 1 FROM gacha_ownership WHERE user_id = ? AND char_id = ?")
+    .get(userId, charId);
   if (!owns) throw new Error("CHARACTER_NOT_OWNED");
   db.prepare(
     `INSERT INTO gacha_favorites (user_id, char_id) VALUES (?,?)
@@ -193,7 +213,9 @@ function removeFavorite(userId) {
 }
 
 function hasUsedDailyRoll(userId) {
-  const row = db.prepare("SELECT last_date FROM gacha_daily WHERE user_id = ?").get(userId);
+  const row = db
+    .prepare("SELECT last_date FROM gacha_daily WHERE user_id = ?")
+    .get(userId);
   return !!row && row.last_date === todayStr();
 }
 
@@ -205,13 +227,21 @@ function setDailyRollUsed(userId) {
 }
 
 function sellCharacter(userId, charId) {
-  const owns = db.prepare("SELECT 1 FROM gacha_ownership WHERE user_id = ? AND char_id = ?").get(userId, charId);
+  const owns = db
+    .prepare("SELECT 1 FROM gacha_ownership WHERE user_id = ? AND char_id = ?")
+    .get(userId, charId);
   if (!owns) throw new Error("CHARACTER_NOT_OWNED");
-  const char = db.prepare("SELECT * FROM gacha_characters WHERE id = ?").get(charId);
+  const char = db
+    .prepare("SELECT * FROM gacha_characters WHERE id = ?")
+    .get(charId);
   const price = Math.floor(char.value * (0.5 + Math.random() * 0.2));
 
-  db.prepare("DELETE FROM gacha_ownership WHERE user_id = ? AND char_id = ?").run(userId, charId);
-  const favRow = db.prepare("SELECT char_id FROM gacha_favorites WHERE user_id = ?").get(userId);
+  db.prepare(
+    "DELETE FROM gacha_ownership WHERE user_id = ? AND char_id = ?",
+  ).run(userId, charId);
+  const favRow = db
+    .prepare("SELECT char_id FROM gacha_favorites WHERE user_id = ?")
+    .get(userId);
   if (favRow && favRow.char_id === charId) removeFavorite(userId);
 
   updateGachaStats(userId, (s) => {
@@ -222,8 +252,12 @@ function sellCharacter(userId, charId) {
 }
 
 function fusionCharacters(userId, id1, id2) {
-  const own1 = db.prepare("SELECT 1 FROM gacha_ownership WHERE user_id = ? AND char_id = ?").get(userId, id1);
-  const own2 = db.prepare("SELECT 1 FROM gacha_ownership WHERE user_id = ? AND char_id = ?").get(userId, id2);
+  const own1 = db
+    .prepare("SELECT 1 FROM gacha_ownership WHERE user_id = ? AND char_id = ?")
+    .get(userId, id1);
+  const own2 = db
+    .prepare("SELECT 1 FROM gacha_ownership WHERE user_id = ? AND char_id = ?")
+    .get(userId, id2);
   if (!own1 || !own2) throw new Error("CHARACTER_NOT_OWNED");
 
   const c1 = db.prepare("SELECT * FROM gacha_characters WHERE id = ?").get(id1);
@@ -236,10 +270,14 @@ function fusionCharacters(userId, id1, id2) {
   const series = "Fusión";
 
   let fusedId;
-  const existing = db.prepare("SELECT id FROM gacha_characters WHERE name = ? AND series = ?").get(name, series);
+  const existing = db
+    .prepare("SELECT id FROM gacha_characters WHERE name = ? AND series = ?")
+    .get(name, series);
   if (existing) {
     fusedId = existing.id;
-    db.prepare("UPDATE gacha_characters SET value = ?, rarity = ? WHERE id = ?").run(value, rarity, fusedId);
+    db.prepare(
+      "UPDATE gacha_characters SET value = ?, rarity = ? WHERE id = ?",
+    ).run(value, rarity, fusedId);
   } else {
     const info = db
       .prepare(
@@ -249,17 +287,22 @@ function fusionCharacters(userId, id1, id2) {
     fusedId = info.lastInsertRowid;
   }
 
-  db.prepare("DELETE FROM gacha_ownership WHERE user_id = ? AND char_id IN (?,?)").run(userId, id1, id2);
-  const favRow = db.prepare("SELECT char_id FROM gacha_favorites WHERE user_id = ?").get(userId);
-  if (favRow && (favRow.char_id === id1 || favRow.char_id === id2)) removeFavorite(userId);
+  db.prepare(
+    "DELETE FROM gacha_ownership WHERE user_id = ? AND char_id IN (?,?)",
+  ).run(userId, id1, id2);
+  const favRow = db
+    .prepare("SELECT char_id FROM gacha_favorites WHERE user_id = ?")
+    .get(userId);
+  if (favRow && (favRow.char_id === id1 || favRow.char_id === id2))
+    removeFavorite(userId);
 
-  db.prepare("INSERT OR IGNORE INTO gacha_ownership (user_id, char_id, obtained_at) VALUES (?,?,?)").run(
-    userId,
-    fusedId,
-    Date.now(),
+  db.prepare(
+    "INSERT OR IGNORE INTO gacha_ownership (user_id, char_id, obtained_at) VALUES (?,?,?)",
+  ).run(userId, fusedId, Date.now());
+
+  return rowToChar(
+    db.prepare("SELECT * FROM gacha_characters WHERE id = ?").get(fusedId),
   );
-
-  return rowToChar(db.prepare("SELECT * FROM gacha_characters WHERE id = ?").get(fusedId));
 }
 
 function getRarityEmoji(rarity) {
@@ -283,17 +326,20 @@ function getShopListings() {
 }
 
 function listInShop(userId, charId, price) {
-  const owns = db.prepare("SELECT 1 FROM gacha_ownership WHERE user_id = ? AND char_id = ?").get(userId, charId);
+  const owns = db
+    .prepare("SELECT 1 FROM gacha_ownership WHERE user_id = ? AND char_id = ?")
+    .get(userId, charId);
   if (!owns) throw new Error("CHARACTER_NOT_OWNED");
-  db.prepare("DELETE FROM gacha_ownership WHERE user_id = ? AND char_id = ?").run(userId, charId);
-  const favRow = db.prepare("SELECT char_id FROM gacha_favorites WHERE user_id = ?").get(userId);
+  db.prepare(
+    "DELETE FROM gacha_ownership WHERE user_id = ? AND char_id = ?",
+  ).run(userId, charId);
+  const favRow = db
+    .prepare("SELECT char_id FROM gacha_favorites WHERE user_id = ?")
+    .get(userId);
   if (favRow && favRow.char_id === charId) removeFavorite(userId);
-  db.prepare("INSERT INTO gacha_shop (seller, char_id, price, listed_at) VALUES (?,?,?,?)").run(
-    userId,
-    charId,
-    price,
-    Date.now(),
-  );
+  db.prepare(
+    "INSERT INTO gacha_shop (seller, char_id, price, listed_at) VALUES (?,?,?,?)",
+  ).run(userId, charId, price, Date.now());
 }
 
 function buyFromShop(userId, index) {
@@ -302,11 +348,9 @@ function buyFromShop(userId, index) {
   if (!listing) throw new Error("LISTING_NOT_FOUND");
   if (listing.seller === userId) throw new Error("CANNOT_BUY_OWN_LISTING");
   db.prepare("DELETE FROM gacha_shop WHERE id = ?").run(listing.shopId);
-  db.prepare("INSERT OR IGNORE INTO gacha_ownership (user_id, char_id, obtained_at) VALUES (?,?,?)").run(
-    userId,
-    listing.char.id,
-    Date.now(),
-  );
+  db.prepare(
+    "INSERT OR IGNORE INTO gacha_ownership (user_id, char_id, obtained_at) VALUES (?,?,?)",
+  ).run(userId, listing.char.id, Date.now());
   return { char: listing.char, seller: listing.seller, price: listing.price };
 }
 
@@ -316,45 +360,53 @@ function unlistFromShop(userId, index) {
   if (!listing) throw new Error("LISTING_NOT_FOUND");
   if (listing.seller !== userId) throw new Error("NOT_YOUR_LISTING");
   db.prepare("DELETE FROM gacha_shop WHERE id = ?").run(listing.shopId);
-  db.prepare("INSERT OR IGNORE INTO gacha_ownership (user_id, char_id, obtained_at) VALUES (?,?,?)").run(
-    userId,
-    listing.char.id,
-    Date.now(),
-  );
+  db.prepare(
+    "INSERT OR IGNORE INTO gacha_ownership (user_id, char_id, obtained_at) VALUES (?,?,?)",
+  ).run(userId, listing.char.id, Date.now());
   return listing.char;
 }
 
 function transferCharacter(fromUserId, toUserId, charId) {
-  const owns = db.prepare("SELECT 1 FROM gacha_ownership WHERE user_id = ? AND char_id = ?").get(fromUserId, charId);
+  const owns = db
+    .prepare("SELECT 1 FROM gacha_ownership WHERE user_id = ? AND char_id = ?")
+    .get(fromUserId, charId);
   if (!owns) throw new Error("CHARACTER_NOT_OWNED");
   const targetOwns = db
     .prepare("SELECT 1 FROM gacha_ownership WHERE user_id = ? AND char_id = ?")
     .get(toUserId, charId);
   if (targetOwns) throw new Error("TARGET_ALREADY_OWNS");
 
-  db.prepare("DELETE FROM gacha_ownership WHERE user_id = ? AND char_id = ?").run(fromUserId, charId);
-  const favRow = db.prepare("SELECT char_id FROM gacha_favorites WHERE user_id = ?").get(fromUserId);
+  db.prepare(
+    "DELETE FROM gacha_ownership WHERE user_id = ? AND char_id = ?",
+  ).run(fromUserId, charId);
+  const favRow = db
+    .prepare("SELECT char_id FROM gacha_favorites WHERE user_id = ?")
+    .get(fromUserId);
   if (favRow && favRow.char_id === charId) removeFavorite(fromUserId);
 
-  db.prepare("INSERT INTO gacha_ownership (user_id, char_id, obtained_at) VALUES (?,?,?)").run(
-    toUserId,
-    charId,
-    Date.now(),
-  );
+  db.prepare(
+    "INSERT INTO gacha_ownership (user_id, char_id, obtained_at) VALUES (?,?,?)",
+  ).run(toUserId, charId, Date.now());
 }
 
 function getWishlist(userId) {
   return db
-    .prepare("SELECT id, char_name as charName, series FROM gacha_wishlist WHERE user_id = ? ORDER BY id ASC")
+    .prepare(
+      "SELECT id, char_name as charName, series FROM gacha_wishlist WHERE user_id = ? ORDER BY id ASC",
+    )
     .all(userId);
 }
 
 function addWish(userId, charName, series) {
   const dup = db
-    .prepare("SELECT 1 FROM gacha_wishlist WHERE user_id = ? AND char_name = ? AND series = ?")
+    .prepare(
+      "SELECT 1 FROM gacha_wishlist WHERE user_id = ? AND char_name = ? AND series = ?",
+    )
     .get(userId, charName, series);
   if (dup) throw new Error("ALREADY_IN_WISHLIST");
-  db.prepare("INSERT INTO gacha_wishlist (user_id, char_name, series) VALUES (?,?,?)").run(userId, charName, series);
+  db.prepare(
+    "INSERT INTO gacha_wishlist (user_id, char_name, series) VALUES (?,?,?)",
+  ).run(userId, charName, series);
 }
 
 function removeWish(userId, index) {
@@ -367,7 +419,9 @@ function removeWish(userId, index) {
 
 function matchWishlist(charName, series) {
   const rows = db
-    .prepare("SELECT user_id as userId, char_name as charName, series FROM gacha_wishlist WHERE char_name LIKE ?")
+    .prepare(
+      "SELECT user_id as userId, char_name as charName, series FROM gacha_wishlist WHERE char_name LIKE ?",
+    )
     .all(`%${charName}%`);
   return rows;
 }
@@ -381,7 +435,11 @@ function getAllHaremData() {
        GROUP BY o.user_id`,
     )
     .all();
-  return rows.map((r) => ({ userId: r.userId, count: r.count, totalValue: r.totalValue || 0 }));
+  return rows.map((r) => ({
+    userId: r.userId,
+    count: r.count,
+    totalValue: r.totalValue || 0,
+  }));
 }
 
 export const gacha = {

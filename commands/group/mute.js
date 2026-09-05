@@ -8,14 +8,19 @@ export default {
   adminOnly: true,
   botAdminOnly: true,
 
-  execute: async (socket, message, args, { db, saveDB, isBotAdmin, groupMetadata }) => {
+  execute: async (
+    socket,
+    message,
+    args,
+    { db, saveDB, isBotAdmin, groupMetadata },
+  ) => {
     const remoteJid = message.key.remoteJid;
 
     if (!remoteJid.endsWith("@g.us")) {
       return socket.sendMessage(
         remoteJid,
         { text: "⚠️ Este comando solo se puede usar en grupos." },
-        { quoted: message }
+        { quoted: message },
       );
     }
 
@@ -26,7 +31,11 @@ export default {
       noAdminText += `┃ > No pude silenciar al usuario.\n`;
       noAdminText += `┃ > Necesito ser administrador del grupo.\n\n`;
       noAdminText += `╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`;
-      return socket.sendMessage(remoteJid, { text: noAdminText }, { quoted: message });
+      return socket.sendMessage(
+        remoteJid,
+        { text: noAdminText },
+        { quoted: message },
+      );
     }
 
     // Resolver objetivo por mención o mensaje citado
@@ -50,7 +59,11 @@ export default {
       errorText += `┃ > Etiqueta o responde al mensaje del\n`;
       errorText += `┃ > usuario que deseas silenciar.\n\n`;
       errorText += `╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`;
-      return socket.sendMessage(remoteJid, { text: errorText }, { quoted: message });
+      return socket.sendMessage(
+        remoteJid,
+        { text: errorText },
+        { quoted: message },
+      );
     }
 
     // Validar si el objetivo es Administrador
@@ -89,8 +102,11 @@ export default {
     if (isMuted) {
       return socket.sendMessage(
         remoteJid,
-        { text: `⚠️ El usuario ${userTag} ya está silenciado.`, mentions: [targetJid] },
-        { quoted: message }
+        {
+          text: `⚠️ El usuario ${userTag} ya está silenciado.`,
+          mentions: [targetJid],
+        },
+        { quoted: message },
       );
     }
 
@@ -108,7 +124,7 @@ export default {
     return socket.sendMessage(
       remoteJid,
       { text, mentions: [targetJid] },
-      { quoted: message }
+      { quoted: message },
     );
   },
 };

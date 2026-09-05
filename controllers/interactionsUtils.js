@@ -181,8 +181,7 @@ export async function getReactionUrl(type) {
       }
       console.log(`[Reactions] Ganador: Delirius`);
       return url;
-    })()
-
+    })(),
   ];
 
   try {
@@ -243,12 +242,11 @@ async function ensureMp4(inputPath) {
 
   // Convertir a MP4 con FFmpeg estático mediante execAsync (compatible con WhatsApp: H.264 + YUV420p)
   console.log(chalk.gray(`[Reactions FFmpeg] Convirtiendo ${ext} → MP4 ...`));
-  await ffmpegSemaphore.run(
-    () =>
-      execAsync(
-        `"${ffmpegStatic}" -y -i "${inputPath}" -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -an "${mp4Path}"`,
-        { maxBuffer: 1024 * 1024 * 10 }
-      )
+  await ffmpegSemaphore.run(() =>
+    execAsync(
+      `"${ffmpegStatic}" -y -i "${inputPath}" -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -an "${mp4Path}"`,
+      { maxBuffer: 1024 * 1024 * 10 },
+    ),
   );
 
   return mp4Path;

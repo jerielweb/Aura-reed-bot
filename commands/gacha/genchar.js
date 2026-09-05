@@ -19,11 +19,18 @@ function parseKonachanUrl(input) {
 }
 
 function tagToSeriesName(tag) {
-  return tag.replace(/[_:]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()).trim();
+  return tag
+    .replace(/[_:]/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .trim();
 }
 
 function tagToName(tag) {
-  return tag.replace(/\(.*?\)$/, "").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()).trim();
+  return tag
+    .replace(/\(.*?\)$/, "")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .trim();
 }
 
 async function fetchAllPosts(seriesTag, extraTags = [], pages = 5) {
@@ -59,25 +66,110 @@ async function fetchAllPosts(seriesTag, extraTags = [], pages = 5) {
 
 function collectTagFrequencies(posts, seriesTag) {
   const SKIP = new Set([
-    seriesTag, "highres", "absurdres", "jpeg_artifacts", "scan", "dakimakura",
-    "1girl", "2girls", "3girls", "4girls", "multiple_girls", "solo",
-    "1boy", "2boys", "multiple_boys",
-    "swimsuits", "thighhighs", "bikini", "wet", "pantsu", "nipples",
-    "dress", "see_through", "animal_ears", "ass", "skirt_lift", "open_shirt",
-    "bra", "tail", "breasts", "cleavage", "panties", "navel", "blush",
-    "long_hair", "short_hair", "blonde_hair", "twintails", "brown_hair",
-    "black_hair", "white_hair", "red_hair", "blue_hair", "green_hair",
-    "no_bra", "megane", "horns", "stockings", "pantyhose",
-    "weapon", "cosplay", "bunny_ears", "feet", "lingerie", "bunny_girl",
-    "leotard", "sword", "armor", "torn_clothes", "seifuku", "wings",
-    "shirt_lift", "wedding_dress", "gym_uniform", "maid", "towel",
-    "naked_apron", "yukata", "uniform", "pajama", "underboob", "shimapan",
-    "vector_trace", "wallpaper", "transparent_png", "monochrome",
-    "crossover", "tagme", "fixme", "crease", "onsen", "yuri",
-    "nude", "naked", "topless", "uncensored", "censored",
-    "pussy", "penis", "cum", "sex", "fellatio", "paizuri", "masturbation",
-    "fingering", "anus", "bottomless", "pussy_juice", "pubic_hair",
-    "areolae", "erect_nipples", "panty_pull", "breast_grab", "breast_hold",
+    seriesTag,
+    "highres",
+    "absurdres",
+    "jpeg_artifacts",
+    "scan",
+    "dakimakura",
+    "1girl",
+    "2girls",
+    "3girls",
+    "4girls",
+    "multiple_girls",
+    "solo",
+    "1boy",
+    "2boys",
+    "multiple_boys",
+    "swimsuits",
+    "thighhighs",
+    "bikini",
+    "wet",
+    "pantsu",
+    "nipples",
+    "dress",
+    "see_through",
+    "animal_ears",
+    "ass",
+    "skirt_lift",
+    "open_shirt",
+    "bra",
+    "tail",
+    "breasts",
+    "cleavage",
+    "panties",
+    "navel",
+    "blush",
+    "long_hair",
+    "short_hair",
+    "blonde_hair",
+    "twintails",
+    "brown_hair",
+    "black_hair",
+    "white_hair",
+    "red_hair",
+    "blue_hair",
+    "green_hair",
+    "no_bra",
+    "megane",
+    "horns",
+    "stockings",
+    "pantyhose",
+    "weapon",
+    "cosplay",
+    "bunny_ears",
+    "feet",
+    "lingerie",
+    "bunny_girl",
+    "leotard",
+    "sword",
+    "armor",
+    "torn_clothes",
+    "seifuku",
+    "wings",
+    "shirt_lift",
+    "wedding_dress",
+    "gym_uniform",
+    "maid",
+    "towel",
+    "naked_apron",
+    "yukata",
+    "uniform",
+    "pajama",
+    "underboob",
+    "shimapan",
+    "vector_trace",
+    "wallpaper",
+    "transparent_png",
+    "monochrome",
+    "crossover",
+    "tagme",
+    "fixme",
+    "crease",
+    "onsen",
+    "yuri",
+    "nude",
+    "naked",
+    "topless",
+    "uncensored",
+    "censored",
+    "pussy",
+    "penis",
+    "cum",
+    "sex",
+    "fellatio",
+    "paizuri",
+    "masturbation",
+    "fingering",
+    "anus",
+    "bottomless",
+    "pussy_juice",
+    "pubic_hair",
+    "areolae",
+    "erect_nipples",
+    "panty_pull",
+    "breast_grab",
+    "breast_hold",
   ]);
 
   const freq = {};
@@ -97,34 +189,49 @@ async function filterCharacterTags(tagNames, seriesTag) {
 
   for (let i = 0; i < tagNames.length; i += CONCURRENCY) {
     const batch = tagNames.slice(i, i + CONCURRENCY);
-    await Promise.all(batch.map(async (tag) => {
-      try {
-        const tagRes = await fetch(
-          `https://konachan.net/tag.json?name=${encodeURIComponent(tag)}`,
-          { signal: AbortSignal.timeout(8_000), headers: { "User-Agent": "konachan-scraper/1.0" } },
-        );
-        if (!tagRes.ok) return;
-        const tagData = await tagRes.json();
-        const info = Array.isArray(tagData) ? tagData.find((t) => t.name === tag) : null;
-        if (!info || info.type !== 4) return;
+    await Promise.all(
+      batch.map(async (tag) => {
+        try {
+          const tagRes = await fetch(
+            `https://konachan.net/tag.json?name=${encodeURIComponent(tag)}`,
+            {
+              signal: AbortSignal.timeout(8_000),
+              headers: { "User-Agent": "konachan-scraper/1.0" },
+            },
+          );
+          if (!tagRes.ok) return;
+          const tagData = await tagRes.json();
+          const info = Array.isArray(tagData)
+            ? tagData.find((t) => t.name === tag)
+            : null;
+          if (!info || info.type !== 4) return;
 
-        const checkRes = await fetch(
-          `https://konachan.net/post.json?tags=${encodeURIComponent(tag)}&limit=100`,
-          { signal: AbortSignal.timeout(8_000), headers: { "User-Agent": "konachan-scraper/1.0" } },
-        );
-        if (!checkRes.ok) return;
-        const checkPosts = await checkRes.json();
-        if (!Array.isArray(checkPosts) || checkPosts.length === 0) return;
+          const checkRes = await fetch(
+            `https://konachan.net/post.json?tags=${encodeURIComponent(tag)}&limit=100`,
+            {
+              signal: AbortSignal.timeout(8_000),
+              headers: { "User-Agent": "konachan-scraper/1.0" },
+            },
+          );
+          if (!checkRes.ok) return;
+          const checkPosts = await checkRes.json();
+          if (!Array.isArray(checkPosts) || checkPosts.length === 0) return;
 
-        const valid = checkPosts.filter((p) => (p.sample_url || p.file_url) && !p.tags?.includes("corrupt_file"));
-        if (valid.length === 0) return;
+          const valid = checkPosts.filter(
+            (p) =>
+              (p.sample_url || p.file_url) && !p.tags?.includes("corrupt_file"),
+          );
+          if (valid.length === 0) return;
 
-        const seriesMatch = valid.filter((p) => p.tags?.includes(seriesTag)).length;
-        if (seriesMatch / valid.length >= 0.6) characters.push(tag);
-      } catch {
-        /* ignorar */
-      }
-    }));
+          const seriesMatch = valid.filter((p) =>
+            p.tags?.includes(seriesTag),
+          ).length;
+          if (seriesMatch / valid.length >= 0.6) characters.push(tag);
+        } catch {
+          /* ignorar */
+        }
+      }),
+    );
     await delay(1200);
   }
   return characters;
@@ -137,7 +244,8 @@ function getGenderFromPosts(charTag, posts) {
   const FEMALE = new Set(["1girl", "2girls", "multiple_girls", "female"]);
   const MALE = new Set(["1boy", "2boys", "multiple_boys", "male", "shouta"]);
 
-  let maleScore = 0, femaleScore = 0;
+  let maleScore = 0,
+    femaleScore = 0;
   for (const post of posts) {
     if (!post.tags?.includes(charTag)) continue;
     const tags = post.tags.split(/\s+/);
@@ -157,13 +265,17 @@ async function fetchRandomSeriesTags(cantidad = 5) {
   const pool = new Map();
 
   const pageSet = new Set();
-  while (pageSet.size < 3) pageSet.add(Math.floor(Math.random() * MAX_PAGE) + 1);
+  while (pageSet.size < 3)
+    pageSet.add(Math.floor(Math.random() * MAX_PAGE) + 1);
 
   for (const page of pageSet) {
     try {
       const res = await fetch(
         `https://konachan.net/tag.json?type=3&order=count&limit=100&page=${page}`,
-        { signal: AbortSignal.timeout(8_000), headers: { "User-Agent": "konachan-scraper/1.0" } },
+        {
+          signal: AbortSignal.timeout(8_000),
+          headers: { "User-Agent": "konachan-scraper/1.0" },
+        },
       );
       if (!res.ok) continue;
       const tags = await res.json();
@@ -181,7 +293,10 @@ async function fetchRandomSeriesTags(cantidad = 5) {
     try {
       const res = await fetch(
         "https://konachan.net/tag.json?type=3&order=count&limit=100&page=1",
-        { signal: AbortSignal.timeout(8_000), headers: { "User-Agent": "konachan-scraper/1.0" } },
+        {
+          signal: AbortSignal.timeout(8_000),
+          headers: { "User-Agent": "konachan-scraper/1.0" },
+        },
       );
       const tags = await res.json();
       for (const t of tags) {
@@ -198,16 +313,34 @@ async function fetchRandomSeriesTags(cantidad = 5) {
 async function runGeneration(ctx, seriesTag, extraTags = [], pages = 5) {
   const seriesName = tagToSeriesName(seriesTag);
 
-  await ctx.reply(box("🔍", "GENCHAR", `Analizando "${seriesName}"...`, [], `~${pages * 100} posts`));
+  await ctx.reply(
+    box(
+      "🔍",
+      "GENCHAR",
+      `Analizando "${seriesName}"...`,
+      [],
+      `~${pages * 100} posts`,
+    ),
+  );
 
   const posts = await fetchAllPosts(seriesTag, extraTags, pages);
   if (posts.length === 0) {
-    await ctx.reply(box("⚠️", "GENCHAR", `"${seriesName}" omitida...`, [], "Sin posts disponibles, se omite."));
+    await ctx.reply(
+      box(
+        "⚠️",
+        "GENCHAR",
+        `"${seriesName}" omitida...`,
+        [],
+        "Sin posts disponibles, se omite.",
+      ),
+    );
     return { seriesName, agregados: [], saltados: [], posts: 0, skipped: true };
   }
 
   const tagFreq = collectTagFrequencies(posts, seriesTag);
-  const tagNames = Object.entries(tagFreq).filter(([, c]) => c >= 2).map(([n]) => n);
+  const tagNames = Object.entries(tagFreq)
+    .filter(([, c]) => c >= 2)
+    .map(([n]) => n);
   const charTagNames = await filterCharacterTags(tagNames, seriesTag);
 
   const agregados = [];
@@ -218,14 +351,28 @@ async function runGeneration(ctx, seriesTag, extraTags = [], pages = 5) {
     const gender = getGenderFromPosts(charTag, posts);
     try {
       const value = randomValue();
-      gacha.addCharacter({ name: dbName, series: seriesName, gender, booru_tag: charTag, value });
+      gacha.addCharacter({
+        name: dbName,
+        series: seriesName,
+        gender,
+        booru_tag: charTag,
+        value,
+      });
       agregados.push(`${dbName} (${gender}) — ${value.toLocaleString()} ¥`);
     } catch (e) {
-      saltados.push(`${dbName} (${e.message === "DUPLICATE_CHARACTER" ? "Ya existe" : "Error"})`);
+      saltados.push(
+        `${dbName} (${e.message === "DUPLICATE_CHARACTER" ? "Ya existe" : "Error"})`,
+      );
     }
   }
 
-  return { seriesName, agregados, saltados, posts: posts.length, skipped: false };
+  return {
+    seriesName,
+    agregados,
+    saltados,
+    posts: posts.length,
+    skipped: false,
+  };
 }
 
 export default {
@@ -236,30 +383,77 @@ export default {
     const ctx = makeGachaCtx(socket, message, args, extra);
 
     if (!ctx.isOwner) {
-      await ctx.reply(box("🔒", "GENCHAR", "Solo el owner puede usar esto...", [], "Este comando administra el catálogo global de personajes."));
+      await ctx.reply(
+        box(
+          "🔒",
+          "GENCHAR",
+          "Solo el owner puede usar esto...",
+          [],
+          "Este comando administra el catálogo global de personajes.",
+        ),
+      );
       return;
     }
 
-    const cmd = ctx.args[0]?.toLowerCase() || ctx.fullText.slice(ctx.usedPrefix.length).split(/\s+/)[0]?.toLowerCase() || "genchar";
+    const cmd =
+      ctx.args[0]?.toLowerCase() ||
+      ctx.fullText
+        .slice(ctx.usedPrefix.length)
+        .split(/\s+/)[0]
+        ?.toLowerCase() ||
+      "genchar";
 
     if (cmd === "genrandom" || ctx.args[0] === "random") {
-      await ctx.reply(box("🎲", "GENRANDOM", "Buscando 5 animes al azar...", [], "konachan.net — Esto tardará varios minutos."));
+      await ctx.reply(
+        box(
+          "🎲",
+          "GENRANDOM",
+          "Buscando 5 animes al azar...",
+          [],
+          "konachan.net — Esto tardará varios minutos.",
+        ),
+      );
 
       let seriesTags = [];
-      try { seriesTags = await fetchRandomSeriesTags(5); } catch { /* ignorar */ }
+      try {
+        seriesTags = await fetchRandomSeriesTags(5);
+      } catch {
+        /* ignorar */
+      }
 
       if (seriesTags.length === 0) {
-        return ctx.reply(box("❌", "GENRANDOM", "Error...", [], "No se pudo conectar con konachan.net."));
+        return ctx.reply(
+          box(
+            "❌",
+            "GENRANDOM",
+            "Error...",
+            [],
+            "No se pudo conectar con konachan.net.",
+          ),
+        );
       }
 
       const resultados = [];
       for (let i = 0; i < seriesTags.length; i++) {
         const tag = seriesTags[i];
-        await ctx.reply(box("📦", "GENRANDOM", `[${i + 1}/${seriesTags.length}] Procesando: ${tagToSeriesName(tag)}`));
+        await ctx.reply(
+          box(
+            "📦",
+            "GENRANDOM",
+            `[${i + 1}/${seriesTags.length}] Procesando: ${tagToSeriesName(tag)}`,
+          ),
+        );
         try {
           resultados.push(await runGeneration(ctx, tag, [], 10));
         } catch (e) {
-          resultados.push({ seriesName: tagToSeriesName(tag), agregados: [], saltados: [], posts: 0, skipped: true, error: e.message });
+          resultados.push({
+            seriesName: tagToSeriesName(tag),
+            agregados: [],
+            saltados: [],
+            posts: 0,
+            skipped: true,
+            error: e.message,
+          });
         }
         if (i < seriesTags.length - 1) await delay(2000);
       }
@@ -267,28 +461,41 @@ export default {
       const totalAg = resultados.reduce((s, r) => s + r.agregados.length, 0);
       const totalSk = resultados.reduce((s, r) => s + r.saltados.length, 0);
 
-      return ctx.reply(box("🏁", "GENRANDOM COMPLETADO", undefined,
-        resultados.map((r) =>
-          r.skipped
-            ? `❌ *${r.seriesName}* — omitida${r.error ? ` (${r.error})` : ""}`
-            : `✅ *${r.seriesName}* — ${r.agregados.length} nuevos, ${r.saltados.length} saltados (${r.posts} posts)`,
+      return ctx.reply(
+        box(
+          "🏁",
+          "GENRANDOM COMPLETADO",
+          undefined,
+          resultados.map((r) =>
+            r.skipped
+              ? `❌ *${r.seriesName}* — omitida${r.error ? ` (${r.error})` : ""}`
+              : `✅ *${r.seriesName}* — ${r.agregados.length} nuevos, ${r.saltados.length} saltados (${r.posts} posts)`,
+          ),
+          `👥 Total agregados: *${totalAg}* — ⏭️ Total saltados: *${totalSk}*`,
         ),
-        `👥 Total agregados: *${totalAg}* — ⏭️ Total saltados: *${totalSk}*`,
-      ));
+      );
     }
 
     const input = ctx.args.join(" ").trim();
 
     if (!input) {
-      return ctx.reply(box("🎴", "GENCHAR", "❓ Falta la URL o el tag...", [], [
-        "Uso: *.genchar <URL_KONACHAN>*",
-        "O:   *.genchar <tag_serie>*",
-        "",
-        "Ej:  *.genchar https://konachan.com/post?tags=sword_art_online*",
-        "Ej:  *.genchar sword_art_online*",
-        "Ej:  *.genrandom* — 5 series al azar",
-        "Ej:  *.gendebug <URL>* — Modo debug",
-      ].join("\n")));
+      return ctx.reply(
+        box(
+          "🎴",
+          "GENCHAR",
+          "❓ Falta la URL o el tag...",
+          [],
+          [
+            "Uso: *.genchar <URL_KONACHAN>*",
+            "O:   *.genchar <tag_serie>*",
+            "",
+            "Ej:  *.genchar https://konachan.com/post?tags=sword_art_online*",
+            "Ej:  *.genchar sword_art_online*",
+            "Ej:  *.genrandom* — 5 series al azar",
+            "Ej:  *.gendebug <URL>* — Modo debug",
+          ].join("\n"),
+        ),
+      );
     }
 
     let seriesTag;
@@ -306,26 +513,52 @@ export default {
 
     try {
       if (cmd === "gendebug") {
-        await ctx.reply(box("🔍", "GENCHAR DEBUG", `Analizando "${tagToSeriesName(seriesTag)}"...`));
+        await ctx.reply(
+          box(
+            "🔍",
+            "GENCHAR DEBUG",
+            `Analizando "${tagToSeriesName(seriesTag)}"...`,
+          ),
+        );
         const posts = await fetchAllPosts(seriesTag, extraTags, 5);
         if (posts.length === 0) throw new Error("No se encontraron posts.");
         const tagFreq = collectTagFrequencies(posts, seriesTag);
-        const tagNames = Object.entries(tagFreq).filter(([, c]) => c >= 2).map(([n]) => n);
+        const tagNames = Object.entries(tagFreq)
+          .filter(([, c]) => c >= 2)
+          .map(([n]) => n);
         const chars = await filterCharacterTags(tagNames, seriesTag);
-        return ctx.reply(box("🔍", "GENCHAR DEBUG", undefined, [`ENCONTRADOS › ${chars.length}`], `Top 10:\n${chars.slice(0, 10).join("\n")}`));
+        return ctx.reply(
+          box(
+            "🔍",
+            "GENCHAR DEBUG",
+            undefined,
+            [`ENCONTRADOS › ${chars.length}`],
+            `Top 10:\n${chars.slice(0, 10).join("\n")}`,
+          ),
+        );
       }
 
-      const { seriesName, agregados, saltados } = await runGeneration(ctx, seriesTag, extraTags, 5);
+      const { seriesName, agregados, saltados } = await runGeneration(
+        ctx,
+        seriesTag,
+        extraTags,
+        5,
+      );
 
       const lista = agregados.length ? agregados.slice(0, 15) : [];
-      const listaExtra = agregados.length > 15 ? [`...y ${agregados.length - 15} más`] : [];
+      const listaExtra =
+        agregados.length > 15 ? [`...y ${agregados.length - 15} más`] : [];
 
-      return ctx.reply(box("✅", "GENCHAR COMPLETADO", undefined, [
-        `SERIE › ${seriesName}`,
-        `AGREGADOS › ${agregados.length}`,
-        `SALTADOS › ${saltados.length}`,
-        ...(lista.length ? ["", "*Agregados:*", ...lista, ...listaExtra] : []),
-      ]));
+      return ctx.reply(
+        box("✅", "GENCHAR COMPLETADO", undefined, [
+          `SERIE › ${seriesName}`,
+          `AGREGADOS › ${agregados.length}`,
+          `SALTADOS › ${saltados.length}`,
+          ...(lista.length
+            ? ["", "*Agregados:*", ...lista, ...listaExtra]
+            : []),
+        ]),
+      );
     } catch (e) {
       await ctx.reply(box("❌", "GENCHAR", "Error...", [], `${e.message}`));
     }

@@ -134,7 +134,7 @@ export default {
       caption += `┃ > ${fytBold("Duración")} › ${FomatTime(track.duration)}\n`;
       caption += `┃ > ${fytBold("Vistas")} › ${FornatNumber(FornatNumber(track.playback_count)) || "0"}\n`;
       caption += `┃ > ${fytBold("Likes")} › ${FornatNumber(track.likes_count) || "No se"}\n`;
-      caption += `┃ > ${fytBold("Tipo")} › Audio MP3\n`
+      caption += `┃ > ${fytBold("Tipo")} › Audio MP3\n`;
       caption += `┃ > ${fytBold("Url")} › ${track.permalink_url}\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ ⏳ Enviando audio...\n`;
@@ -155,7 +155,7 @@ export default {
       }
 
       const cleanTitle = track.title.replace(/[<>:"/\\|?*]/g, "");
-    
+
       await socket.sendMessage(
         remoteJid,
         {

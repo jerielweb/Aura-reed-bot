@@ -26,7 +26,12 @@ async function getRandomImage(tag) {
     if (!Array.isArray(posts) || posts.length === 0) return null;
     const valid = posts.filter((p) => {
       const tags = (p.tags || "").toLowerCase();
-      return (p.file_url || p.sample_url) && !tags.includes("loli") && !tags.includes("shota") && !tags.includes("corrupt_file");
+      return (
+        (p.file_url || p.sample_url) &&
+        !tags.includes("loli") &&
+        !tags.includes("shota") &&
+        !tags.includes("corrupt_file")
+      );
     });
     if (valid.length === 0) return null;
     const pick = valid[Math.floor(Math.random() * valid.length)];
@@ -54,7 +59,15 @@ export default {
     const lastRoll = rwCooldowns.get(sender) ?? 0;
 
     if (now < lastRoll) {
-      await ctx.reply(box("⏱️", "ROLL WAIFU", "⏳ Espera...", [], `Tu próximo roll es en *${formatCooldown(lastRoll - now)}*`));
+      await ctx.reply(
+        box(
+          "⏱️",
+          "ROLL WAIFU",
+          "⏳ Espera...",
+          [],
+          `Tu próximo roll es en *${formatCooldown(lastRoll - now)}*`,
+        ),
+      );
       return;
     }
 
@@ -63,40 +76,74 @@ export default {
     try {
       const char = gacha.getRandomCharacter();
       if (!char) {
-        await ctx.reply(box("❌", "ROLL WAIFU", "Sin personajes...", [], "No hay personajes en la base de datos. El owner debe usar *.genchar* o *.genrandom* para agregar."));
+        await ctx.reply(
+          box(
+            "❌",
+            "ROLL WAIFU",
+            "Sin personajes...",
+            [],
+            "No hay personajes en la base de datos. El owner debe usar *.genchar* o *.genrandom* para agregar.",
+          ),
+        );
         return;
       }
 
       const imageUrl = await getRandomImage(char.booru_tag);
       if (!imageUrl) {
-        await ctx.reply(box("❌", "ROLL WAIFU", "Sin imagen...", [], `No se encontró imagen para *${char.name}*. Intenta de nuevo.`));
+        await ctx.reply(
+          box(
+            "❌",
+            "ROLL WAIFU",
+            "Sin imagen...",
+            [],
+            `No se encontró imagen para *${char.name}*. Intenta de nuevo.`,
+          ),
+        );
         return;
       }
 
       const claimKey = `${sender}__${char.id}`;
       const pendingClaims = (global._pendingClaims ??= new Map());
-      pendingClaims.set(claimKey, { char, roller: sender, expiresAt: now + CLAIM_WINDOW });
+      pendingClaims.set(claimKey, {
+        char,
+        roller: sender,
+        expiresAt: now + CLAIM_WINDOW,
+      });
       setTimeout(() => pendingClaims.delete(claimKey), CLAIM_WINDOW);
 
-      const caption = box("✨", char.name, undefined, [
-        `⚥GÉNERO › ${char.gender}`,
-        `📖SERIE › ${char.series}`,
-        `💴VALOR › ${char.value.toLocaleString()} ¥`,
-      ], "🔒 Solo tú puedes reclamarlo, responde con *.claim*");
+      const caption = box(
+        "✨",
+        char.name,
+        undefined,
+        [
+          `⚥GÉNERO › ${char.gender}`,
+          `📖SERIE › ${char.series}`,
+          `💴VALOR › ${char.value.toLocaleString()} ¥`,
+        ],
+        "🔒 Solo tú puedes reclamarlo, responde con *.claim*",
+      );
 
-      const sent = await ctx.sock.sendMessage(ctx.chatId, {
-        image: { url: imageUrl },
-        caption,
-      }, { quoted: ctx.msg });
+      const sent = await ctx.sock.sendMessage(
+        ctx.chatId,
+        {
+          image: { url: imageUrl },
+          caption,
+        },
+        { quoted: ctx.msg },
+      );
 
       const rwPending = (global._rwPending ??= new Map());
       rwPending.set(sent?.key?.id, claimKey);
 
-      gacha.updateGachaStats(sender, (s) => { s.totalRolls += 1; });
+      gacha.updateGachaStats(sender, (s) => {
+        s.totalRolls += 1;
+      });
       rwCooldowns.set(sender, now + COOLDOWN);
     } catch (e) {
       console.error("[rw]", e.message);
-      await ctx.reply(box("❌", "ROLL WAIFU", "Error...", [], `Error: ${e.message}`));
+      await ctx.reply(
+        box("❌", "ROLL WAIFU", "Error...", [], `Error: ${e.message}`),
+      );
     } finally {
       rollLocks.delete(sender);
     }

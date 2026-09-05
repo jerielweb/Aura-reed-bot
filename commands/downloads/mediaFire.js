@@ -41,24 +41,30 @@ async function tryPage(url) {
   const link = $("a#downloadButton").attr("href") || $("a.input").attr("href");
   if (!link) throw new Error("page: sin link de descarga");
   const name = deduplicateName($("div.filename").text());
-  const size = $("ul.details li").first().text().replace("File size:", "").trim();
+  const size = $("ul.details li")
+    .first()
+    .text()
+    .replace("File size:", "")
+    .trim();
   return { link, name, size };
 }
 
 async function tryAPI(key) {
   const res = await axios.get(
     `https://www.mediafire.com/api/1.5/file/get_links.php?quick_key=${key}&link_type=normal_download&response_format=json`,
-    { headers: HEADERS, timeout: 15000 }
+    { headers: HEADERS, timeout: 15000 },
   );
   const data = res.data?.response;
-  if (data?.result !== "Success") throw new Error("api: " + (data?.message || "sin resultado"));
+  if (data?.result !== "Success")
+    throw new Error("api: " + (data?.message || "sin resultado"));
   const dl = data?.links?.[0]?.normal_download;
   if (!dl) throw new Error("api: sin download link");
   return dl;
 }
 
 async function mediafireInfo(url) {
-  if (!url.includes("mediafire.com")) throw new Error("URL de MediaFire inválida");
+  if (!url.includes("mediafire.com"))
+    throw new Error("URL de MediaFire inválida");
 
   const key = parseKey(url);
   const errors = [];
@@ -79,7 +85,10 @@ async function mediafireInfo(url) {
     }
   }
 
-  if (!info?.link) throw new Error("No se pudo obtener el link. Errores: " + errors.join(" | "));
+  if (!info?.link)
+    throw new Error(
+      "No se pudo obtener el link. Errores: " + errors.join(" | "),
+    );
 
   return {
     key: key || "",
@@ -93,7 +102,8 @@ async function mediafireInfo(url) {
 export default {
   name: ["md", "mf", "mediafire"],
   category: "downloads",
-  description: "Descarga archivos de Mediafire con detección de extensión y caché local.",
+  description:
+    "Descarga archivos de Mediafire con detección de extensión y caché local.",
 
   execute: async (socket, message, args) => {
     const remoteJid = message.key.remoteJid;
@@ -105,7 +115,7 @@ export default {
         {
           text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("FALTA ENLACE")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, proporciona un\n┃ > enlace de Mediafire.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
         },
-        { quoted: message }
+        { quoted: message },
       );
     }
 
@@ -115,7 +125,7 @@ export default {
         {
           text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("ENLACE INVÁLIDO")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Por favor, proporciona un\n┃ > enlace de Mediafire válido.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
         },
-        { quoted: message }
+        { quoted: message },
       );
     }
 
@@ -147,10 +157,14 @@ export default {
       cachePath = path.join(cacheDir, finalFileName);
 
       if (fs.existsSync(cachePath)) {
-        console.log(`[MEDIAFIRE CACHE] [HIT] Archivo en caché local: ${cachePath}`);
+        console.log(
+          `[MEDIAFIRE CACHE] [HIT] Archivo en caché local: ${cachePath}`,
+        );
         isCacheHit = true;
       } else {
-        console.log(`[MEDIAFIRE CACHE] [MISS] Descargando desde enlace directo...`);
+        console.log(
+          `[MEDIAFIRE CACHE] [MISS] Descargando desde enlace directo...`,
+        );
 
         const res = await axios({
           method: "get",
@@ -167,7 +181,9 @@ export default {
           fileStream.on("error", reject);
         });
 
-        console.log(`[MEDIAFIRE CACHE] [SAVE] Guardado en caché local: ${cachePath}`);
+        console.log(
+          `[MEDIAFIRE CACHE] [SAVE] Guardado en caché local: ${cachePath}`,
+        );
       }
 
       const motorLabel = isCacheHit ? "Scraper Local (Caché)" : "Scraper Local";
@@ -185,7 +201,11 @@ export default {
       caption += `╰━━〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕━━⬣`;
 
       // Envío 1: Mensaje de texto
-      await socket.sendMessage(remoteJid, { text: caption }, { quoted: message });
+      await socket.sendMessage(
+        remoteJid,
+        { text: caption },
+        { quoted: message },
+      );
 
       // Envío 2: Documento por separado con su MimeType
       await socket.sendMessage(
@@ -195,13 +215,12 @@ export default {
           fileName: finalFileName,
           mimetype,
         },
-        { quoted: message }
+        { quoted: message },
       );
 
       await socket.sendMessage(remoteJid, {
         react: { text: "✅", key: message.key },
       });
-
     } catch (error) {
       console.error("Error en Mediafire Downloader:", error);
 
@@ -209,7 +228,10 @@ export default {
         try {
           fs.unlinkSync(cachePath);
         } catch (err) {
-          console.error("[MEDIAFIRE CACHE] Error al limpiar archivo corrupto:", err);
+          console.error(
+            "[MEDIAFIRE CACHE] Error al limpiar archivo corrupto:",
+            err,
+          );
         }
       }
 
@@ -222,7 +244,7 @@ export default {
         {
           text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("ERROR DE DESCARGA")}\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error.message || "Ocurrió un error inesperado."}\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
         },
-        { quoted: message }
+        { quoted: message },
       );
     }
   },

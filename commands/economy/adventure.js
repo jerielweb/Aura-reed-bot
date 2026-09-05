@@ -13,12 +13,11 @@ export default {
     const participantJid = jidRemitente;
 
     // 1. Obtener datos de economía locales del grupo
-    const userEconomy = getGroupUser(
-      db,
-      remoteJid,
-      participantJid,
-      { coins: 0, bank: 0, lastAdventure: 0 },
-    );
+    const userEconomy = getGroupUser(db, remoteJid, participantJid, {
+      coins: 0,
+      bank: 0,
+      lastAdventure: 0,
+    });
 
     // 2. Obtener datos globales del perfil (XP, nivel)
     const globalDb = getDBSync();
@@ -36,7 +35,8 @@ export default {
       userEconomy.lastAdventure &&
       Date.now() - userEconomy.lastAdventure < tiempoCooldown
     ) {
-      const timeLeft = tiempoCooldown - (Date.now() - userEconomy.lastAdventure);
+      const timeLeft =
+        tiempoCooldown - (Date.now() - userEconomy.lastAdventure);
       const horas = Math.floor(timeLeft / (60 * 60 * 1000));
       const minutos = Math.floor((timeLeft % (60 * 60 * 1000)) / (60 * 1000));
       const segundos = Math.floor((timeLeft % (60 * 1000)) / 1000);
@@ -93,7 +93,7 @@ export default {
 
     // 5. Guardar en Base de Datos (Economía local por grupo y XP global)
     userEconomy.lastAdventure = Date.now();
-    
+
     // XP y Nivel se actualizan en el perfil global
     userGlobal.xp = (userGlobal.xp || 0) + xpGanado;
     userGlobal.level = Math.floor(userGlobal.xp / 150) + 1;
@@ -103,7 +103,7 @@ export default {
     if (totalAAsignar > 0) {
       userEconomy.coins = (userEconomy.coins || 0) + totalAAsignar;
     }
-    
+
     saveDB(db);
 
     // 6. Diseño Visual RPG con estructura +=

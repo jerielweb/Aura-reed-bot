@@ -15,7 +15,7 @@ export default {
       return await socket.sendMessage(
         remoteJid,
         { text: "❌ Ingresa una URL válida. Ejemplo: .ssweb `enlace`" },
-        { quoted: message }
+        { quoted: message },
       );
     }
 
@@ -30,11 +30,11 @@ export default {
 
       const response = await axios.get(apiUrl, { responseType: "arraybuffer" });
       const imageBuffer = Buffer.from(response.data);
-      
-      let caption = `╭〔 🌐 ${fytBold("SCREENSHOT WEB")} 〕⬣\n`
-      caption += `┃ ➥ ${fytBold("URL")} › ${url}\n`
-      caption += `╰〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕⬣`
-      
+
+      let caption = `╭〔 🌐 ${fytBold("SCREENSHOT WEB")} 〕⬣\n`;
+      caption += `┃ ➥ ${fytBold("URL")} › ${url}\n`;
+      caption += `╰〔 ⚡ ${fytBold("SYSTEM ACTIVE")} 〕⬣`;
+
       await socket.sendMessage(remoteJid, {
         react: { text: "✅", key: message.key },
       });
@@ -42,17 +42,16 @@ export default {
         remoteJid,
         {
           image: imageBuffer,
-          caption
+          caption,
         },
-        { quoted: message }
+        { quoted: message },
       );
-
     } catch (error) {
       await socket.sendMessage(
         remoteJid,
         { text: "❌ Ocurrió un error al obtener la captura de pantalla." },
-        { quoted: message }
+        { quoted: message },
       );
     }
-  }
+  },
 };

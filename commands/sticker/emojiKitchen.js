@@ -8,7 +8,10 @@ import { ffmpegSemaphore } from "../../controllers/downloadUtils.js";
 
 const execAsync = promisify(exec);
 
-const customTemp = path.join(path.dirname(new URL(import.meta.url).pathname), "../../tmp");
+const customTemp = path.join(
+  path.dirname(new URL(import.meta.url).pathname),
+  "../../tmp",
+);
 if (!fs.existsSync(customTemp)) fs.mkdirSync(customTemp, { recursive: true });
 
 function extractEmojis(text) {
@@ -51,15 +54,18 @@ export default {
     });
 
     try {
-      const response = await axios.get("https://api.alyacore.xyz/tools/emojimix", {
-        params: {
-          emoji1,
-          emoji2,
-          key: global.Apis?.apiAiya?.apikey || "oboe",
+      const response = await axios.get(
+        "https://api.alyacore.xyz/tools/emojimix",
+        {
+          params: {
+            emoji1,
+            emoji2,
+            key: global.Apis?.apiAiya?.apikey || "oboe",
+          },
+          responseType: "arraybuffer",
+          timeout: 60000,
         },
-        responseType: "arraybuffer",
-        timeout: 60000,
-      });
+      );
 
       const rawBuffer = Buffer.from(response.data);
       if (!rawBuffer || rawBuffer.length < 100) {
@@ -79,7 +85,7 @@ export default {
       const cmd = `"${ffmpegStatic}" -y -i "${inputPath}" -vcodec libwebp -vf "${filtroVideo}" -loop 0 -preset default -an -vsync 0 -f webp "${outputPath}"`;
 
       await ffmpegSemaphore.run(() =>
-        execAsync(cmd, { maxBuffer: 1024 * 1024 * 10 })
+        execAsync(cmd, { maxBuffer: 1024 * 1024 * 10 }),
       );
 
       const webpStickerBuffer = await fs.promises.readFile(outputPath);

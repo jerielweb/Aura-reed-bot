@@ -31,7 +31,7 @@ export function cmdLog({
   const nombreUsuario = pushName || "Usuario Desconocido";
 
   const botType = sock?.isSubBot ? `Sub-Bot (+${sock.subBotId})` : "Principal";
-  
+
   let lineasDinamicas = `${chalk.blue.bold("│")} ${chalk.white("🤖 ")} ${chalk.bold("Bot:")}       ${chalk.cyan(botType)}\n`;
   lineasDinamicas += `${chalk.blue.bold("│")} ${chalk.white("👤 ")} ${chalk.bold("Usuario:")}   ${chalk.white(nombreUsuario)}\n`;
   lineasDinamicas += `${chalk.blue.bold("│")} ${chalk.white("🎖️ ")} ${chalk.bold("Rango:")}     ${chalk.magenta(rolRango)}\n`;

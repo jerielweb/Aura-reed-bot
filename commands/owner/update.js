@@ -19,7 +19,11 @@ export default {
     initText += `╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`;
 
     // Guardamos la referencia del mensaje inicial para editarlo después
-    const initMsg = await socket.sendMessage(remoteJid, { text: initText }, { quoted: message });
+    const initMsg = await socket.sendMessage(
+      remoteJid,
+      { text: initText },
+      { quoted: message },
+    );
 
     exec("git reset --hard && git pull", async (err, stdout, stderr) => {
       if (err) {

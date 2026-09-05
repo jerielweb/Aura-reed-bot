@@ -15,15 +15,18 @@ export default {
       return await socket.sendMessage(
         remoteJid,
         { text: `❗ Responde a un audio/video con ${prefix}shazam.` },
-        { quoted: message }
+        { quoted: message },
       );
     }
 
     function unwrapMessage(msg) {
       if (!msg) return null;
-      if (msg.audioMessage || msg.videoMessage || msg.documentMessage) return msg;
-      if (msg.viewOnceMessageV2?.message) return unwrapMessage(msg.viewOnceMessageV2.message);
-      if (msg.viewOnceMessage?.message) return unwrapMessage(msg.viewOnceMessage.message);
+      if (msg.audioMessage || msg.videoMessage || msg.documentMessage)
+        return msg;
+      if (msg.viewOnceMessageV2?.message)
+        return unwrapMessage(msg.viewOnceMessageV2.message);
+      if (msg.viewOnceMessage?.message)
+        return unwrapMessage(msg.viewOnceMessage.message);
       return null;
     }
 
@@ -32,24 +35,34 @@ export default {
       return await socket.sendMessage(
         remoteJid,
         { text: `❗ El mensaje no contiene audio o video válido.` },
-        { quoted: message }
+        { quoted: message },
       );
     }
 
-    await socket.sendMessage(remoteJid, { react: { text: "⏳", key: message.key } });
+    await socket.sendMessage(remoteJid, {
+      react: { text: "⏳", key: message.key },
+    });
 
     try {
       const downloadMsg = {
         key: {
           remoteJid: remoteJid,
           id: contextInfo.stanzaId,
-          fromMe: contextInfo.participant === socket.user.id.split(":")[0] + "@s.whatsapp.net",
+          fromMe:
+            contextInfo.participant ===
+            socket.user.id.split(":")[0] + "@s.whatsapp.net",
         },
         message: target,
       };
 
-      const buffer = await downloadMediaMessage(downloadMsg, "buffer", {}, { logger: console });
-      if (!buffer || buffer.length === 0) throw new Error("No se pudo descargar el archivo.");
+      const buffer = await downloadMediaMessage(
+        downloadMsg,
+        "buffer",
+        {},
+        { logger: console },
+      );
+      if (!buffer || buffer.length === 0)
+        throw new Error("No se pudo descargar el archivo.");
 
       // Procesamiento con el scraper (recorta, sube e identifica automáticamente)
       const track = await identifySong(buffer, { seconds: 60 });
@@ -75,21 +88,26 @@ export default {
         await socket.sendMessage(
           remoteJid,
           { image: { url: track.coverArt }, caption: text },
-          { quoted: message }
+          { quoted: message },
         );
       } else {
         await socket.sendMessage(remoteJid, { text }, { quoted: message });
       }
 
-      await socket.sendMessage(remoteJid, { react: { text: "✅", key: message.key } });
-
+      await socket.sendMessage(remoteJid, {
+        react: { text: "✅", key: message.key },
+      });
     } catch (err) {
       console.error("[shazam] Error:", err);
-      await socket.sendMessage(remoteJid, { react: { text: "❌", key: message.key } });
+      await socket.sendMessage(remoteJid, {
+        react: { text: "❌", key: message.key },
+      });
       await socket.sendMessage(
         remoteJid,
-        { text: `❌ Error al identificar: ${err.message || "Sin coincidencias."}` },
-        { quoted: message }
+        {
+          text: `❌ Error al identificar: ${err.message || "Sin coincidencias."}`,
+        },
+        { quoted: message },
       );
     }
   },

@@ -34,7 +34,10 @@ export default {
       return socket.sendMessage(remoteJid, { text }, { quoted: message });
     }
 
-    const reason = args.filter((arg) => !arg.includes("@")).join(" ").trim();
+    const reason = args
+      .filter((arg) => !arg.includes("@"))
+      .join(" ")
+      .trim();
     if (!reason) {
       let text = `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n`;
       text += `┃ ${fytBold("FALTA MOTIVO")} \n╰━━━━━━━━━━━━⬣\n\n`;

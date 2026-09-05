@@ -34,14 +34,20 @@ export function makeGachaCtx(socket, message, args, extra) {
 
     /** Suma (o resta, con negativos) monedas al usuario dentro de la economía del grupo actual. */
     addCoins: (amount, targetJid = sender) => {
-      const user = getGroupUser(db, remoteJid, targetJid, { coins: 0, bank: 0 });
+      const user = getGroupUser(db, remoteJid, targetJid, {
+        coins: 0,
+        bank: 0,
+      });
       user.coins = Math.max(0, (user.coins || 0) + amount);
       saveDB(db);
       return user.coins;
     },
 
     getCoins: (targetJid = sender) => {
-      const user = getGroupUser(db, remoteJid, targetJid, { coins: 0, bank: 0 });
+      const user = getGroupUser(db, remoteJid, targetJid, {
+        coins: 0,
+        bank: 0,
+      });
       return user.coins || 0;
     },
   };

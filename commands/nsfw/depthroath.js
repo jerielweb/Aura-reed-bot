@@ -37,7 +37,8 @@ export default {
           targetJid.split("@")[0] +
           " 🔞";
       } else {
-        caption = senderTag + " " + fytBold("quiere hacer garganta profunda 🔞");
+        caption =
+          senderTag + " " + fytBold("quiere hacer garganta profunda 🔞");
       }
 
       await sock.sendMessage(

@@ -3,6 +3,7 @@ import { resolveLidToRealJid, resolveToLid } from "./utils.js";
 import formatter from "../controllers/functions/formatNumbers.js";
 import { fytBold } from "./TextStyle.js";
 import { jidNormalizedUser } from "@whiskeysockets/baileys";
+import { getGroupUser } from "./groupDb.js";
 
 export const GENRES = {
   hombre: "Hombre",
@@ -90,6 +91,7 @@ export function formatProfileText(user, pushName, jid) {
   const yearsOld = calculateAge(user.birthday);
   const genre = user.genre ? GENRES[user.genre] || user.genre : "No definido";
   const birthday = user.birthday || "No definido";
+  const description = user.description || "Sin descripción";
 
   let marriedText = "Soltero/a";
   let marriedLid = null;
@@ -101,17 +103,23 @@ export function formatProfileText(user, pushName, jid) {
   }
 
   const phoneNumber = jid.split("@")[0];
-  const displayName = pushName || phoneNumber;
+  const displayName = user.name || "Sin nombre";
 
   let text = `╭〔 👤 𝐏𝐄𝐑𝐅𝐈𝐋 〕⬣\n`;
-  text += `┃ 📋 𝐃𝐀𝐓𝐎𝐒 𝐃𝐄 𝐔𝐒𝐔𝐀𝐑𝐈𝐎\n`;
+  text += `┃ 📋 ${fytBold("SOBRE")} @${phoneNumber}\n`;
   text += `╰━━━━━━━━━━━━⬣\n\n`;
-  text += `┃ 👤 ${fytBold("Nombre")} › *@${displayName}*\n`;
-  text += `┃ 🆔 ${fytBold("ID")} › WB${phoneNumber}\n\n`;
+  text += `┏━━〔 ${fytBold("BIOGRAFIA")} 〕━━⬣\n`;
+  text += `┃ ${description}\n`;
+  text += `┗━━━━━━━━━━━━⬣\n\n`;
+  text += `┏━━〔 ${fytBold("INFO BASICA")} 〕━━⬣\n`;
+  text += `┃ 👤 ${fytBold("Nombre")} › ${displayName}\n`;
+  text += `┃ 🆔 ${fytBold("ID")} › WB${phoneNumber}\n`;
   text += `┃ ⚧️ ${fytBold("Género")} › ${genre}\n`;
   text += `┃ 🎂 ${fytBold("Cumpleaños")} › ${birthday}\n`;
-  text += `┃ 🎈 ${fytBold("Edad")} › ${yearsOld !== null ? yearsOld : "Indefinido"}\n\n`;
+  text += `┃ 🎈 ${fytBold("Edad")} › ${yearsOld !== null ? yearsOld : "Indefinido"}\n`;
   text += `┃ 💍 ${fytBold("Pareja")} › ${marriedText}\n`;
+  text += `┗━━━━━━━━━━━━⬣\n\n`;
+  text += `┏━━〔 ${fytBold("RANGO")} 〕━━⬣\n`;
   text += `┃ 📊 ${fytBold("Nivel")} › ${level}\n`;
   text += `┃ ✨ ${fytBold("XP")} › ${formatter(xp)}\n`;
   text += `┃ 💵 ${fytBold("Cartera")} › ₡${formatter(coins)}\n`;
@@ -133,7 +141,7 @@ export async function getProfilePictureUrl(socket, jid) {
 }
 
 export function getProfileUser(db, remoteJid, jid) {
-  const key = jid;
+  const key = jidNormalizedUser(jid);
 
   if (!db.users) db.users = {};
   if (!db.users[key]) {
@@ -142,40 +150,79 @@ export function getProfileUser(db, remoteJid, jid) {
       level: 1,
       genre: null,
       birthday: null,
+      description: null,
+      name: null,
       marriedTo: null,
     };
   }
+
   const global = db.users[key];
 
-  if (!db.groups) db.groups = {};
-  if (!db.groups[remoteJid]) db.groups[remoteJid] = { users: {} };
-  if (!db.groups[remoteJid].users) db.groups[remoteJid].users = {};
-  if (!db.groups[remoteJid].users[key]) {
-    db.groups[remoteJid].users[key] = { coins: 0, bank: 0 };
-  }
-  const local = db.groups[remoteJid].users[key];
+  const local = getGroupUser(db, remoteJid, key);
 
   return {
-    get xp() { return global.xp || 0; },
-    set xp(v) { global.xp = v; },
+    get xp() {
+      return global.xp || 0;
+    },
+    set xp(v) {
+      global.xp = v;
+    },
 
-    get level() { return global.level || calculateLevel(global.xp || 0); },
-    set level(v) { global.level = v; },
+    get level() {
+      return global.level || calculateLevel(global.xp || 0);
+    },
+    set level(v) {
+      global.level = v;
+    },
 
-    get genre() { return global.genre || null; },
-    set genre(v) { global.genre = v; },
+    get genre() {
+      return global.genre || null;
+    },
+    set genre(v) {
+      global.genre = v;
+    },
 
-    get birthday() { return global.birthday || null; },
-    set birthday(v) { global.birthday = v; },
+    get birthday() {
+      return global.birthday || null;
+    },
+    set birthday(v) {
+      global.birthday = v;
+    },
 
-    get marriedTo() { return global.marriedTo || null; },
-    set marriedTo(v) { global.marriedTo = v; },
+    get description() {
+      return global.description || null;
+    },
+    set description(v) {
+      global.description = v;
+    },
 
-    get coins() { return local.coins || 0; },
-    set coins(v) { local.coins = v; },
+    get name() {
+      return global.name || null;
+    },
+    set name(v) {
+      global.name = v;
+    },
 
-    get bank() { return local.bank || 0; },
-    set bank(v) { local.bank = v; },
+    get marriedTo() {
+      return global.marriedTo || null;
+    },
+    set marriedTo(v) {
+      global.marriedTo = v;
+    },
+
+    get coins() {
+      return local.coins || 0;
+    },
+    set coins(v) {
+      local.coins = v;
+    },
+
+    get bank() {
+      return local.bank || 0;
+    },
+    set bank(v) {
+      local.bank = v;
+    },
 
     _global: global,
     _local: local,
@@ -183,7 +230,66 @@ export function getProfileUser(db, remoteJid, jid) {
   };
 }
 
-export async function resolveTargetJid(message, socket, remoteJid, fallbackJid) {
+export function migrateProfileIdentity(db, remoteJid, sourceJid, targetJid) {
+  const sourceKey = sourceJid;
+  const targetKey = jidNormalizedUser(targetJid);
+
+  if (!sourceKey || !targetKey || sourceKey === targetKey) return;
+
+  const sourceGlobal = db.users?.[sourceKey];
+  let targetGlobal = db.users?.[targetKey];
+
+  if (sourceGlobal && !targetGlobal) {
+    db.users[targetKey] = sourceGlobal;
+    targetGlobal = db.users[targetKey];
+  }
+
+  if (sourceGlobal && targetGlobal) {
+    targetGlobal.xp = Math.max(targetGlobal.xp || 0, sourceGlobal.xp || 0);
+    targetGlobal.level = calculateLevel(targetGlobal.xp);
+    for (const field of [
+      "genre",
+      "birthday",
+      "description",
+      "name",
+      "marriedTo",
+    ]) {
+      if (!targetGlobal[field] && sourceGlobal[field]) {
+        targetGlobal[field] = sourceGlobal[field];
+      }
+    }
+    delete db.users[sourceKey];
+  }
+
+  const sourceLocal = db.groups?.[remoteJid]?.users?.[sourceKey];
+  let targetLocal = db.groups?.[remoteJid]?.users?.[targetKey];
+
+  if (sourceLocal && !targetLocal) {
+    db.groups[remoteJid].users[targetKey] = sourceLocal;
+    targetLocal = db.groups[remoteJid].users[targetKey];
+  }
+
+  if (sourceLocal && targetLocal) {
+    for (const field of ["coins", "bank"]) {
+      if (!(targetLocal[field] > 0) && sourceLocal[field] > 0) {
+        targetLocal[field] = sourceLocal[field];
+      }
+    }
+    for (const [field, value] of Object.entries(sourceLocal)) {
+      if (field.startsWith("last") && !(field in targetLocal)) {
+        targetLocal[field] = value;
+      }
+    }
+    delete db.groups[remoteJid].users[sourceKey];
+  }
+}
+
+export async function resolveTargetJid(
+  message,
+  socket,
+  remoteJid,
+  fallbackJid,
+) {
   let targetJid = null;
   const ctx = message.message?.extendedTextMessage?.contextInfo;
 

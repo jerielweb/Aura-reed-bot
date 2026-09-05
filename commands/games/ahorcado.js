@@ -81,21 +81,56 @@ async function generateHangmanImage(game) {
   const mistakes = game.mistakes;
 
   if (mistakes >= 1) {
-    ctx.beginPath(); ctx.arc(600, 400, 120, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(600, 400, 120, 0, Math.PI * 2);
+    ctx.stroke();
     ctx.fillStyle = "#000000";
-    ctx.beginPath(); ctx.arc(556, 360, 17, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(644, 360, 17, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(600, 450, 35, Math.PI, 0); ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(556, 360, 17, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(644, 360, 17, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(600, 450, 35, Math.PI, 0);
+    ctx.stroke();
   }
-  if (mistakes >= 2) { ctx.beginPath(); ctx.moveTo(600, 520); ctx.lineTo(600, 800); ctx.stroke(); }
-  if (mistakes >= 3) { ctx.beginPath(); ctx.moveTo(600, 570); ctx.lineTo(430, 740); ctx.stroke(); }
-  if (mistakes >= 4) { ctx.beginPath(); ctx.moveTo(600, 570); ctx.lineTo(770, 740); ctx.stroke(); }
-  if (mistakes >= 5) { ctx.beginPath(); ctx.moveTo(600, 800); ctx.lineTo(470, 1020); ctx.stroke(); }
-  if (mistakes >= 6) { ctx.beginPath(); ctx.moveTo(600, 800); ctx.lineTo(730, 1020); ctx.stroke(); }
+  if (mistakes >= 2) {
+    ctx.beginPath();
+    ctx.moveTo(600, 520);
+    ctx.lineTo(600, 800);
+    ctx.stroke();
+  }
+  if (mistakes >= 3) {
+    ctx.beginPath();
+    ctx.moveTo(600, 570);
+    ctx.lineTo(430, 740);
+    ctx.stroke();
+  }
+  if (mistakes >= 4) {
+    ctx.beginPath();
+    ctx.moveTo(600, 570);
+    ctx.lineTo(770, 740);
+    ctx.stroke();
+  }
+  if (mistakes >= 5) {
+    ctx.beginPath();
+    ctx.moveTo(600, 800);
+    ctx.lineTo(470, 1020);
+    ctx.stroke();
+  }
+  if (mistakes >= 6) {
+    ctx.beginPath();
+    ctx.moveTo(600, 800);
+    ctx.lineTo(730, 1020);
+    ctx.stroke();
+  }
 
   const displayWord = game.word
     .split("")
-    .map((letter) => (game.guessedLetters.has(letter) ? letter.toUpperCase() : "_"))
+    .map((letter) =>
+      game.guessedLetters.has(letter) ? letter.toUpperCase() : "_",
+    )
     .join(" ");
 
   ctx.font = "bold 90px 'DejaVu Sans'";
@@ -120,7 +155,15 @@ function resetGameTimeout(socket, remoteJid, key, game, db, saveDB) {
   }, 300000); // 5 minutos
 }
 
-async function sendGameState(socket, jid, game, statusMsg, quotedMsg, prefix, isOver = false) {
+async function sendGameState(
+  socket,
+  jid,
+  game,
+  statusMsg,
+  quotedMsg,
+  prefix,
+  isOver = false,
+) {
   const triesLeft = game.maxMistakes - game.mistakes;
   const hearts = "❤️".repeat(triesLeft) + "🖤".repeat(game.mistakes);
 
@@ -129,7 +172,9 @@ async function sendGameState(socket, jid, game, statusMsg, quotedMsg, prefix, is
   text += `┃ 🩸 ${fytBold("Vidas")} › ${hearts}\n`;
   text += `┣━━━━━━━━━━━━⬣\n\n`;
   if (game.guessedLetters.size > 0 && !isOver) {
-    const usedLetters = Array.from(game.guessedLetters).map((l) => l.toUpperCase()).join(", ");
+    const usedLetters = Array.from(game.guessedLetters)
+      .map((l) => l.toUpperCase())
+      .join(", ");
     text += `┃ 🔤 ${fytBold("Letras usadas")} › ${usedLetters}\n`;
   }
 
@@ -148,7 +193,7 @@ async function sendGameState(socket, jid, game, statusMsg, quotedMsg, prefix, is
   const sentMessage = await socket.sendMessage(
     jid,
     { image: imageBuffer, caption: text },
-    { quoted: targetQuoted }
+    { quoted: targetQuoted },
   );
 
   if (sentMessage && !isOver) {
@@ -160,7 +205,14 @@ async function sendGameState(socket, jid, game, statusMsg, quotedMsg, prefix, is
 
 // ---------- Lógica de intentos ----------
 
-export async function processHangmanGuess(socket, message, rawInput, prefix, db, saveDB) {
+export async function processHangmanGuess(
+  socket,
+  message,
+  rawInput,
+  prefix,
+  db,
+  saveDB,
+) {
   const remoteJid = message.key.remoteJid;
   const key = gameKey(socket, remoteJid);
   const game = activeHangmanGames.get(key);
@@ -169,7 +221,13 @@ export async function processHangmanGuess(socket, message, rawInput, prefix, db,
 
   const input = rawInput.toLowerCase().trim();
 
-  if (!input || (input.length > 1 && input.includes(" ") && input !== "rendirse" && input !== "salir")) {
+  if (
+    !input ||
+    (input.length > 1 &&
+      input.includes(" ") &&
+      input !== "rendirse" &&
+      input !== "salir")
+  ) {
     return false;
   }
 
@@ -180,8 +238,10 @@ export async function processHangmanGuess(socket, message, rawInput, prefix, db,
     removePersistedGame(db, saveDB, key);
     await socket.sendMessage(
       remoteJid,
-      { text: `╭〔 🏳️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ > Te has rendido.\n┃ > La palabra era: *${wordWas.toUpperCase()}*\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣` },
-      { quoted: message }
+      {
+        text: `╭〔 🏳️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ > Te has rendido.\n┃ > La palabra era: *${wordWas.toUpperCase()}*\n╰〔 ⚡ 𝐒𝐘𝐒𝐓𝐄𝐌 〕⬣`,
+      },
+      { quoted: message },
     );
     return true;
   }
@@ -192,8 +252,10 @@ export async function processHangmanGuess(socket, message, rawInput, prefix, db,
     if (game.guessedLetters.has(input)) {
       await socket.sendMessage(
         remoteJid,
-        { text: `⚠️ Ya intentaste con la letra *${input.toUpperCase()}*. Intenta con otra.` },
-        { quoted: message }
+        {
+          text: `⚠️ Ya intentaste con la letra *${input.toUpperCase()}*. Intenta con otra.`,
+        },
+        { quoted: message },
       );
       return true;
     }
@@ -211,7 +273,9 @@ export async function processHangmanGuess(socket, message, rawInput, prefix, db,
     }
   }
 
-  const isWin = game.word.split("").every((letter) => game.guessedLetters.has(letter));
+  const isWin = game.word
+    .split("")
+    .every((letter) => game.guessedLetters.has(letter));
   const isLose = game.mistakes >= game.maxMistakes;
 
   if (isWin) {
@@ -220,7 +284,7 @@ export async function processHangmanGuess(socket, message, rawInput, prefix, db,
     removePersistedGame(db, saveDB, key);
 
     const participantJid = jidNormalizedUser(
-      message.key.participant || message.key.remoteJid
+      message.key.participant || message.key.remoteJid,
     );
 
     // Otorgar XP al sistema global de usuarios
@@ -235,16 +299,39 @@ export async function processHangmanGuess(socket, message, rawInput, prefix, db,
     user.xp = (user.xp || 0) + earnedXp;
     user.level = Math.floor(user.xp / 150) + 1;
 
-    await sendGameState(socket, remoteJid, game, `¡Felicidades! Has ganado el juego. 🎉\n┃ 🎁 Recompensa: +${earnedXp} XP`, message, prefix, true);
+    await sendGameState(
+      socket,
+      remoteJid,
+      game,
+      `¡Felicidades! Has ganado el juego. 🎉\n┃ 🎁 Recompensa: +${earnedXp} XP`,
+      message,
+      prefix,
+      true,
+    );
   } else if (isLose) {
     if (game.timeoutTimer) clearTimeout(game.timeoutTimer);
     activeHangmanGames.delete(key);
     removePersistedGame(db, saveDB, key);
-    await sendGameState(socket, remoteJid, game, `¡Perdiste! 💀 La palabra era: ${fytBold(game.word.toUpperCase())}`, message, prefix, true);
+    await sendGameState(
+      socket,
+      remoteJid,
+      game,
+      `¡Perdiste! 💀 La palabra era: ${fytBold(game.word.toUpperCase())}`,
+      message,
+      prefix,
+      true,
+    );
   } else {
     persistGame(db, saveDB, key, game);
     resetGameTimeout(socket, remoteJid, key, game, db, saveDB);
-    await sendGameState(socket, remoteJid, game, "¡Sigue adivinando!", message, prefix);
+    await sendGameState(
+      socket,
+      remoteJid,
+      game,
+      "¡Sigue adivinando!",
+      message,
+      prefix,
+    );
   }
 
   return true;
@@ -265,9 +352,23 @@ export default {
 
     if (game) {
       if (!input) {
-        return sendGameState(socket, remoteJid, game, "⚠️ Ya hay un juego en curso. Responde a la imagen o usa el comando con una letra.", message, prefix);
+        return sendGameState(
+          socket,
+          remoteJid,
+          game,
+          "⚠️ Ya hay un juego en curso. Responde a la imagen o usa el comando con una letra.",
+          message,
+          prefix,
+        );
       }
-      return await processHangmanGuess(socket, message, input, prefix, db, saveDB);
+      return await processHangmanGuess(
+        socket,
+        message,
+        input,
+        prefix,
+        db,
+        saveDB,
+      );
     }
 
     const secretWord = words[Math.floor(Math.random() * words.length)];
@@ -284,9 +385,23 @@ export default {
     resetGameTimeout(socket, remoteJid, key, game, db, saveDB);
 
     if (input && input !== "iniciar") {
-      return await processHangmanGuess(socket, message, input, prefix, db, saveDB);
+      return await processHangmanGuess(
+        socket,
+        message,
+        input,
+        prefix,
+        db,
+        saveDB,
+      );
     }
 
-    return sendGameState(socket, remoteJid, game, "¡Juego iniciado!", message, prefix);
+    return sendGameState(
+      socket,
+      remoteJid,
+      game,
+      "¡Juego iniciado!",
+      message,
+      prefix,
+    );
   },
 };

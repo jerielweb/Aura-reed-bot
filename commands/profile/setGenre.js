@@ -1,6 +1,6 @@
 // setGenre.js
 import { getProfileUser, GENRES } from "../../models/profileUtils.js";
-import { resolveToLid, resolveLidToRealJid } from "../../models/utils.js";
+import { resolveLidToRealJid } from "../../models/utils.js";
 
 export default {
   name: ["setgenre", "género", "genero", "setgen", "sg"],
@@ -23,13 +23,11 @@ export default {
       );
     }
 
-    const lid = await resolveToLid(jidRemitente, socket, remoteJid);
-    const user = getProfileUser(db, remoteJid, lid);
+    const realJid = await resolveLidToRealJid(jidRemitente, socket, remoteJid);
+    const user = getProfileUser(db, remoteJid, realJid);
     user.genre = choice;
 
     if (typeof saveDB === "function") saveDB(db);
-
-    const realJid = await resolveLidToRealJid(lid, socket, remoteJid);
 
     await socket.sendMessage(
       remoteJid,

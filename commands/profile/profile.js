@@ -4,6 +4,7 @@ import {
   formatProfileText,
   getProfileUser,
   getProfilePictureUrl,
+  migrateProfileIdentity,
 } from "../../models/profileUtils.js";
 import { resolveLidToRealJid } from "../../models/utils.js";
 
@@ -23,8 +24,9 @@ export default {
         jidRemitente,
       );
 
-      const user = getProfileUser(db, remoteJid, targetLid);
       const realJid = await resolveLidToRealJid(targetLid, socket, remoteJid);
+      migrateProfileIdentity(db, remoteJid, targetLid, realJid);
+      const user = getProfileUser(db, remoteJid, realJid);
 
       // 2. Obtener Nombre de Pantalla
       let displayName = realJid.split("@")[0];
@@ -35,15 +37,15 @@ export default {
         displayName = contact?.notify || contact?.name || displayName;
       } catch {}
 
-      if (targetLid === jidRemitente) {
+      if (realJid === jidRemitente) {
         displayName = message.pushName || displayName;
       }
 
-      const result = formatProfileText(user, displayName, targetLid);
+      const result = formatProfileText(user, displayName, realJid);
 
       // 3. Preparar Menciones (Inclusión doble para evitar fallos de renderizado LID/PN)
-      const mentions = [realJid, targetLid]; 
-      
+      const mentions = [realJid, targetLid];
+
       if (result.marriedLid) {
         const marriedRealJid = await resolveLidToRealJid(
           result.marriedLid,
@@ -75,12 +77,15 @@ export default {
         },
         { quoted: message },
       );
-
     } catch (globalError) {
       console.error("Error crítico en comando profile:", globalError);
-      await socket.sendMessage(remoteJid, { 
-        text: "❌ Ocurrió un error al intentar cargar el perfil." 
-      }, { quoted: message });
+      await socket.sendMessage(
+        remoteJid,
+        {
+          text: "❌ Ocurrió un error al intentar cargar el perfil.",
+        },
+        { quoted: message },
+      );
     }
   },
 };

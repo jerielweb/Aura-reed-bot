@@ -58,7 +58,8 @@ const sendGroupStatus = async (socket, jid, options = {}) => {
       [type]: typeof media === "string" ? { url: media } : media,
     };
 
-    if (caption && ["image", "video"].includes(type)) contentInput.caption = caption;
+    if (caption && ["image", "video"].includes(type))
+      contentInput.caption = caption;
     if (mimetype) contentInput.mimetype = mimetype;
     if (fileName && type === "document") contentInput.fileName = fileName;
     if (type === "audio") contentInput.ptt = ptt;
@@ -82,7 +83,7 @@ const sendGroupStatus = async (socket, jid, options = {}) => {
   const message = generateWAMessageFromContent(
     jid,
     { groupStatusMessageV2: { message: innerMessage } },
-    { userJid: senderJid }
+    { userJid: senderJid },
   );
 
   await socket.relayMessage(jid, message.message, {
@@ -108,11 +109,7 @@ export default {
       text += `╰━━━━━━━━━━━━⬣\n\n`;
       text += `┃ > Este comando solo funciona en grupos.\n\n`;
       text += `╰〔 ⚡${fytBold("SYSTEM ALERT")} 〕⬣`;
-      return await socket.sendMessage(
-        remoteJid,
-        { text },
-        { quoted: message }
-      );
+      return await socket.sendMessage(remoteJid, { text }, { quoted: message });
     }
 
     await socket.sendMessage(remoteJid, {
@@ -121,9 +118,11 @@ export default {
 
     const inputContent = args.join(" ");
 
-    const quotedCtx = message.message?.extendedTextMessage?.contextInfo || 
-                      message.message?.ephemeralMessage?.message?.extendedTextMessage?.contextInfo;
-    
+    const quotedCtx =
+      message.message?.extendedTextMessage?.contextInfo ||
+      message.message?.ephemeralMessage?.message?.extendedTextMessage
+        ?.contextInfo;
+
     const quotedMsg = quotedCtx?.quotedMessage;
 
     try {
@@ -142,13 +141,13 @@ export default {
                   remoteJid,
                   id: quotedCtx.stanzaId,
                   participant: quotedCtx.participant,
-                  fromMe: quotedCtx.participant === socket.user?.id
+                  fromMe: quotedCtx.participant === socket.user?.id,
                 },
                 message: quotedMsg,
               },
               "buffer",
               {},
-              { logger: console, reuploadRequest: socket.updateMediaMessage }
+              { logger: console, reuploadRequest: socket.updateMediaMessage },
             );
           }
 
@@ -161,7 +160,7 @@ export default {
             caption: inputContent || innerContent.caption || "",
             mimetype: innerContent.mimetype,
             fileName: innerContent.fileName,
-            ptt: innerContent.ptt || false
+            ptt: innerContent.ptt || false,
           });
         } else {
           const statusText =
@@ -181,7 +180,7 @@ export default {
             return await socket.sendMessage(
               remoteJid,
               { text },
-              { quoted: message }
+              { quoted: message },
             );
           }
 
@@ -204,7 +203,7 @@ export default {
           return await socket.sendMessage(
             remoteJid,
             { text },
-            { quoted: message }
+            { quoted: message },
           );
         }
 

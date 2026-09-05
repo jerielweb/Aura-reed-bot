@@ -9,7 +9,10 @@ import { ffmpegSemaphore } from "../../controllers/downloadUtils.js";
 
 const execAsync = promisify(exec);
 
-const customTemp = path.join(path.dirname(new URL(import.meta.url).pathname), "../../tmp");
+const customTemp = path.join(
+  path.dirname(new URL(import.meta.url).pathname),
+  "../../tmp",
+);
 if (!fs.existsSync(customTemp)) fs.mkdirSync(customTemp, { recursive: true });
 
 // Función para desempaquetar el mensaje multimedia
@@ -67,8 +70,8 @@ async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
     optionsStr += ` -q:v 80`;
   }
 
-  // Filtro inteligente: Mantiene el tamaño proporcional exacto (sin estirar ni deformar) 
-  // respetando los límites de ${scale}x${scale}, y rellena el espacio sobrante del cuadro de 512x512 
+  // Filtro inteligente: Mantiene el tamaño proporcional exacto (sin estirar ni deformar)
+  // respetando los límites de ${scale}x${scale}, y rellena el espacio sobrante del cuadro de 512x512
   // con un fondo completamente transparente (0x000000@0).
   const filtroVideo = isVideo
     ? `format=rgba,scale=${scale}:${scale}:force_original_aspect_ratio=decrease,fps=${fps},pad=512:512:(512-iw)/2:(512-ih)/2:color=0x000000@0`
@@ -78,7 +81,6 @@ async function convertToSticker(inputPath, outputPath, isVideo, attempt = 1) {
 
   await execAsync(cmd, { maxBuffer: 1024 * 1024 * 10 });
 }
-
 
 export default {
   name: ["s", "sticker", "stiker"],

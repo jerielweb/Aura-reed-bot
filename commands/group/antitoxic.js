@@ -114,8 +114,8 @@ export default {
 
     for (const level of Object.values(badWordsData.levels)) {
       for (const word of level.rawWords) {
-        const isMatch = word.includes(" ") 
-          ? lowerText.includes(word) 
+        const isMatch = word.includes(" ")
+          ? lowerText.includes(word)
           : wordsInMessage.includes(word);
 
         if (isMatch) {
@@ -140,13 +140,12 @@ async function handleToxic(socket, m, level, db, saveDB, userMessage) {
   } catch (e) {}
 
   if (!db.groups[remoteJid].warns) db.groups[remoteJid].warns = {};
-  if (!db.groups[remoteJid].warns[user])
-    db.groups[remoteJid].warns[user] = [];
+  if (!db.groups[remoteJid].warns[user]) db.groups[remoteJid].warns[user] = [];
 
   const date = new Date().toLocaleDateString("es-CR", {
     timeZone: "America/Costa_Rica",
   });
-  
+
   db.groups[remoteJid].warns[user].push({
     reason: `Toxicidad: ${reason}`,
     date,
@@ -173,5 +172,8 @@ async function handleToxic(socket, m, level, db, saveDB, userMessage) {
   responseText += `┃ ❗ ha sido eliminado.\n\n`;
   responseText += `╰〔 ${fytBold("SYSTEM ACTIVE")} 〕⬣`;
 
-  await socket.sendMessage(remoteJid, { text: responseText, mentions: [user, botJid] });
+  await socket.sendMessage(remoteJid, {
+    text: responseText,
+    mentions: [user, botJid],
+  });
 }
