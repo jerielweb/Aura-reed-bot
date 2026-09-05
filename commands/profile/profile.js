@@ -16,7 +16,7 @@ export default {
     const remoteJid = message.key.remoteJid;
 
     try {
-      // 1. Resolver el JID objetivo (LID por defecto en sistemas nuevos)
+      // 1. Resolver el JID objetivo
       const targetLid = await resolveTargetJid(
         message,
         socket,
@@ -43,33 +43,37 @@ export default {
 
       const result = formatProfileText(user, displayName, realJid);
 
-      // 3. Preparar Menciones (Inclusión doble para LID y PN)
+      // 3. Preparar Menciones y corregir el texto para que WhatsApp lo renderice
       const mentions = [realJid, targetLid];
+      let captionText = result.text;
 
+      // Si el usuario está casado y tiene un marriedLid
       if (result.marriedLid) {
         const marriedRealJid = await resolveLidToRealJid(
           result.marriedLid,
           socket,
           remoteJid,
         );
-        mentions.push(marriedRealJid, result.marriedLid);
+
+        // Si logramos obtener el número real (PN) del matrimonio, reemplazamos el LID en el texto 
+        // por el PN para que WhatsApp renderice la mención correctamente, y guardamos ambos en mentions.
+        if (marriedRealJid && !marriedRealJid.includes("@lid")) {
+          const lidNum = result.marriedLid.split("@")[0];
+          const realNum = marriedRealJid.split("@")[0];
+          
+          // Reemplazamos el número largo del LID en el texto por el número real para que WhatsApp lo pinte
+          captionText = captionText.replace(`@${lidNum}`, `@${realNum}`);
+          
+          mentions.push(marriedRealJid, result.marriedLid);
+        } else {
+          mentions.push(result.marriedLid);
+        }
       }
 
       // Filtrar duplicados y valores nulos
       const cleanMentions = [...new Set(mentions.filter(Boolean))];
 
-      // 4. Asegurar que el texto use el formato de mención correcto con el número real (PN)
-      // para que WhatsApp lo convierta en mención interactiva en lugar de mostrar el LID largo.
-      let captionText = result.text;
-      const phoneNum = realJid.split("@")[0];
-
-      // Si tu función formatProfileText deja el ID crudo del LID, lo reemplazamos por el formato de mención del PN
-      if (targetLid) {
-        const rawLidNum = targetLid.split("@")[0];
-        captionText = captionText.replaceAll(`@${rawLidNum}`, `@${phoneNum}`);
-      }
-
-      // 5. Obtener foto de perfil con salvaguarda (Fallback)
+      // 4. Obtener foto de perfil con salvaguarda (Fallback)
       let ppUrl;
       try {
         ppUrl = await getProfilePictureUrl(socket, realJid);
@@ -77,7 +81,7 @@ export default {
         ppUrl = "https://pixabay.com";
       }
 
-      // 6. Enviar Mensaje
+      // 5. Enviar Mensaje
       await socket.sendMessage(
         remoteJid,
         {
