@@ -55,25 +55,35 @@ export default {
         mentions.push(marriedRealJid, result.marriedLid);
       }
 
-      // Filtrar duplicados y valores nulos para limpiar el array
+      // Filtrar duplicados y valores nulos
       const cleanMentions = [...new Set(mentions.filter(Boolean))];
 
-      // 4. Obtener foto de perfil con salvaguarda (Fallback)
+      // 4. Asegurar que el texto use el formato de mención correcto con el número real (PN)
+      // para que WhatsApp lo convierta en mención interactiva en lugar de mostrar el LID largo.
+      let captionText = result.text;
+      const phoneNum = realJid.split("@")[0];
+
+      // Si tu función formatProfileText deja el ID crudo del LID, lo reemplazamos por el formato de mención del PN
+      if (targetLid) {
+        const rawLidNum = targetLid.split("@")[0];
+        captionText = captionText.replaceAll(`@${rawLidNum}`, `@${phoneNum}`);
+      }
+
+      // 5. Obtener foto de perfil con salvaguarda (Fallback)
       let ppUrl;
       try {
         ppUrl = await getProfilePictureUrl(socket, realJid);
       } catch (err) {
-        // Imagen por defecto si el usuario la tiene privada o no tiene foto
         ppUrl = "https://pixabay.com";
       }
 
-      // 5. Enviar Mensaje
+      // 6. Enviar Mensaje
       await socket.sendMessage(
         remoteJid,
         {
           image: { url: ppUrl },
-          caption: result.text,
-          mentions: mentions, // Array limpio con ambos formatos (JID y LID)
+          caption: captionText,
+          mentions: cleanMentions, 
         },
         { quoted: message },
       );
