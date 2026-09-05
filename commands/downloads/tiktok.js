@@ -156,6 +156,7 @@ export default {
     const id = crypto.randomBytes(8).toString("hex");
     const inputP = path.join(tmp, `tt_${id}.mp4`);
     const outP = path.join(tmp, `tt_${id}_out.mp4`);
+    const whatsappReadyPath = path.join(tmp, `tt_${id}_wa.mp4`);
 
     try {
       const result = await DL_TIKTOK(text);
@@ -204,6 +205,20 @@ export default {
           );
           finalPath = inputP;
         }
+      }
+
+      // Optimización final universal H.265 + FastStart para WhatsApp
+      try {
+        await execAsync(
+          `ffmpeg -y -i "${finalPath}" -c:v libx265 -preset ultrafast -tag:v hvc1 -pix_fmt yuv420p -c:a aac -movflags +faststart "${whatsappReadyPath}"`,
+          { maxBuffer: 1024 * 1024 * 10 },
+        );
+        finalPath = whatsappReadyPath;
+      } catch (e) {
+        console.error(
+          "No se pudo aplicar H.265/FastStart, se mantiene el archivo anterior:",
+          e.message,
+        );
       }
 
       let caption = `╭〔 🎥 ${fytBold("TIKTOK VIDEO")} 〕━⬣\n\n`;
@@ -258,6 +273,9 @@ export default {
       } catch {}
       try {
         if (fs.existsSync(outP)) fs.unlinkSync(outP);
+      } catch {}
+      try {
+        if (fs.existsSync(whatsappReadyPath)) fs.unlinkSync(whatsappReadyPath);
       } catch {}
     }
   },
