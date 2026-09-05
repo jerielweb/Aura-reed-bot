@@ -43,7 +43,7 @@ export default {
 
       const result = formatProfileText(user, displayName, realJid);
 
-      // 3. Preparar Menciones (Inclusión doble para evitar fallos de renderizado LID/PN)
+      // 3. Preparar Menciones (Inclusión doble para LID y PN)
       const mentions = [realJid, targetLid];
 
       if (result.marriedLid) {
@@ -55,8 +55,8 @@ export default {
         mentions.push(marriedRealJid, result.marriedLid);
       }
 
-      // Filtrar por si acaso algún resolver devolvió null o undefined
-      const cleanMentions = mentions.filter(Boolean);
+      // Filtrar duplicados y valores nulos para limpiar el array
+      const cleanMentions = [...new Set(mentions.filter(Boolean))];
 
       // 4. Obtener foto de perfil con salvaguarda (Fallback)
       let ppUrl;
@@ -73,7 +73,7 @@ export default {
         {
           image: { url: ppUrl },
           caption: result.text,
-          mentions: cleanMentions, // Enviamos el array limpio y robusto
+          mentions: cleanMentions, // Array limpio con ambos formatos (JID y LID)
         },
         { quoted: message },
       );
