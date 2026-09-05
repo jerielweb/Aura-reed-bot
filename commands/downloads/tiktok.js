@@ -207,16 +207,16 @@ export default {
         }
       }
 
-      // Optimización final universal H.265 + FastStart para WhatsApp
+      // Reempaquetado rápido sin compresión (-c copy), solo aplicando tag hvc1 y faststart
       try {
         await execAsync(
-          `ffmpeg -y -i "${finalPath}" -c:v libx265 -preset ultrafast -tag:v hvc1 -pix_fmt yuv420p -c:a aac -movflags +faststart "${whatsappReadyPath}"`,
+          `ffmpeg -y -i "${finalPath}" -c copy -tag:v hvc1 -movflags +faststart "${whatsappReadyPath}"`,
           { maxBuffer: 1024 * 1024 * 10 },
         );
         finalPath = whatsappReadyPath;
       } catch (e) {
         console.error(
-          "No se pudo aplicar H.265/FastStart, se mantiene el archivo anterior:",
+          "No se pudo aplicar el reempaquetado, se mantiene el archivo anterior:",
           e.message,
         );
       }
