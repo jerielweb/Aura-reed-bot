@@ -32,7 +32,7 @@ async function searchYouTube(query) {
     throw new Error("No se encontró ningún video.");
   }
 
-  return results[0].url;
+  return results[0]; // Retorna el objeto completo del video
 }
 
 export default {
@@ -59,18 +59,17 @@ export default {
 
     try {
       let finalUrl = text;
-      let videoData;
+      let searchData = {};
 
       if (!YT_REGEX.test(text)) {
-        videoData = await searchYouTube(text);
-        finalUrl = videoData.url;
+        searchData = await searchYouTube(text);
+        finalUrl = searchData.url;
       } else {
         const videoId = extractVideoId(text);
         if (!videoId) throw new Error("URL de YouTube no válida");
         finalUrl = `https://youtube.com/watch?v=${videoId}`;
       }
 
-      const searchData = videoData || {};
       const apiResponse = await axios.get(
         `https://api.alyacore.xyz/dl/ytmp3converter?url=${encodeURIComponent(finalUrl)}&key=${ALYACORE_KEY}`,
       );
@@ -109,7 +108,6 @@ export default {
         { quoted: message },
       );
 
-      // Descargamos el archivo con Headers para evitar errores 403
       const audio = await axios.get(audioUrl, {
         responseType: "arraybuffer",
         headers: {
