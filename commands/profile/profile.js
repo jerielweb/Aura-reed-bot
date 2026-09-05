@@ -16,7 +16,7 @@ export default {
     const remoteJid = message.key.remoteJid;
 
     try {
-      // 1. Resolver el JID objetivo
+      // 1. Resolver el JID objetivo (LID por defecto en sistemas nuevos)
       const targetLid = await resolveTargetJid(
         message,
         socket,
@@ -25,49 +25,51 @@ export default {
       );
 
       const realJid = await resolveLidToRealJid(targetLid, socket, remoteJid);
+      
+      // Asegurarnos de tener un identificador con formato de teléfono (PN) para el texto visual
+      // Si realJid o targetLid es un LID, intentamos obtener el PN o usar jidRemitente si es válido
+      let displayJid = realJid;
+      if (realJid?.includes("@lid")) {
+        // Intentar buscar si el socket tiene mapeo o usar el remitente como respaldo si es PN
+        const pnMapping = socket.signalRepository?.lidMapping?.getPNForLID 
+          ? await socket.signalRepository.lidMapping.getPNForLID(realJid) 
+          : null;
+        displayJid = pnMapping || jidRemitente;
+      }
+      if (!displayJid || displayJid.includes("@lid")) {
+        displayJid = "50600000000@s.whatsapp.net"; // Fallback seguro para evitar números de LID en texto
+      }
+
       migrateProfileIdentity(db, remoteJid, targetLid, realJid);
       const user = getProfileUser(db, remoteJid, realJid);
 
       // 2. Obtener Nombre de Pantalla
-      let displayName = realJid.split("@")[0];
+      let displayName = displayJid.split("@")[0];
       try {
         const contact =
           socket.store?.contacts?.get?.(realJid) ||
-          socket.store?.contacts?.[realJid];
+          socket.store?.contacts?.[realJid] ||
+          socket.store?.contacts?.get?.(displayJid);
         displayName = contact?.notify || contact?.name || displayName;
       } catch {}
 
-      if (realJid === jidRemitente) {
+      if (realJid === jidRemitente || displayJid === jidRemitente) {
         displayName = message.pushName || displayName;
       }
 
-      const result = formatProfileText(user, displayName, realJid);
+      // Pasamos el displayJid (que es PN) para que formatProfileText use números limpios
+      const result = formatProfileText(user, displayName, displayJid);
 
-      // 3. Preparar Menciones y corregir el texto para que WhatsApp lo renderice
-      const mentions = [realJid, targetLid];
-      let captionText = result.text;
+      // 3. Preparar Menciones (Incluimos tanto el realJid, el targetLid y el displayJid para máxima compatibilidad)
+      const mentions = [realJid, targetLid, displayJid];
 
-      // Si el usuario está casado y tiene un marriedLid
       if (result.marriedLid) {
         const marriedRealJid = await resolveLidToRealJid(
           result.marriedLid,
           socket,
           remoteJid,
         );
-
-        // Si logramos obtener el número real (PN) del matrimonio, reemplazamos el LID en el texto 
-        // por el PN para que WhatsApp renderice la mención correctamente, y guardamos ambos en mentions.
-        if (marriedRealJid && !marriedRealJid.includes("@lid")) {
-          const lidNum = result.marriedLid.split("@")[0];
-          const realNum = marriedRealJid.split("@")[0];
-          
-          // Reemplazamos el número largo del LID en el texto por el número real para que WhatsApp lo pinte
-          captionText = captionText.replace(`@${lidNum}`, `@${realNum}`);
-          
-          mentions.push(marriedRealJid, result.marriedLid);
-        } else {
-          mentions.push(result.marriedLid);
-        }
+        mentions.push(marriedRealJid, result.marriedLid);
       }
 
       // Filtrar duplicados y valores nulos
@@ -78,7 +80,7 @@ export default {
       try {
         ppUrl = await getProfilePictureUrl(socket, realJid);
       } catch (err) {
-        ppUrl = "https://pixabay.com";
+        ppUrl = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
       }
 
       // 5. Enviar Mensaje
@@ -86,7 +88,7 @@ export default {
         remoteJid,
         {
           image: { url: ppUrl },
-          caption: captionText,
+          caption: result.text,
           mentions: cleanMentions, 
         },
         { quoted: message },
