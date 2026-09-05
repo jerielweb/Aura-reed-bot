@@ -73,7 +73,7 @@ export default {
         {
           image: { url: ppUrl },
           caption: result.text,
-          mentions: cleanMentions, // Array limpio con ambos formatos (JID y LID)
+          mentions: mentions, // Array limpio con ambos formatos (JID y LID)
         },
         { quoted: message },
       );
