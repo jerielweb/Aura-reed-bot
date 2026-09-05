@@ -25,43 +25,26 @@ export default {
       );
 
       const realJid = await resolveLidToRealJid(targetLid, socket, remoteJid);
-      
-      // Asegurarnos de tener un identificador con formato de teléfono (PN) para el texto visual
-      // Si realJid o targetLid es un LID, intentamos obtener el PN o usar jidRemitente si es válido
-      let displayJid = realJid;
-      if (realJid?.includes("@lid")) {
-        // Intentar buscar si el socket tiene mapeo o usar el remitente como respaldo si es PN
-        const pnMapping = socket.signalRepository?.lidMapping?.getPNForLID 
-          ? await socket.signalRepository.lidMapping.getPNForLID(realJid) 
-          : null;
-        displayJid = pnMapping || jidRemitente;
-      }
-      if (!displayJid || displayJid.includes("@lid")) {
-        displayJid = "50600000000@s.whatsapp.net"; // Fallback seguro para evitar números de LID en texto
-      }
-
       migrateProfileIdentity(db, remoteJid, targetLid, realJid);
       const user = getProfileUser(db, remoteJid, realJid);
 
       // 2. Obtener Nombre de Pantalla
-      let displayName = displayJid.split("@")[0];
+      let displayName = realJid.split("@")[0];
       try {
         const contact =
           socket.store?.contacts?.get?.(realJid) ||
-          socket.store?.contacts?.[realJid] ||
-          socket.store?.contacts?.get?.(displayJid);
+          socket.store?.contacts?.[realJid];
         displayName = contact?.notify || contact?.name || displayName;
       } catch {}
 
-      if (realJid === jidRemitente || displayJid === jidRemitente) {
+      if (realJid === jidRemitente) {
         displayName = message.pushName || displayName;
       }
 
-      // Pasamos el displayJid (que es PN) para que formatProfileText use números limpios
-      const result = formatProfileText(user, displayName, displayJid);
+      const result = formatProfileText(user, displayName, realJid);
 
-      // 3. Preparar Menciones (Incluimos tanto el realJid, el targetLid y el displayJid para máxima compatibilidad)
-      const mentions = [realJid, targetLid, displayJid];
+      // 3. Preparar Menciones (Inclusión doble para evitar fallos de renderizado LID/PN)
+      const mentions = [realJid, targetLid];
 
       if (result.marriedLid) {
         const marriedRealJid = await resolveLidToRealJid(
@@ -72,15 +55,16 @@ export default {
         mentions.push(marriedRealJid, result.marriedLid);
       }
 
-      // Filtrar duplicados y valores nulos
-      const cleanMentions = [...new Set(mentions.filter(Boolean))];
+      // Filtrar por si acaso algún resolver devolvió null o undefined
+      const cleanMentions = mentions.filter(Boolean);
 
       // 4. Obtener foto de perfil con salvaguarda (Fallback)
       let ppUrl;
       try {
         ppUrl = await getProfilePictureUrl(socket, realJid);
       } catch (err) {
-        ppUrl = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
+        // Imagen por defecto si el usuario la tiene privada o no tiene foto
+        ppUrl = "https://pixabay.com";
       }
 
       // 5. Enviar Mensaje
@@ -89,7 +73,7 @@ export default {
         {
           image: { url: ppUrl },
           caption: result.text,
-          mentions: cleanMentions, 
+          mentions: cleanMentions, // Enviamos el array limpio y robusto
         },
         { quoted: message },
       );
