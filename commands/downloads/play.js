@@ -32,7 +32,7 @@ async function searchYouTube(query) {
     throw new Error("No se encontró ningún video.");
   }
 
-  return results[0];
+  return results[0].url;
 }
 
 export default {
