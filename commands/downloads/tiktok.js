@@ -207,19 +207,34 @@ export default {
         }
       }
 
-      // Reempaquetado rápido sin compresión (-c copy), solo aplicando tag hvc1 y faststart
-      try {
-        await execAsync(
-          `ffmpeg -y -i "${finalPath}" -c copy -tag:v hvc1 -movflags +faststart "${whatsappReadyPath}"`,
-          { maxBuffer: 1024 * 1024 * 10 },
-        );
-        finalPath = whatsappReadyPath;
-      } catch (e) {
-        console.error(
-          "No se pudo aplicar el reempaquetado, se mantiene el archivo anterior:",
-          e.message,
-        );
-      }
+// Reempaquetado inteligente - detecta codec y convierte si es necesario
+try {
+  // Detecta el codec actual
+  const { stdout: codecInfo } = await execAsync(
+    `ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of default=noprint_wrappers=1:nokey=1 "${finalPath}"`
+  );
+  
+  const codec = codecInfo.trim().toLowerCase();
+  
+  // Si YA es H.264, solo remux sin tocar nada
+  if (codec === 'h264') {
+    await execAsync(
+      `ffmpeg -y -i "${finalPath}" -c copy -movflags +faststart "${whatsappReadyPath}"`,
+      { maxBuffer: 1024 * 1024 * 10 }
+    );
+  } else {
+    // Si es HEVC u otro codec, convierte a H.264
+    await execAsync(
+      `ffmpeg -y -i "${finalPath}" -c:v libx264 -preset ultrafast -c:a aac "${whatsappReadyPath}"`,
+      { maxBuffer: 1024 * 1024 * 10 }
+    );
+  }
+  
+  finalPath = whatsappReadyPath;
+} catch (e) {
+  console.error("Reempaquetado fallido:", e.message);
+}
+      
 
       let caption = `╭〔 🎥 ${fytBold("TIKTOK VIDEO")} 〕━⬣\n\n`;
       caption += `┃ ➥ ${fytBold(result.title)}\n\n`;
