@@ -210,7 +210,7 @@ export default {
       // Reempaquetado rápido sin compresión (-c copy), solo aplicando tag hvc1 y faststart
       try {
         await execAsync(
-          `ffmpeg -y -i "${finalPath}" -c copy -tag:v hvc1 -movflags +faststart "${whatsappReadyPath}"`,
+          `ffmpeg -y -i "${finalPath}" -c:v copy -tag:v av01 -movflags +faststart "${whatsappReadyPath}"`,
           { maxBuffer: 1024 * 1024 * 10 },
         );
         finalPath = whatsappReadyPath;
