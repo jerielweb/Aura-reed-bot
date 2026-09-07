@@ -24,14 +24,17 @@ export const groupsCache = new NodeCache({ stdTTL: 600, useClones: false });
 export const usersCache = new NodeCache({ stdTTL: 600, useClones: false });
 
 const DEFAULT_DB_CONFIG = {
+  selfMode: false,
   owners: [
     "50672373785@s.whatsapp.net",
+    "573135180876@s.whatsapp.net",
     "50581253065@s.whatsapp.net",
     "5214183357841@s.whatsapp.net",
     "50578391933@s.whatsapp.net",
   ],
   ownerRoles: {
     "50672373785@s.whatsapp.net": "Dev principal",
+    "573135180876@s.whatsapp.net": "Moderador",
     "50581253065@s.whatsapp.net": "Soporte",
     "5214183357841@s.whatsapp.net": "Colaborador",
     "50578391933@s.whatsapp.net": "Soporte",
@@ -337,6 +340,7 @@ function migrateFromJsonIfNeeded() {
 
 function ensureDefaults() {
   const defaults = [
+    ["selfMode", DEFAULT_DB_CONFIG.selfMode],
     ["prefix", DEFAULT_DB_CONFIG.prefix],
     ["owners", DEFAULT_DB_CONFIG.owners],
     ["maxSubBots", DEFAULT_DB_CONFIG.maxSubBots],
@@ -397,6 +401,7 @@ export async function initDB() {
   }
 
   dbCache = {
+    selfMode: dbData.selfMode ?? DEFAULT_DB_CONFIG.selfMode,
     prefix: dbData.prefix ?? DEFAULT_DB_CONFIG.prefix,
     owners: dbData.owners || DEFAULT_DB_CONFIG.owners,
     ownerRoles: dbData.ownerRoles || {},
@@ -442,6 +447,7 @@ function writeDbFiles(data) {
 
   try {
     const prefix = data.prefix ?? DEFAULT_DB_CONFIG.prefix;
+    const selfMode = data.selfMode ?? DEFAULT_DB_CONFIG.selfMode;
     const owners = data.owners ?? DEFAULT_DB_CONFIG.owners;
     const maxSubBots = data.maxSubBots ?? DEFAULT_DB_CONFIG.maxSubBots;
     const ownerRoles = data.ownerRoles ?? {};
@@ -452,6 +458,7 @@ function writeDbFiles(data) {
     dbConn.transaction(() => {
       // Save config
       const configUpdates = [
+        ["selfMode", selfMode],
         ["prefix", prefix],
         ["owners", owners],
         ["maxSubBots", maxSubBots],

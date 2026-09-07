@@ -284,6 +284,18 @@ export async function handleMessage(sock, m, db, saveDB) {
     : [];
   const commandNameForCheck = esComando ? argsForCheck[0]?.toLowerCase() : null;
 
+  const cleanJid = (jid) =>
+    jid ? String(jid).split("@")[0].split(":")[0] : null;
+  const jidResuelto = await resolveLidToRealJid(senderRaw, sock, remoteJid);
+  const numeroReal = jidResuelto.split("@")[0].split(":")[0];
+  const jidRemitente = `${numeroReal}@s.whatsapp.net`;
+  const owners = db.owners || [];
+  const botId = sock.user?.id || sock.user?.jid;
+  const sender = m.key.fromMe ? botId : jidRemitente;
+  const isOwner = owners.some((owner) => cleanJid(owner) === cleanJid(sender));
+
+  if (db.selfMode && !isOwner) return;
+
   // 🚫 VERIFICACIÓN DE CHAT BANEADO (BANCHAT)
   const isChatBanned = db.chats?.[remoteJid]?.isBanned;
   const isUnbanCmd =
@@ -318,9 +330,6 @@ export async function handleMessage(sock, m, db, saveDB) {
   }
 
   // 🤖 VERIFICACIÓN DE BOT PRIMARIO
-  const cleanJid = (jid) =>
-    jid ? String(jid).split("@")[0].split(":")[0] : null;
-
   if (isGroup && db.groups?.[remoteJid]?.primaryBot) {
     const groupPrimaryBotJid = db.groups[remoteJid].primaryBot;
     const normalizeBotNumber = (jid) =>
@@ -357,10 +366,6 @@ export async function handleMessage(sock, m, db, saveDB) {
     }
   }
 
-  const jidResuelto = await resolveLidToRealJid(senderRaw, sock, remoteJid);
-  const numeroReal = jidResuelto.split("@")[0].split(":")[0];
-  const jidRemitente = `${numeroReal}@s.whatsapp.net`;
-
   if (
     isGroup &&
     !m.key.fromMe &&
@@ -368,10 +373,6 @@ export async function handleMessage(sock, m, db, saveDB) {
   )
     saveDB(db);
 
-  const owners = db.owners || [];
-  const botId = sock.user?.id || sock.user?.jid;
-  const sender = m.key.fromMe ? botId : jidRemitente;
-  const isOwner = owners.includes(sender);
   const rangoLog = isOwner ? "OWNER 👑" : "USUARIO 👤";
 
   let isAdmin = false;

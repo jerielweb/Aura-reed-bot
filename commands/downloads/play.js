@@ -116,12 +116,11 @@ export default {
           Referer: "https://www.youtube.com/",
         },
       });
-      const audioBuffer = Buffer.from(audio.data);
 
       await socket.sendMessage(
         remoteJid,
         {
-          audio: audioBuffer,
+          audio: audio.data,
           mimetype: "audio/mpeg",
           fileName: `${title.replace(/[<>:"/\\|?*]/g, "")}.mp3`,
         },
