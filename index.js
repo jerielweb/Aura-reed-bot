@@ -1,14 +1,5 @@
-import makeWASocket, {
-  useMultiFileAuthState,
-  DisconnectReason,
-  fetchLatestWaWebVersion,
-  makeCacheableSignalKeyStore,
-} from "@whiskeysockets/baileys";
-import {
-  loadAllSubBots,
-  syncSubBotsJson,
-  setMainSocket,
-} from "./models/subbotManager.js";
+import makeWASocket, { useMultiFileAuthState, DisconnectReason, fetchLatestWaWebVersion, makeCacheableSignalKeyStore } from "@whiskeysockets/baileys";
+import { loadAllSubBots, syncSubBotsJson, setMainSocket } from "./models/subbotManager.js";
 import { Boom } from "@hapi/boom";
 import qrcodeTerminal from "qrcode-terminal";
 import pino from "pino";
@@ -104,11 +95,28 @@ const question = (text) =>
 let isPairingChoiceMade = false;
 let chosenPairingCode = false;
 let chosenPhoneNumber = "";
+let mainConnectionInProgress = false;
 
 // CONEXIÓN PRINCIPAL
 async function connectToWhatsApp() {
-  const { state, saveCreds } =
-    await useMultiFileAuthState("sessions/principal");
+  if (mainConnectionInProgress) {
+    return;
+  }
+
+  mainConnectionInProgress = true;
+
+  let authState;
+
+  try {
+    authState = await useMultiFileAuthState("sessions/principal");
+  } catch (error) {
+    mainConnectionInProgress = false;
+    throw error;
+  }
+
+  const { state, saveCreds, close: closeAuthState } = authState;
+
+  mainConnectionInProgress = false;
 
   const isRegistered =
     state.creds && (state.creds.registered || state.creds.me);
@@ -270,14 +278,14 @@ async function connectToWhatsApp() {
 
         console.log(
           "\n" +
-            chalk.green(`╭──────────────────────────────────────────╮\n`) +
-            chalk.green(`│ 🔑 CÓDIGO DE VINCULACIÓN PRINCIPAL:      │\n`) +
-            chalk.green(`│                                          │\n`) +
-            `│        ` +
-            chalk.bgGreen.black.bold(`  ${code.toUpperCase()}  `) +
-            `        │\n` +
-            chalk.green(`│                                          │\n`) +
-            chalk.green(`╰──────────────────────────────────────────╯\n`),
+          chalk.green(`╭──────────────────────────────────────────╮\n`) +
+          chalk.green(`│ 🔑 CÓDIGO DE VINCULACIÓN PRINCIPAL:      │\n`) +
+          chalk.green(`│                                          │\n`) +
+          `│        ` +
+          chalk.bgGreen.black.bold(`  ${code.toUpperCase()}  `) +
+          `        │\n` +
+          chalk.green(`│                                          │\n`) +
+          chalk.green(`╰──────────────────────────────────────────╯\n`),
         );
       } catch (err) {
         console.error(
@@ -357,10 +365,15 @@ async function connectToWhatsApp() {
 
     const errorMessage = error?.message || "Error desconocido";
 
+    try {
+      closeAuthState();
+    } catch (closeError) {
+      console.error(chalk.gray(`[Auth] Error cerrando session.db: ${closeError.message}`));
+    }
+
     console.log(
       chalk.yellow(
-        `\nℹ️ Conexión cerrada. Código de estado: ${
-          statusCode || "N/A"
+        `\nℹ️ Conexión cerrada. Código de estado: ${statusCode || "N/A"
         }. Razón: ${errorMessage}`,
       ),
     );
