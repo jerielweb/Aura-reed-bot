@@ -237,15 +237,11 @@ async function connectToWhatsApp() {
     connectTimeoutMs: 60000,
     defaultQueryTimeoutMs: 0,
     keepAliveIntervalMs: 15000,
-    // Muy importante para ahorrar RAM.
     syncFullHistory: false,
     markOnlineOnConnect: true,
-    // RECUPERACIÓN DE MENSAJES
 
     getMessage: async (key) => {
       try {
-        // Reutilizamos la DB ya inicializada.
-        // No hacemos getDB() nuevamente.
         if (db && typeof db.get === "function") {
           const row = await db.get(
             "SELECT message FROM messages WHERE id = ? AND jid = ?",
@@ -272,16 +268,11 @@ async function connectToWhatsApp() {
     },
   });
 
-  // SOCKET PRINCIPAL GLOBAL
   global.mainSocket = sock;
 
   setMainSocket(sock);
 
-  // CREDENCIALES
-
   sock.ev.on("creds.update", saveCreds);
-
-  // CÓDIGO DE EMPAREJAMIENTO
 
   if (chosenPairingCode && !isRegistered) {
     (async () => {

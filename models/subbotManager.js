@@ -25,9 +25,6 @@ import {
   groupMetadataCache,
 } from "./subbotWorker.js";
 
-// ============================================================
-// SOCKET PRINCIPAL
-// ============================================================
 
 export function setMainSocket(sock) {
   global.mainSocket = sock;
@@ -37,9 +34,6 @@ export function getMainSocket() {
   return global.mainSocket || null;
 }
 
-// ============================================================
-// LÍMITE
-// ============================================================
 
 export const SUB_LIMIT_MESSAGE =
   "✐ No se han encontrado espacios disponibles para registrar un `Sub-Bot`.";
@@ -59,9 +53,7 @@ export function getMaxSubBots() {
   }
 }
 
-// ============================================================
 // RUTAS
-// ============================================================
 
 const ROOT_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sessionsDir = path.join(ROOT_DIR, "sessions", "subbots");
@@ -74,9 +66,7 @@ if (!fs.existsSync(sessionsDir)) {
   });
 }
 
-// ============================================================
 // SOCKETS ACTIVOS
-// ============================================================
 
 const activeSubBots = new Map();
 const subBotReconnectTimers = new Map();
@@ -116,9 +106,7 @@ function scheduleSubBotReconnect(senderId, fn) {
   subBotReconnectTimers.set(senderId, timer);
 }
 
-// ============================================================
 // SESIONES
-// ============================================================
 
 function hasRealSessionFiles(sessionDir) {
   if (!fs.existsSync(sessionDir) || !fs.statSync(sessionDir).isDirectory()) {
@@ -191,21 +179,8 @@ export function countActiveSubBots() {
   return listActiveSubBotSessions().length;
 }
 
-// ============================================================
-// RESOLVER ID
-// ============================================================
-
-// Algunos países insertan un dígito extra en el JID real de WhatsApp
-// que la gente normalmente NO escribe al marcar el número. El caso
-// más común es Argentina: código de país 54 + 10 dígitos al marcar,
-// pero el JID de WhatsApp exige un "9" extra después del 54
-// (549XXXXXXXXXX). Si no lo agregamos aquí, el ID que guardamos
-// (carpeta de sesión / subbots.json) nunca calza con el JID real
-// una vez conectado, y por eso el número "cambia de formato".
 function applyCountryMobilePrefix(digits) {
   if (!digits) return digits;
-
-  // Argentina: 54 + 10 dígitos (12 en total) sin el "9" de celular.
   if (digits.startsWith("54") && digits.length === 12) {
     return `549${digits.slice(2)}`;
   }
@@ -221,9 +196,6 @@ export function resolveSubBotSenderId(phoneNumber, jidRemitente) {
   }
 
   if (jidRemitente) {
-    // Mismo criterio que el resto del código (cleanNum/normalizeNumber):
-    // dejar únicamente dígitos, para que el ID guardado siempre tenga
-    // el mismo formato sin importar de dónde venga (QR, code, etc).
     const digits = String(jidRemitente)
       .split("@")[0]
       .split(":")[0]
@@ -234,10 +206,6 @@ export function resolveSubBotSenderId(phoneNumber, jidRemitente) {
 
   return null;
 }
-
-// ============================================================
-// ESTADO DEL SLOT
-// ============================================================
 
 export function getSubBotSlotStatus(senderId) {
   const max = getMaxSubBots();
@@ -256,9 +224,6 @@ export function getSubBotSlotStatus(senderId) {
   };
 }
 
-// ============================================================
-// PERMITIR REGISTRO
-// ============================================================
 
 export function canRegisterSubBot(senderId) {
   const { id, max, available, hasOwn } = getSubBotSlotStatus(senderId);
@@ -282,9 +247,6 @@ export function canRegisterSubBot(senderId) {
   return false;
 }
 
-// ============================================================
-// SINCRONIZAR JSON
-// ============================================================
 
 export function syncSubBotsJson(mainBotNumber = null) {
   try {
@@ -309,7 +271,6 @@ export function syncSubBotsJson(mainBotNumber = null) {
     const registry = {};
     const previous = currentData.subbots;
 
-    // Compatibilidad con el formato viejo: subbots: ["506..."]
     if (Array.isArray(previous)) {
       for (const value of previous) {
         const id = String(value || "").replace(/\D/g, "");
@@ -326,14 +287,12 @@ export function syncSubBotsJson(mainBotNumber = null) {
       }
     }
 
-    // Las sesiones existentes siguen registradas aunque estén apagadas.
     for (const session of listActiveSubBotSessions()) {
       const id = String(session).replace(/\D/g, "");
       if (!id) continue;
       if (!registry[id]) registry[id] = { active: false };
     }
 
-    // El estado real siempre sale del Map de sockets.
     for (const id of Object.keys(registry)) {
       registry[id].active = activeSubBots.has(id);
     }
@@ -367,9 +326,6 @@ export function syncSubBotsJson(mainBotNumber = null) {
   }
 }
 
-// ============================================================
-// REGISTRO / ESTADO / GRUPOS
-// ============================================================
 
 export function isSubBotActive(senderId) {
   const id = resolveSubBotSenderId(null, senderId);
@@ -426,9 +382,7 @@ export async function getSubBotsInGroup(groupJid) {
   return result;
 }
 
-// ============================================================
 // DESTRUIR SOCKET
-// ============================================================
 
 async function destroySubBotSocket(senderId, subSock) {
   if (!subSock) {
@@ -454,21 +408,15 @@ async function destroySubBotSocket(senderId, subSock) {
     activeSubBots.delete(senderId);
   } catch {}
 
-  // Persistir inmediatamente que el Sub-Bot quedó inactivo.
   try {
     syncSubBotsJson();
   } catch {}
 
-  // Muy importante:
-  // libera DB y cache del sub-bot.
   try {
     closeSubBotDB(senderId);
   } catch {}
 }
 
-// ============================================================
-// DETENER SUB-BOT
-// ============================================================
 
 export async function stopSubBot(senderId) {
   const sessionPath = path.join(sessionsDir, senderId);
@@ -513,9 +461,6 @@ export async function stopSubBot(senderId) {
   return handled;
 }
 
-// ============================================================
-// CARGAR TODOS LOS SUB-BOTS
-// ============================================================
 
 export async function loadAllSubBots() {
   const sessions = listActiveSubBotSessions();
@@ -545,10 +490,6 @@ export async function loadAllSubBots() {
     }
   }
 }
-
-// ============================================================
-// CREAR SUB-BOT
-// ============================================================
 
 export async function createSubBot(
   sock = null,
@@ -580,9 +521,6 @@ export async function createSubBot(
 
   const sessionPath = path.join(sessionsDir, senderId);
 
-  // ==========================================================
-  // COMPROBAR LÍMITE
-  // ==========================================================
 
   if (!isAutoload && !canRegisterSubBot(senderId)) {
     if (sock && remoteJid && m) {
@@ -600,9 +538,7 @@ export async function createSubBot(
     return;
   }
 
-  // ==========================================================
   // LIMPIAR SESIÓN ANTERIOR
-  // ==========================================================
   if (!isAutoload && fs.existsSync(sessionPath)) {
     fs.rmSync(sessionPath, {
       recursive: true,
@@ -614,9 +550,7 @@ export async function createSubBot(
   let codeRequested = false;
   let timeout;
 
-  // ==========================================================
   // TIMEOUT DE VINCULACIÓN
-  // ==========================================================
 
   if (!isAutoload) {
     timeout = setTimeout(async () => {
@@ -657,9 +591,7 @@ export async function createSubBot(
     }, 60000);
   }
 
-  // ==========================================================
   // START
-  // ==========================================================
 
   async function start() {
     let version;

@@ -107,7 +107,6 @@ function recoverSqliteConnection() {
   }
 }
 
-// Create node-cache instances with standard TTL of 10 minutes (600 seconds) and useClones: false
 export const groupsCache = new NodeCache({ stdTTL: 600, useClones: false });
 export const usersCache = new NodeCache({ stdTTL: 600, useClones: false });
 
@@ -135,7 +134,7 @@ const DEFAULT_DB_CONFIG = {
   },
 };
 
-// Expired cache hooks to write entries to SQLite before they are evicted from RAM
+
 groupsCache.on("expired", (key, value) => {
   try {
     dbConn
@@ -176,7 +175,6 @@ usersCache.on("expired", (key, value) => {
   }
 });
 
-// Proxies to intercept JS object reads and writes, loading/caching from SQLite synchronously
 const groupsProxy = new Proxy(
   {},
   {
