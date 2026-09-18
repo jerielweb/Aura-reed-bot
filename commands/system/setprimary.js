@@ -2,10 +2,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { fytBold } from "./../../models/TextStyle.js";
-import {
-  getRegisteredSubBots,
-  listActiveSubBotSessions,
-} from "../../models/subbotManager.js";
+import { listActiveSubBotSessions } from "../../models/subbotManager.js";
 
 const ROOT_DIR = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -24,23 +21,78 @@ function cleanJid(jid = "") {
 }
 
 function parseNum(jid) {
-  return cleanJid(jid)?.split("@")[0] || null;
+  const cleaned = cleanJid(jid);
+  if (!cleaned) return null;
+  return cleaned.split("@")[0].replace(/\D/g, "") || null;
 }
 
-function hasValidSessionFolder(folderPath) {
+function folderHasValidSession(folderPath) {
   if (!fs.existsSync(folderPath) || !fs.statSync(folderPath).isDirectory()) {
     return false;
   }
 
-  const files = fs.readdirSync(folderPath, { withFileTypes: true });
-  if (!files.length) return false;
+  const entries = fs.readdirSync(folderPath, { withFileTypes: true });
+  if (!entries.length) {
+    return false;
+  }
 
-  return files.some((item) => {
-    const name = String(item.name || "");
+  return entries.some((entry) => {
+    const name = String(entry.name || "");
     return (
-      name === "session.db"
+      name === "session.db" ||
+      name === "creds.json" ||
+      name === "creds.json.enc" ||
+      name.startsWith("pre-key") ||
+      name.startsWith("sender-key") ||
+      name.startsWith("session") ||
+      name.startsWith("auth") ||
+      name.startsWith("app-state-sync-key")
     );
   });
+}
+
+function getValidSessionBotIds() {
+  const ids = new Set();
+  const activeIds = listActiveSubBotSessions();
+
+  for (const id of activeIds) {
+    const num = parseNum(id);
+    if (num) ids.add(num);
+  }
+
+  if (!fs.existsSync(SESSIONS_DIR)) return [...ids];
+
+  for (const entry of fs.readdirSync(SESSIONS_DIR, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+
+    const folderName = String(entry.name || "").trim();
+    const folderPath = path.join(SESSIONS_DIR, folderName);
+    const folderNum = parseNum(folderName);
+
+    if (!folderNum) continue;
+
+    if (folderHasValidSession(folderPath)) {
+      ids.add(folderNum);
+    }
+  }
+
+  return [...ids];
+}
+
+function isSocketActiveBot(num, sock) {
+  if (!num) return false;
+
+  const currentNum = parseNum(sock.user?.id || sock.user?.jid);
+  if (currentNum && currentNum === num) return true;
+
+  if (global.mainSocket?.user) {
+    const mainNum = parseNum(
+      global.mainSocket.user.id || global.mainSocket.user.jid,
+    );
+    if (mainNum && mainNum === num) return true;
+  }
+
+  return getValidSessionBotIds().includes(num);
 }
 
 export default {
@@ -69,10 +121,12 @@ export default {
 
     const currentPrimary = db.groups[remoteJid].primaryBot;
     const currentPrimaryNum = currentPrimary ? parseNum(currentPrimary) : null;
-    const currentBotNum = parseNum(sock.user?.id || sock.user?.jid);
 
-    if (currentPrimaryNum && currentBotNum !== currentPrimaryNum) {
-      return;
+    if (currentPrimaryNum) {
+      const currentBotNum = parseNum(sock.user?.id || sock.user?.jid);
+      if (currentBotNum && currentBotNum !== currentPrimaryNum) {
+        return;
+      }
     }
 
     const contextInfo =
@@ -122,32 +176,9 @@ export default {
     }
 
     if (!targetBotRaw) {
-      const validBotIds = new Set();
-      const registered = getRegisteredSubBots();
-      for (const bot of registered) {
-        const id = parseNum(bot?.id || bot?.jid || bot?.key);
-        if (id) validBotIds.add(id);
-      }
+      const validBotIds = getValidSessionBotIds();
+      const mentionList = [...new Set(validBotIds.filter(Boolean))];
 
-      for (const id of listActiveSubBotSessions()) {
-        const n = parseNum(id);
-        if (n) validBotIds.add(n);
-      }
-
-      if (fs.existsSync(SESSIONS_DIR)) {
-        for (const entry of fs.readdirSync(SESSIONS_DIR, {
-          withFileTypes: true,
-        })) {
-          if (!entry.isDirectory()) continue;
-          const folderPath = path.join(SESSIONS_DIR, entry.name);
-          const num = parseNum(entry.name);
-          if (num && hasValidSessionFolder(folderPath)) {
-            validBotIds.add(num);
-          }
-        }
-      }
-
-      const mentionList = [...validBotIds].filter(Boolean);
       let text = `╭〔 ℹ️ ${fytBold("AURA REED")} 〕⬣\n`;
       text += `┃ ⚙️ ${fytBold("CONFIGURACION")}\n`;
       text += `╰━━━━━━━━━━━━⬣\n\n`;
@@ -176,47 +207,47 @@ export default {
     }
 
     const targetNum = parseNum(targetBotRaw);
-    const validBotIds = new Set();
-
-    if (currentBotNum) validBotIds.add(currentBotNum);
-    if (global.mainSocket?.user) {
-      const mainNum = parseNum(
-        global.mainSocket.user.id || global.mainSocket.user.jid,
-      );
-      if (mainNum) validBotIds.add(mainNum);
-    }
-
-    const registered = getRegisteredSubBots();
-    for (const bot of registered) {
-      const id = parseNum(bot?.id || bot?.jid || bot?.key);
-      if (id) validBotIds.add(id);
-    }
-
-    for (const id of listActiveSubBotSessions()) {
-      const n = parseNum(id);
-      if (n) validBotIds.add(n);
-    }
-
-    if (fs.existsSync(SESSIONS_DIR)) {
-      for (const entry of fs.readdirSync(SESSIONS_DIR, {
-        withFileTypes: true,
-      })) {
-        if (!entry.isDirectory()) continue;
-        const folderPath = path.join(SESSIONS_DIR, entry.name);
-        const num = parseNum(entry.name);
-        if (num && hasValidSessionFolder(folderPath)) {
-          validBotIds.add(num);
-        }
-      }
-    }
-
-    const isValidBot = [...validBotIds].includes(targetNum);
-
-    if (!isValidBot) {
+    if (!targetNum) {
       return await sock.sendMessage(
         remoteJid,
         {
-          text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("USUARIO NO VALIDO")}\n╰━━━━━━━━━━━━⬣\n\n┃ > El número no corresponde a un bot o sub-bot válido en esta sesión.\n\n╰〔 ⚡ SYSTEM 〕⬣`,
+          text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("USUARIO NO VALIDO")}\n╰━━━━━━━━━━━━⬣\n\n┃ > No pude obtener el número del bot.\n\n╰〔 ⚡ SYSTEM 〕⬣`,
+        },
+        { quoted: m },
+      );
+    }
+
+    const sessionFolders = fs.existsSync(SESSIONS_DIR)
+      ? fs.readdirSync(SESSIONS_DIR, { withFileTypes: true })
+      : [];
+
+    let folderMatch = false;
+    let folderIsActive = false;
+
+    for (const entry of sessionFolders) {
+      if (!entry.isDirectory()) continue;
+
+      const folderName = String(entry.name || "").trim();
+      const folderNum = parseNum(folderName);
+      const folderPath = path.join(SESSIONS_DIR, folderName);
+
+      if (!folderNum || folderNum !== targetNum) continue;
+      folderMatch = true;
+
+      if (
+        folderHasValidSession(folderPath) &&
+        isSocketActiveBot(folderNum, sock)
+      ) {
+        folderIsActive = true;
+        break;
+      }
+    }
+
+    if (!folderMatch || !folderIsActive) {
+      return await sock.sendMessage(
+        remoteJid,
+        {
+          text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("USUARIO NO VALIDO")}\n╰━━━━━━━━━━━━⬣\n\n┃ > El número no coincide con una sesión válida y activa en la carpeta de subbots.\n\n╰〔 ⚡ SYSTEM 〕⬣`,
         },
         { quoted: m },
       );
