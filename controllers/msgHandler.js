@@ -13,18 +13,14 @@ import { processHangmanGuess } from "../commands/games/ahorcado.js";
 import { getDBSync } from "../models/db.js";
 import { runWithGachaDatabase } from "../models/gachaDb.js";
 
-// Caché para metadatos de grupos (guarda por 10 minutos en memoria RAM)
 const groupMetadataCache = new NodeCache({ stdTTL: 600, checkperiod: 120 });
 
-// Función auxiliar para obtener metadata desde caché o solicitarla de forma segura
 async function getGroupMetadataSafe(sock, remoteJid) {
   if (!remoteJid || !remoteJid.endsWith("@g.us")) return null;
 
-  // 1. Devolver desde la caché local si existe
   const cached = groupMetadataCache.get(remoteJid);
   if (cached) return cached;
 
-  // 2. Si no existe, solicitar a WhatsApp dentro de un bloque protegido
   try {
     const metadata = await sock.groupMetadata(remoteJid);
     if (metadata) {
@@ -36,19 +32,15 @@ async function getGroupMetadataSafe(sock, remoteJid) {
       `[groupMetadataCache] Error o rate-limit obteniendo metadatos de ${remoteJid}:`,
       error.message,
     );
-    return null; // Retorna null para evitar tumbar la ejecución en caso de error 429
+    return null;
   }
 }
 
-// Lista de prefijos múltiples permitidos por defecto
 const DEFAULT_PREFIXES = [".", "#", "/", "!", "-", "%", "$"];
 
-// ============================================================
-// CARGA DE COMANDOS Y MIDDLEWARES (HOT-RELOAD POR fs.watch)
-// ============================================================
-const loadedFiles = new Map(); // ruta relativa -> módulo cargado
+const loadedFiles = new Map();
 let watchersReady = false;
-const pendingReload = new Map(); // debounce por archivo
+const pendingReload = new Map();
 let cachedMiddlewares = null;
 let cachedCommands = null;
 
@@ -258,7 +250,6 @@ export async function handleMessage(sock, m, db, saveDB) {
     : [];
   const commandNameForCheck = esComando ? argsForCheck[0]?.toLowerCase() : null;
 
-  // 🔇 MUTE: solo se comprueba si el grupo tiene usuarios silenciados y el mensaje puede implicar una acción de grupo.
   if (isGroup && senderRaw) {
     const mutedUsers = db.groups?.[remoteJid]?.mutedUsers || [];
     if (Array.isArray(mutedUsers) && mutedUsers.length > 0 && !esComando) {
@@ -386,7 +377,6 @@ export async function handleMessage(sock, m, db, saveDB) {
 
   if (shouldBlockBySelfMode) return;
 
-  // 🚫 VERIFICACIÓN DE CHAT BANEADO (BANCHAT)
   const isChatBanned = db.chats?.[remoteJid]?.isBanned;
   const isUnbanCmd =
     commandNameForCheck === "unbanchat" ||
@@ -396,7 +386,6 @@ export async function handleMessage(sock, m, db, saveDB) {
     return;
   }
 
-  // Interceptor del juego ahorcado
   const hangmanKey = gameKey(sock, remoteJid);
   if (activeHangmanGames.has(hangmanKey) && !esComando) {
     const game = activeHangmanGames.get(hangmanKey);
@@ -419,7 +408,6 @@ export async function handleMessage(sock, m, db, saveDB) {
     }
   }
 
-  // 🤖 VERIFICACIÓN DE BOT PRIMARIO
   if (isGroup && db.groups?.[remoteJid]?.primaryBot) {
     const groupPrimaryBotJid = db.groups[remoteJid].primaryBot;
     const normalizeBotNumber = (jid) =>
@@ -562,7 +550,6 @@ export async function handleMessage(sock, m, db, saveDB) {
     }
   }
 
-  // 🛡️ VERIFICACIÓN DEL MODO "SOLO ADMINS" (onlyAdmin)
   if (
     isGroup &&
     db.groups?.[remoteJid]?.onlyAdmin &&
@@ -602,7 +589,6 @@ export async function handleMessage(sock, m, db, saveDB) {
       m,
       sock,
     });
-    // 🔴 DETENER ESTADO DE "ESCRIBIENDO" (Mensaje normal sin comando)
     await sock.sendPresenceUpdate("paused", remoteJid);
   } else {
     const args = text.slice(prefix.length).trim().split(/ +/);
@@ -695,8 +681,7 @@ export async function handleMessage(sock, m, db, saveDB) {
           );
         }
 
-        // Activar "escribiendo" solo para comandos válidos y autorizados.
-        await sock.sendPresenceUpdate("composing", remoteJid);
+      await sock.sendPresenceUpdate("composing", remoteJid);
 
         try {
           await runWithGachaDatabase(sock, () =>
@@ -736,7 +721,6 @@ export async function handleMessage(sock, m, db, saveDB) {
     }
 
     if (!commandFound) {
-      // 🔴 DETENER ESTADO DE "ESCRIBIENDO" (Comando no encontrado)
       await sock.sendPresenceUpdate("paused", remoteJid);
       return await sock.sendMessage(
         remoteJid,
@@ -748,3 +732,4 @@ export async function handleMessage(sock, m, db, saveDB) {
     }
   }
 }
+  
