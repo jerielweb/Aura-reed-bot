@@ -86,9 +86,9 @@ export default {
       const ytURL = searchData.url || finalUrl;
 
       const videoIdFinal = extractVideoId(finalUrl);
-      const thumbnail = videoIdFinal 
-        ? `https://i.ytimg.com/vi/${videoIdFinal}/hqdefault.jpg` 
-        : (res.data.thumbnail || "https://i.imgur.com/3Zcb7io.png");
+      const thumbnail = videoIdFinal
+        ? `https://i.ytimg.com/vi/${videoIdFinal}/hqdefault.jpg`
+        : res.data.thumbnail || "https://i.imgur.com/3Zcb7io.png";
 
       const audioUrl = res.data.dl;
 
@@ -111,7 +111,10 @@ export default {
           { quoted: message },
         );
       } catch (imgError) {
-        console.warn("[YTMeta] No se pudo enviar la miniatura, enviando solo texto informativo...", imgError.message);
+        console.warn(
+          "[YTMeta] No se pudo enviar la miniatura, enviando solo texto informativo...",
+          imgError.message,
+        );
         await socket.sendMessage(
           remoteJid,
           { text: caption },

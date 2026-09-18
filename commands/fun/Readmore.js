@@ -10,13 +10,25 @@ export default {
       const chatId = m?.key?.remoteJid;
 
       if (!isOwner) {
-        return await sock.sendMessage(chatId, { text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ 🚫 ${fytBold("ACCESO DENEGADO")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Solo el owner puede usar este comando.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣` }, { quoted: m });
+        return await sock.sendMessage(
+          chatId,
+          {
+            text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ 🚫 ${fytBold("ACCESO DENEGADO")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Solo el owner puede usar este comando.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
+          },
+          { quoted: m },
+        );
       }
 
       const text = args.join(" ");
-      
+
       if (!text.includes("|")) {
-        return await sock.sendMessage(chatId, { text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("FORMATO INVÁLIDO")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Usa: $readmore texto visible | texto oculto\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣` }, { quoted: m });
+        return await sock.sendMessage(
+          chatId,
+          {
+            text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("FORMATO INVÁLIDO")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Usa: $readmore texto visible | texto oculto\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
+          },
+          { quoted: m },
+        );
       }
 
       const [visible, hidden] = text.split("|");
@@ -24,12 +36,16 @@ export default {
       const finalText = `${visible.trim()} ${readMoreChar} ${hidden.trim()}`;
 
       await sock.sendMessage(chatId, { text: finalText });
-      
     } catch (error) {
       if (sock && m) {
-        await sock.sendMessage(m?.key?.remoteJid, { text: `Error: ${error?.message}` }, { quoted: m }).catch(() => {});
+        await sock
+          .sendMessage(
+            m?.key?.remoteJid,
+            { text: `Error: ${error?.message}` },
+            { quoted: m },
+          )
+          .catch(() => {});
       }
     }
-  }
+  },
 };
-

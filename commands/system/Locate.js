@@ -19,7 +19,7 @@ const getDirSize = async (dir) => {
           const stat = await fs.promises.stat(fp).catch(() => ({ size: 0 }));
           return stat.size;
         }
-      })
+      }),
     );
     size = sizes.reduce((acc, val) => acc + val, 0);
   } catch (e) {}
@@ -43,10 +43,19 @@ export default {
       const chatId = m?.key?.remoteJid;
 
       if (!isOwner) {
-        return await sock.sendMessage(chatId, { text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ 🚫 ${fytBold("ACCESO DENEGADO")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Solo el owner puede usar este comando.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣` }, { quoted: m });
+        return await sock.sendMessage(
+          chatId,
+          {
+            text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ 🚫 ${fytBold("ACCESO DENEGADO")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Solo el owner puede usar este comando.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
+          },
+          { quoted: m },
+        );
       }
 
-      await sock.sendMessage(chatId, { text: `> 🔍 Escaneando sistema de archivos, espera un momento...`, react: { text: "⏳", key: m.key } });
+      await sock.sendMessage(chatId, {
+        text: `> 🔍 Escaneando sistema de archivos, espera un momento...`,
+        react: { text: "⏳", key: m.key },
+      });
 
       const items = await fs.promises.readdir(rootDir, { withFileTypes: true });
       const sizes = [];
@@ -58,7 +67,9 @@ export default {
         if (item.isDirectory()) {
           size = await getDirSize(itemPath);
         } else {
-          const stat = await fs.promises.stat(itemPath).catch(() => ({ size: 0 }));
+          const stat = await fs.promises
+            .stat(itemPath)
+            .catch(() => ({ size: 0 }));
           size = stat.size;
         }
         totalSize += size;
@@ -83,13 +94,18 @@ export default {
       await sock.sendMessage(chatId, { text: caption }, { quoted: m });
       await sock.sendMessage(chatId, { react: { text: "✅", key: m.key } });
     } catch (error) {
-      console.error('[locate]', error);
+      console.error("[locate]", error);
       if (sock && m) {
-        await sock.sendMessage(m?.key?.remoteJid, {
-          text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("ERROR AL ESCANEAR")}\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error?.message || error}\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`
-        }, { quoted: m }).catch(() => {});
+        await sock
+          .sendMessage(
+            m?.key?.remoteJid,
+            {
+              text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("ERROR AL ESCANEAR")}\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error?.message || error}\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
+            },
+            { quoted: m },
+          )
+          .catch(() => {});
       }
     }
-  }
+  },
 };
-

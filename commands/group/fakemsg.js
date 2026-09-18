@@ -5,30 +5,58 @@ import { fytBold } from "../../models/TextStyle.js";
 async function fakemsgCommand(sock, msg, args = [], options = {}) {
   try {
     const chatId = msg?.key?.remoteJid || options.chatId;
-    const senderId = options.senderId || msg?.key?.participant || msg?.key?.remoteJid || '';
+    const senderId =
+      options.senderId || msg?.key?.participant || msg?.key?.remoteJid || "";
 
-    const hasQuoted = msg?.quoted || msg?.message?.extendedTextMessage?.contextInfo?.quotedMessage || msg?.contextInfo?.quotedMessage;
-    
+    const hasQuoted =
+      msg?.quoted ||
+      msg?.message?.extendedTextMessage?.contextInfo?.quotedMessage ||
+      msg?.contextInfo?.quotedMessage;
+
     if (!hasQuoted) {
-      await sock?.sendMessage?.(chatId, { text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("FALTA MENSAJE")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Responde a un mensaje para usarlo.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣` }, { quoted: msg });
+      await sock?.sendMessage?.(
+        chatId,
+        {
+          text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("FALTA MENSAJE")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Responde a un mensaje para usarlo.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
+        },
+        { quoted: msg },
+      );
       return true;
     }
 
-    const text = Array.isArray(args) ? args.join(' ') : String(args || '');
+    const text = Array.isArray(args) ? args.join(" ") : String(args || "");
     if (!text.trim()) {
-      await sock?.sendMessage?.(chatId, { text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("FALTA TEXTO")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Proporciona el texto de reemplazo.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣` }, { quoted: msg });
+      await sock?.sendMessage?.(
+        chatId,
+        {
+          text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("FALTA TEXTO")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Proporciona el texto de reemplazo.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
+        },
+        { quoted: msg },
+      );
       return true;
     }
 
-    if (!chatId || !chatId.endsWith('@g.us')) {
-      await sock?.sendMessage?.(chatId, { text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("SOLO GRUPOS")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Este comando solo funciona en grupos.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣` }, { quoted: msg });
+    if (!chatId || !chatId.endsWith("@g.us")) {
+      await sock?.sendMessage?.(
+        chatId,
+        {
+          text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("SOLO GRUPOS")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Este comando solo funciona en grupos.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
+        },
+        { quoted: msg },
+      );
       return true;
     }
 
     if (senderId) {
       const isAllowed = await isOwnerOrSudo(senderId, sock, chatId);
       if (!isAllowed) {
-        await sock?.sendMessage?.(chatId, { text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ 🚫 ${fytBold("ACCESO DENEGADO")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Solo el owner puede usar este comando.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣` }, { quoted: msg });
+        await sock?.sendMessage?.(
+          chatId,
+          {
+            text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ 🚫 ${fytBold("ACCESO DENEGADO")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Solo el owner puede usar este comando.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
+          },
+          { quoted: msg },
+        );
         return true;
       }
     }
@@ -39,13 +67,13 @@ async function fakemsgCommand(sock, msg, args = [], options = {}) {
       chatId,
       {
         extendedTextMessage: {
-          text: '',
+          text: "",
           contextInfo: {
-            isGroupStatus: true
-          }
-        }
+            isGroupStatus: true,
+          },
+        },
       },
-      { quoted: msg }
+      { quoted: msg },
     );
 
     const tempId2 = await sock.relayMessage(
@@ -55,20 +83,20 @@ async function fakemsgCommand(sock, msg, args = [], options = {}) {
           key: {
             jid: chatId,
             fromMe: true,
-            id: tempId
+            id: tempId,
           },
           type: 14,
           editedMessage: {
             extendedTextMessage: {
               text,
               contextInfo: {
-                isGroupStatus: false
-              }
-            }
-          }
-        }
+                isGroupStatus: false,
+              },
+            },
+          },
+        },
       },
-      { messageId: stanzaId }
+      { messageId: stanzaId },
     );
 
     await delay(100);
@@ -78,25 +106,31 @@ async function fakemsgCommand(sock, msg, args = [], options = {}) {
         delete: {
           remoteJid: chatId,
           id: tempId,
-          fromMe: true
-        }
+          fromMe: true,
+        },
       }),
       sock.sendMessage(chatId, {
         delete: {
           remoteJid: chatId,
           id: tempId2,
-          fromMe: true
-        }
-      })
+          fromMe: true,
+        },
+      }),
     ]);
 
     return true;
   } catch (error) {
-    console.error('[fakemsg]', error);
+    console.error("[fakemsg]", error);
     if (sock && msg) {
-      await sock.sendMessage(msg?.key?.remoteJid, {
-        text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("ERROR")}\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error?.message || error}\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`
-      }, { quoted: msg }).catch(() => {});
+      await sock
+        .sendMessage(
+          msg?.key?.remoteJid,
+          {
+            text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("ERROR")}\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error?.message || error}\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
+          },
+          { quoted: msg },
+        )
+        .catch(() => {});
     }
     return false;
   }

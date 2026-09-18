@@ -41,7 +41,8 @@ export default {
       return socket.sendMessage(
         remoteJid,
         {
-          text: `╭〔 ✅ ${fytBold("AURA REED")} 〕⬣\n┃ ${fytBold("SIN ADVERTENCIAS")}\n╰━━━━━━━━━━━━⬣\n\n┃ > El usuario @${target.split("@")[0]} no tiene advertencias registradas.\n\n╰〔 ⚡ ${fytBold("SYSTEM INFO")} 〕⬣`, mentions: [target],
+          text: `╭〔 ✅ ${fytBold("AURA REED")} 〕⬣\n┃ ${fytBold("SIN ADVERTENCIAS")}\n╰━━━━━━━━━━━━⬣\n\n┃ > El usuario @${target.split("@")[0]} no tiene advertencias registradas.\n\n╰〔 ⚡ ${fytBold("SYSTEM INFO")} 〕⬣`,
+          mentions: [target],
         },
         { quoted: message },
       );

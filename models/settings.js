@@ -9,7 +9,6 @@ export default mongoose.model("Settings", settingsSchema);
 
 import fs from "fs";
 
-
 const packageJson = JSON.parse(fs.readFileSync("./package.json", "utf-8"));
 
 global.chanellink = "https://api.alyacore.xyz/a/10bfc2";

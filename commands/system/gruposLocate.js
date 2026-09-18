@@ -10,7 +10,13 @@ export default {
       const chatId = m?.key?.remoteJid;
 
       if (!isOwner) {
-        return await sock.sendMessage(chatId, { text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ 🚫 ${fytBold("ACCESO DENEGADO")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Solo el owner puede usar este comando.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣` }, { quoted: m });
+        return await sock.sendMessage(
+          chatId,
+          {
+            text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ 🚫 ${fytBold("ACCESO DENEGADO")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Solo el owner puede usar este comando.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
+          },
+          { quoted: m },
+        );
       }
 
       await sock.sendMessage(chatId, { react: { text: "⏳", key: m.key } });
@@ -19,7 +25,13 @@ export default {
       const groupArray = Object.values(groups);
 
       if (groupArray.length === 0) {
-        return await sock.sendMessage(chatId, { text: `╭〔 🌐 ${fytBold("AURA SYSTEM")} 〕⬣\n┃ ❌ ${fytBold("SIN GRUPOS")}\n╰━━━━━━━━━━━━⬣\n\n┃ > El bot no se encuentra en ningún grupo actualmente.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣` }, { quoted: m });
+        return await sock.sendMessage(
+          chatId,
+          {
+            text: `╭〔 🌐 ${fytBold("AURA SYSTEM")} 〕⬣\n┃ ❌ ${fytBold("SIN GRUPOS")}\n╰━━━━━━━━━━━━⬣\n\n┃ > El bot no se encuentra en ningún grupo actualmente.\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
+          },
+          { quoted: m },
+        );
       }
 
       let caption = `╭〔 🌐 ${fytBold("LISTA DE GRUPOS")} 〕⬣\n`;
@@ -29,7 +41,7 @@ export default {
       for (let i = 0; i < groupArray.length; i++) {
         const group = groupArray[i];
         let link = "No disponible (Sin permisos)";
-        
+
         try {
           const code = await sock.groupInviteCode(group.id);
           link = `https://chat.whatsapp.com/${code}`;
@@ -45,14 +57,18 @@ export default {
 
       await sock.sendMessage(chatId, { text: caption }, { quoted: m });
       await sock.sendMessage(chatId, { react: { text: "✅", key: m.key } });
-
     } catch (error) {
       if (sock && m) {
-        await sock.sendMessage(m?.key?.remoteJid, {
-          text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("ERROR")}\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error?.message || error}\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`
-        }, { quoted: m }).catch(() => {});
+        await sock
+          .sendMessage(
+            m?.key?.remoteJid,
+            {
+              text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("ERROR")}\n╰━━━━━━━━━━━━⬣\n\n┃ > ${error?.message || error}\n\n╰〔 ⚡ ${fytBold("SYSTEM")} 〕⬣`,
+            },
+            { quoted: m },
+          )
+          .catch(() => {});
       }
     }
-  }
+  },
 };
-

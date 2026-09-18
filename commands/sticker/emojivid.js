@@ -20,7 +20,7 @@ export default {
   description:
     "Genera un sticker animado a partir de un emoji usando AlyaCore.",
 
-  execute: async (sock, message, args, {prefix}) => {
+  execute: async (sock, message, args, { prefix }) => {
     const remoteJid = message.key.remoteJid;
     const rawText = args.join(" ").trim();
     const emojis = extractEmojis(rawText);
