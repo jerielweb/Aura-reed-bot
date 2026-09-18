@@ -38,14 +38,7 @@ function hasValidSessionFolder(folderPath) {
   return files.some((item) => {
     const name = String(item.name || "");
     return (
-      name === "session.db" ||
-      name === "creds.json" ||
-      name === "creds.json.enc" ||
-      name.startsWith("pre-key") ||
-      name.startsWith("sender-key") ||
-      name.startsWith("session") ||
-      name.startsWith("auth") ||
-      name.startsWith("app-state-sync-key")
+      name === "session.db"
     );
   });
 }
