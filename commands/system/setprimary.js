@@ -70,6 +70,11 @@ export default {
       targetBotRaw = quotedParticipant;
     } else if (mentionedJid) {
       targetBotRaw = mentionedJid;
+    } else if (
+      args[0] &&
+      /^\d{8,20}$/.test(String(args[0]).replace(/\D/g, ""))
+    ) {
+      targetBotRaw = args[0];
     }
 
     // Desactivar Bot Primario
@@ -131,10 +136,47 @@ export default {
       if (id) validSubBotIds.add(id);
     }
 
+    const sessionFolderIds = new Set();
+    const subbotsDir = path.join(ROOT_DIR, "sessions", "subbots");
+
+    if (fs.existsSync(subbotsDir)) {
+      for (const entry of fs.readdirSync(subbotsDir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+
+        const sessionDir = path.join(subbotsDir, entry.name);
+        const folderId = cleanNum(entry.name);
+
+        if (!folderId) continue;
+
+        const sessionFiles = fs.existsSync(sessionDir)
+          ? fs.readdirSync(sessionDir, { withFileTypes: true })
+          : [];
+
+        const hasValidSession = sessionFiles.some((item) => {
+          const name = String(item.name || "");
+          return (
+            name === "session.db" ||
+            name === "creds.json" ||
+            name === "creds.json.enc" ||
+            name.startsWith("pre-key") ||
+            name.startsWith("sender-key") ||
+            name.startsWith("session") ||
+            name.startsWith("auth") ||
+            name.startsWith("app-state-sync-key")
+          );
+        });
+
+        if (hasValidSession) {
+          sessionFolderIds.add(folderId);
+        }
+      }
+    }
+
     const allValidBots = [
       cleanNum(global.mainSocket?.user?.id || global.mainSocket?.user?.jid),
       currentBotNum,
       ...[...validSubBotIds],
+      ...[...sessionFolderIds],
     ].filter(Boolean);
 
     const isValidBot = allValidBots.includes(targetNum);
