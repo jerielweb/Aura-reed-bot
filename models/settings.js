@@ -1,20 +1,21 @@
 import mongoose from "mongoose";
+import fs from "fs";
 
 const settingsSchema = new mongoose.Schema({
   id: { type: String, default: "main_config" },
   prefix: { type: String, default: "!" },
 });
 
-export default mongoose.model("Settings", settingsSchema);
+const Settings = mongoose.models.Settings || mongoose.model("Settings", settingsSchema);
 
-import fs from "fs";
-
-const packageJson = JSON.parse(fs.readFileSync("./package.json", "utf-8"));
+let pkgVersion = "1.0.0";
+try {
+  pkgVersion = JSON.parse(fs.readFileSync("./package.json", "utf-8")).version;
+} catch {}
 
 global.chanellink = "https://api.alyacore.xyz/a/10bfc2";
-global.version = packageJson.version;
+global.version = pkgVersion;
 
-//Apis
 global.Apis = {
   apiCausa: {
     apikey: "oboe",
@@ -34,7 +35,6 @@ global.Apis = {
   },
 };
 
-// YouTube Search APIs
 global.youtubeApis = {
   alyacore: {
     url: "https://api.alyacore.xyz/search/yt",
@@ -45,7 +45,6 @@ global.youtubeApis = {
   },
 };
 
-// TikTok Search APIs
 global.tiktokApis = {
   alyacore: {
     url: "https://api.alyacore.xyz/search/tiktok",
@@ -60,3 +59,5 @@ global.apiShazam = {
   url: "https://api.audd.io/",
   apikey: "07887abb3c387183d5f3be932f3445d5",
 };
+
+export default Settings;
