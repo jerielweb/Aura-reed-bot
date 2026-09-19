@@ -46,14 +46,10 @@ async function DL_TIKTOK(input) {
       const APIKEY = global.Apis.apiAiya.apikey;
       const alyaUrl = `https://api.alyacore.xyz/search/tiktok?query=${encodeURIComponent(input)}&key=${APIKEY}`;
       const { data: alyaData } = await apiAxios.get(alyaUrl, {
-        timeout: 15000,
+        timeout: 35000, 
       });
 
-      if (
-        alyaData.status &&
-        Array.isArray(alyaData.data) &&
-        alyaData.data.length > 0
-      ) {
+      if (alyaData.status && Array.isArray(alyaData.data) && alyaData.data.length > 0) {
         targetUrl = alyaData.data[0].url;
       }
     }
@@ -63,23 +59,20 @@ async function DL_TIKTOK(input) {
     }
 
     const URL_TIKTOK = `https://api.alyacore.xyz/dl/tiktokv2?url=${encodeURIComponent(targetUrl)}&key=${global.Apis.apiAiya.apikey}`;
-    const dateCreate = (ts) =>
-      new Date(Number(ts) * 1000).toLocaleDateString("es-ES");
+    const dateCreate = (ts) => new Date(Number(ts) * 1000).toLocaleDateString("es-ES");
 
     const { data } = await apiAxios.get(URL_TIKTOK, {
       headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         Accept: "application/json, text/plain, */*",
       },
-      timeout: 15000,
+      timeout: 35000, 
     });
 
     if (data.status && Array.isArray(data.data) && data.data.length > 0) {
       const r = data;
       const videoUrl = r.data[2]?.url || r.data[1]?.url || r.data[0]?.url;
-      if (!videoUrl)
-        throw new Error("No se encontró URL de descarga en la API.");
+      if (!videoUrl) throw new Error("No se encontró URL de descarga en la API.");
 
       return {
         video_dl: videoUrl,
@@ -100,46 +93,23 @@ async function DL_TIKTOK(input) {
   }
 }
 
-const MAX_INPUT_MB = 150;
-
-async function descargarAArchivoSeguro(url, destPath, maxMb) {
+async function descargarAArchivoSeguro(url, destPath) {
   const response = await apiAxios({
     url,
     method: "GET",
     responseType: "stream",
     headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-      Accept:
-        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
       "Accept-Language": "es-ES,es;q=0.9",
       Referer: "https://www.tikwm.com/",
       Connection: "keep-alive",
     },
-    timeout: 30000,
+    timeout: 60000, 
   });
 
   const writer = fs.createWriteStream(destPath);
-  let downloadedBytes = 0;
-  const maxBytes = maxMb * 1024 * 1024;
-
   return new Promise((resolve, reject) => {
-    response.data.on("data", (chunk) => {
-      downloadedBytes += chunk.length;
-      if (downloadedBytes > maxBytes) {
-        response.data.destroy();
-        writer.close();
-        try {
-          fs.unlinkSync(destPath);
-        } catch {}
-        reject(
-          new Error(
-            `EXCEEDED_SIZE:${(downloadedBytes / (1024 * 1024)).toFixed(2)}`,
-          ),
-        );
-      }
-    });
-
     response.data.pipe(writer);
     writer.on("finish", resolve);
     writer.on("error", reject);
@@ -150,7 +120,7 @@ async function descargarAArchivoSeguro(url, destPath, maxMb) {
 export default {
   name: ["tk", "tt", "ttv", "tiktok", "tkmp4"],
   category: "downloads",
-  description: "Busca y descarga videos de TikTok.",
+  description: "Busca y descarga videos de TikTok sin límites de tamaño.",
 
   execute: async (socket, message, args) => {
     const remoteJid = message.key.remoteJid;
@@ -166,9 +136,7 @@ export default {
       );
     }
 
-    await socket.sendMessage(remoteJid, {
-      react: { text: "⏳", key: message.key },
-    });
+    await socket.sendMessage(remoteJid, { react: { text: "⏳", key: message.key } });
 
     const id = crypto.randomBytes(8).toString("hex");
     const inputP = path.join(tmp, `tt_${id}.mp4`);
@@ -176,71 +144,40 @@ export default {
 
     try {
       const result = await DL_TIKTOK(text);
+      await descargarAArchivoSeguro(result.video_dl, inputP);
 
-      try {
-        await descargarAArchivoSeguro(result.video_dl, inputP, MAX_INPUT_MB);
-      } catch (err) {
-        if (err.message && err.message.startsWith("EXCEEDED_SIZE")) {
-          const actualMb = err.message.split(":")[1];
-          await socket.sendMessage(remoteJid, {
-            react: { text: "💀", key: message.key },
-          });
-          return await socket.sendMessage(
-            remoteJid,
-            {
-              text: `😦 ¡Mae ponete serio! 💀🙏\nEste video pesa **${actualMb}MB** y supera el límite de ${MAX_INPUT_MB}MB permitido.`,
-            },
-            { quoted: message },
-          );
-        }
-        throw err;
-      }
-
-      const initialSizeB = fs.statSync(inputP).size;
+      const sizeMB = fs.statSync(inputP).size / (1024 * 1024);
       let finalPath = inputP;
 
       try {
-        const { stdout: codecInfo } = await execAsync(
-          `ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of default=noprint_wrappers=1:nokey=1 "${finalPath}"`,
-        );
-        const codec = codecInfo.trim().toLowerCase();
-
-        if (codec === "h264") {
+        if (sizeMB > 60) {
+          await socket.sendMessage(remoteJid, { react: { text: "🗜️", key: message.key } });
+          
           await execAsync(
-            `ffmpeg -y -i "${finalPath}" -c copy -movflags +faststart -threads 0 "${whatsappReadyPath}"`,
-            { maxBuffer: 1024 * 1024 * 50 },
+            `ffmpeg -y -i "${finalPath}" -c:v libx264 -crf 26 -preset fast -c:a aac -b:a 128k -movflags +faststart -threads 0 "${whatsappReadyPath}"`,
+            { maxBuffer: 1024 * 1024 * 50 }
           );
+          finalPath = whatsappReadyPath;
         } else {
-          await execAsync(
-            `ffmpeg -y -i "${finalPath}" -c:v libx264 -preset ultrafast -c:a aac -b:a 128k -threads 0 "${whatsappReadyPath}"`,
-            { maxBuffer: 1024 * 1024 * 50 },
-          );
+          const { stdout: codecInfo } = await execAsync(`ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of default=noprint_wrappers=1:nokey=1 "${finalPath}"`);
+          const codec = codecInfo.trim().toLowerCase();
+
+          if (codec === "h264") {
+            await execAsync(
+              `ffmpeg -y -i "${finalPath}" -c copy -movflags +faststart -threads 0 "${whatsappReadyPath}"`,
+              { maxBuffer: 1024 * 1024 * 50 }
+            );
+          } else {
+            await execAsync(
+              `ffmpeg -y -i "${finalPath}" -c:v libx264 -preset fast -c:a aac -b:a 128k -movflags +faststart -threads 0 "${whatsappReadyPath}"`,
+              { maxBuffer: 1024 * 1024 * 50 }
+            );
+          }
+          finalPath = whatsappReadyPath;
         }
-        finalPath = whatsappReadyPath;
       } catch (e) {
         finalPath = inputP;
       }
-
-      const finalSizeB = fs.statSync(finalPath).size;
-
-      let diskTotalStr = "Desconocido";
-      let diskFreeStr = "Desconocido";
-
-      try {
-        if (typeof fs.statfsSync === "function") {
-          const st = fs.statfsSync(tmp);
-          diskTotalStr = formatSize(st.blocks * st.bsize);
-          diskFreeStr = formatSize(st.bavail * st.bsize);
-        } else {
-          const { stdout } = await execAsync(`df -k "${tmp}"`);
-          const lines = stdout.trim().split("\n");
-          if (lines.length > 1) {
-            const parts = lines[1].trim().split(/\s+/);
-            diskTotalStr = formatSize(parseInt(parts[1]) * 1024);
-            diskFreeStr = formatSize(parseInt(parts[3]) * 1024);
-          }
-        }
-      } catch (e) {}
 
       let caption = `╭〔 🎥 ${fytBold("TIKTOK VIDEO")} 〕━⬣\n\n`;
       caption += `┃ ➥ ${fytBold(result.title)}\n\n`;
@@ -250,7 +187,6 @@ export default {
       caption += `┃ > ${fytBold("Vistas")} › ${result.views}\n`;
       caption += `┃ > ${fytBold("Likes")} › ${result.likes}\n`;
       caption += `┃ > ${fytBold("Comentarios")} › ${result.comments}\n`;
-      caption += `┃ > ${fytBold("Favoritos")} › ${result.collect}\n`;
       caption += `┃ > ${fytBold("Compartidos")} › ${result.shares}\n`;
       caption += `┣━━━━━━━━━━━━⬣\n`;
       caption += `┃ > ${result.tk_url}\n`;
@@ -267,17 +203,10 @@ export default {
         { quoted: message },
       );
 
-      await socket.sendMessage(remoteJid, {
-        react: { text: "✅", key: message.key },
-      });
+      await socket.sendMessage(remoteJid, { react: { text: "✅", key: message.key } });
     } catch (error) {
-      await socket.sendMessage(remoteJid, {
-        react: { text: "❌", key: message.key },
-      });
-      const errorMsg =
-        error.message ||
-        JSON.stringify(error) ||
-        "Ocurrió un error inesperado.";
+      await socket.sendMessage(remoteJid, { react: { text: "❌", key: message.key } });
+      const errorMsg = error.message || "Ocurrió un error inesperado.";
       await socket.sendMessage(
         remoteJid,
         {
@@ -286,12 +215,8 @@ export default {
         { quoted: message },
       );
     } finally {
-      try {
-        if (fs.existsSync(inputP)) fs.unlinkSync(inputP);
-      } catch {}
-      try {
-        if (fs.existsSync(whatsappReadyPath)) fs.unlinkSync(whatsappReadyPath);
-      } catch {}
+      try { if (fs.existsSync(inputP)) fs.unlinkSync(inputP); } catch {}
+      try { if (fs.existsSync(whatsappReadyPath)) fs.unlinkSync(whatsappReadyPath); } catch {}
     }
   },
 };
