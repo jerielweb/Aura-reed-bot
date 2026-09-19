@@ -1,215 +1,79 @@
 import chalk from "chalk";
-import fs from "fs";
 import { fytBold } from "../models/TextStyle.js";
 
-export async function handleGroupUpdate(
-  sock,
-  { id, participants, action },
-  getDB,
-) {
+export async function handleGroupUpdate(sock, { id, participants, action }, getDB) {
+  if (!participants || participants.length === 0) return;
+
   const db = await getDB();
-  const groupData = db.groups[id];
+  const groupData = db.groups?.[id] || {};
 
-  // Verificar si el bot actual es el primario asignado a este grupo
-  const botId = sock.user?.id
-    ? sock.user.id.split("@")[0].split(":")[0] + "@s.whatsapp.net"
-    : null;
+  const botId = sock.user?.id ? `${sock.user.id.split(":")[0]}@s.whatsapp.net` : null;
+  if (groupData.primaryBot && botId && groupData.primaryBot !== botId) return;
 
-  const groupPrimaryBot = groupData?.primaryBot;
-  if (groupPrimaryBot && botId && groupPrimaryBot !== botId) {
-    console.log(
-      `[GROUP-EVENT] Ignorado por no ser bot primario. Bot actual: ${botId} | Primario: ${groupPrimaryBot}`,
-    );
-    return;
-  }
+  const isAdd = action === "add";
+  const isRemove = action === "remove";
+  const isPromote = action === "promote";
+  const isDemote = action === "demote";
 
-  console.log(
-    chalk.gray(
-      `[GROUP-EVENT] Acción: ${action} | Grupo: ${id} | Participants: ${participants.length}`,
-    ),
-  );
+  if (isAdd && !groupData.welcome) return;
+  if (isRemove && !groupData.bye) return;
+  if ((isPromote || isDemote) && !groupData.alerts) return;
 
-  // 1. EVENTO: BIENVENIDA (add)
-  if (action === "add") {
-    if (!groupData?.welcome) {
-      console.log(
-        chalk.gray(`[GROUP-EVENT] Bienvenida desactivada para este grupo.`),
-      );
-      return;
+  try {
+    const metadata = await sock.groupMetadata(id).catch(() => null);
+    if (!metadata) return;
+
+    const groupName = metadata.subject;
+    const groupDesc = metadata.desc?.toString() || "Sin descripción";
+    const memberCount = metadata.participants.length;
+
+    const cleanJids = participants.map(p => (typeof p === "string" ? p : p.id || p.jid)).filter(Boolean);
+    if (cleanJids.length === 0) return;
+
+    const tags = cleanJids.map(jid => `@${jid.split("@")[0].split(":")[0]}`).join(", ");
+
+    let ppUrl = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
+    if (isAdd || isRemove) {
+      try {
+        ppUrl = cleanJids.length === 1
+          ? await sock.profilePictureUrl(cleanJids[0], "image")
+          : await sock.profilePictureUrl(id, "image");
+      } catch {}
     }
 
-    console.log(
-      chalk.gray(
-        `[GROUP-EVENT] Procesando bienvenida para ${participants.length} integrantes...`,
-      ),
-    );
-    try {
-      const metadata = await sock.groupMetadata(id);
-      const groupName = metadata.subject;
-      const groupDesc = metadata.desc?.toString() || "Sin descripción";
-      const memberCount = metadata.participants.length;
+    let text = "";
 
-      // Plantilla por defecto en caso de no tener un mensaje personalizado guardado
-      const defaultText = `╭〔 👋 𝐁𝐈𝐄𝐍𝐕𝐄𝐍𝐈𝐃𝐎/𝐀 〕⬣\n┃ ✨ 𝐀 𝐔𝐍 𝐍𝐔𝐄𝐕𝐎 𝐈𝐍𝐓𝐄𝐆𝐑𝐀𝐍𝐓𝐄\n╰━━━━━━━━━━━━⬣\n\n┃ 👋 𝐇𝐨𝐥𝐚 @user\n┃ ✨ 𝐁𝐢𝐞𝐧𝐯𝐞𝐧𝐢𝐝𝐨/𝐚 𝐚:\n┃ 🏰 *${groupName}*\n\n┃ 📜 𝐍𝐨 𝐨𝐥𝐯𝐢𝐝𝐞𝐬 𝐥𝐞𝐞𝐫 𝐥𝐚𝐬 𝐫𝐞𝐠𝐥𝐚𝐬\n┃ 𝐲 𝐝𝐢𝐬𝐟𝐫𝐮𝐭𝐚𝐫 𝐭𝐮 𝐞𝐬𝐭𝐚𝐧𝐜𝐢𝐚.\n\n╰━━〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕━━⬣`;
+    if (isAdd) {
+      const defaultWelcome = `╭〔 👋 𝐁𝐈𝐄𝐍𝐕𝐄𝐍𝐈𝐃𝐎/𝐀 〕⬣\n┃ ✨ 𝐀 𝐔𝐍 𝐍𝐔𝐄𝐕𝐎 𝐈𝐍𝐓𝐄𝐆𝐑𝐀𝐍𝐓𝐄\n╰━━━━━━━━━━━━⬣\n\n┃ 👋 𝐇𝐨𝐥𝐚 @user\n┃ ✨ 𝐁𝐢𝐞𝐧𝐯𝐞𝐧𝐢𝐝𝐨/𝐚 𝐚:\n┃ 🏰 *@group*\n\n┃ 📜 𝐍𝐨 𝐨𝐥𝐯𝐢𝐝𝐞𝐬 𝐥𝐞𝐞𝐫 𝐥𝐚𝐬 𝐫𝐞𝐠𝐥𝐚𝐬\n┃ 𝐲 𝐝𝐢𝐬𝐟𝐫𝐮𝐭𝐚𝐫 𝐭𝐮 𝐞𝐬𝐭𝐚𝐧𝐜𝐢𝐚.\n\n╰━━〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕━━⬣`;
+      const template = groupData.welcomeMessage || defaultWelcome;
+      text = template
+        .replace(/@user/g, tags)
+        .replace(/@group/g, groupName)
+        .replace(/@desc/g, groupDesc)
+        .replace(/@count/g, memberCount);
 
-      // Selecciona la plantilla personalizada del grupo o la default
-      const template = groupData.welcomeMessage || defaultText;
+      await sock.sendMessage(id, { image: { url: ppUrl }, caption: text, mentions: cleanJids });
+    } 
+    else if (isRemove) {
+      const defaultBye = `╭〔 😔 ${fytBold("SE NOS FUE")} 〕⬣\n┃ ✨ ${fytBold("HASTA PRONTO")}\n╰━━━━━━━━━━━━⬣\n\n┃ 👋 ${fytBold("Adiós @user")}\n┃ > ${fytBold("Es una pena que te vayas de:")}\n┃ > *@group*\n\n┃ > ${fytBold("Nunca te olvidaremos")}\n\n╰━━〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕━━⬣`;
+      const template = groupData.byeMessage || defaultBye;
+      text = template
+        .replace(/@user/g, tags)
+        .replace(/@group/g, groupName)
+        .replace(/@count/g, memberCount);
 
-      for (let participant of participants) {
-        if (!participant) continue;
-
-        const jid =
-          typeof participant === "string"
-            ? participant
-            : participant.id || participant.jid;
-        if (!jid || typeof jid !== "string") continue;
-
-        const userTag = `@${jid.split("@")[0].split(":")[0]}`;
-
-        // Reemplazo dinámico de variables en la plantilla
-        const formattedText = template
-          .replace(/@user/g, userTag)
-          .replace(/@group/g, groupName)
-          .replace(/@desc/g, groupDesc)
-          .replace(/@count/g, memberCount);
-
-        let ppUrl;
-        try {
-          ppUrl = await sock.profilePictureUrl(jid, "image");
-        } catch {
-          ppUrl =
-            "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
-        }
-
-        await sock.sendMessage(id, {
-          image: { url: ppUrl },
-          caption: formattedText,
-          mentions: [jid],
-        });
-      }
-    } catch (e) {
-      console.error(chalk.red("[GROUP UPDATE] Error en bienvenida:"), e);
-    }
-  }
-
-  // 2. EVENTO: DESPEDIDA (remove)
-  else if (action === "remove") {
-    if (!groupData?.bye) {
-      console.log(
-        chalk.gray(`[GROUP-EVENT] Despedida desactivada para este grupo.`),
-      );
-      return;
+      await sock.sendMessage(id, { image: { url: ppUrl }, caption: text, mentions: cleanJids });
+    } 
+    else if (isPromote) {
+      text = `╭〔 🎉 𝐍𝐔𝐄𝐕𝐎 𝐀𝐃𝐌𝐈𝐍 〕⬣\n\n┃ 👑 ¡Felicidades ${tags}!\n┃ > Has sido ascendido a Administrador.\n┃ > Más te vale no abusar de tu poder.\n\n╰━━〔 ⚡ ${fytBold("AURA NEWS")} 〕━━⬣`;
+      await sock.sendMessage(id, { text, mentions: cleanJids });
+    } 
+    else if (isDemote) {
+      text = `╭〔 ⚠️ 𝐀𝐃𝐌𝐈𝐍 𝐃𝐄𝐆𝐑𝐀𝐃𝐀𝐃𝐎 〕⬣\n\n┃ 📉 ${tags} ya no es Administrador.\n┃ > Se le han retirado sus privilegios.\n\n╰━━〔 ⚡ ${fytBold("AURA NEWS")} 〕━━⬣`;
+      await sock.sendMessage(id, { text, mentions: cleanJids });
     }
 
-    console.log(
-      chalk.gray(
-        `[GROUP-EVENT] Procesando despedida para ${participants.length} integrantes...`,
-      ),
-    );
-
-    try {
-      const metadata = await sock.groupMetadata(id);
-      const groupName = metadata.subject;
-
-      for (let participant of participants) {
-        if (!participant) continue;
-
-        const jid =
-          typeof participant === "string"
-            ? participant
-            : participant.id || participant.jid;
-        if (!jid || typeof jid !== "string") continue;
-
-        const user = jid.split("@")[0];
-
-        let text = `╭〔 😔 ${fytBold("SE NOS FUE UN GRANDE")} 〕⬣\n`;
-        text += `┃ ✨ ${fytBold("HASTA PRONTO")}\n`;
-        text += `╰━━━━━━━━━━━━⬣\n\n`;
-        text += `┃ 👋 ${fytBold(`Adios @${user}`)}\n`;
-        text += `┃ > ${fytBold("Es una pena que te vayas de:")}\n`;
-        text += `┃ > *${groupName}*\n\n`;
-        text += `┃ > ${fytBold("Nunca te olvidaremos")}\n\n`;
-        text += `╰━━〔 ⚡ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕━━⬣`;
-
-        let ppUrl;
-        try {
-          ppUrl = await sock.profilePictureUrl(jid, "image");
-        } catch {
-          ppUrl =
-            "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
-        }
-
-        await sock.sendMessage(id, {
-          image: { url: ppUrl },
-          caption: text,
-          mentions: [jid],
-        });
-      }
-    } catch (e) {
-      console.error(chalk.red("[GROUP UPDATE] Error en despedida:"), e);
-    }
-  }
-
-  // 3. EVENTO: ASCENSO A ADMIN (promote)
-  else if (action === "promote") {
-    if (!db.groups[id]?.alerts) {
-      console.log(chalk.gray(`[GROUP-EVENT] Las alertas están desactivadas.`));
-      return;
-    }
-
-    try {
-      for (let participant of participants) {
-        if (!participant) continue;
-
-        const jid =
-          typeof participant === "string"
-            ? participant
-            : participant.id || participant.jid;
-        if (!jid || typeof jid !== "string") continue;
-
-        const user = jid.split("@")[0].split(":")[0];
-
-        let text = `╭〔 🎉 𝐍𝐔𝐄𝐕𝐎 𝐀𝐃𝐌𝐈𝐍 〕⬣\n\n`;
-        text += `┃ 👑 ¡Felicidades @${user}!\n`;
-        text += `┃ > Has sido ascendido a Administrador.\n`;
-        text += `┃ > Más te vale no abusar de tu poder.\n\n`;
-        text += `╰━━〔 ⚡ ${fytBold("AURA NEWS")} 〕━━⬣`;
-
-        await sock.sendMessage(id, { text, mentions: [jid] });
-      }
-    } catch (e) {
-      console.error(chalk.red("[GROUP UPDATE] Error en promote:"), e);
-    }
-  }
-
-  // 4. EVENTO: DEGRADACIÓN DE ADMIN (demote)
-  else if (action === "demote") {
-    if (!db.groups[id]?.alerts) {
-      console.log(chalk.gray(`[GROUP-EVENT] Las alertas están desactivadas.`));
-      return;
-    }
-
-    try {
-      for (let participant of participants) {
-        if (!participant) continue;
-
-        const jid =
-          typeof participant === "string"
-            ? participant
-            : participant.id || participant.jid;
-        if (!jid || typeof jid !== "string") continue;
-
-        const user = jid.split("@")[0].split(":")[0];
-
-        let text = `╭〔 ⚠️ 𝐀𝐃𝐌𝐈𝐍 𝐃𝐄𝐆𝐑𝐀𝐃𝐀𝐃𝐎 〕⬣\n\n`;
-        text += `┃ 📉 @${user} ya no es Administrador.\n`;
-        text += `┃ > Se le han retirado sus privilegios.\n\n`;
-        text += `╰━━〔 ⚡ ${fytBold("AURA NEWS")} 〕━━⬣`;
-
-        await sock.sendMessage(id, { text, mentions: [jid] });
-      }
-    } catch (e) {
-      console.error(chalk.red("[GROUP UPDATE] Error en demote:"), e);
-    }
+  } catch (e) {
+    console.error(chalk.red(`[GROUP UPDATE] Error en evento ${action}:`), e.message);
   }
 }
