@@ -12,8 +12,10 @@ import { activeHangmanGames, gameKey } from "../models/gameState.js";
 import { processHangmanGuess } from "../commands/games/ahorcado.js";
 import { getDBSync } from "../models/db.js";
 import { runWithGachaDatabase } from "../models/gachaDb.js";
+import { fytBold } from "../../models/TextStyle.js";
 
 const groupMetadataCache = new NodeCache({ stdTTL: 600, checkperiod: 120 });
+const userCooldowns = new NodeCache({ stdTTL: 3, checkperiod: 4 });
 
 async function getGroupMetadataSafe(sock, remoteJid) {
   if (!remoteJid || !remoteJid.endsWith("@g.us")) return null;
@@ -185,12 +187,7 @@ async function resolveMessageLids(m, sock, remoteJid) {
             sock,
             remoteJid,
           );
-        } catch (e) {
-          console.error(
-            "[resolveMessageLids] Error resolving participant LID:",
-            e.message,
-          );
-        }
+        } catch (e) {}
       }
       if (Array.isArray(ci.mentionedJid)) {
         for (let i = 0; i < ci.mentionedJid.length; i++) {
@@ -200,12 +197,7 @@ async function resolveMessageLids(m, sock, remoteJid) {
               sock,
               remoteJid,
             );
-          } catch (e) {
-            console.error(
-              "[resolveMessageLids] Error resolving mention LID:",
-              e.message,
-            );
-          }
+          } catch (e) {}
         }
       }
     }
@@ -252,7 +244,7 @@ export async function handleMessage(sock, m, db, saveDB) {
 
   if (isGroup && senderRaw) {
     const mutedUsers = db.groups?.[remoteJid]?.mutedUsers || [];
-    if (Array.isArray(mutedUsers) && mutedUsers.length > 0 && !esComando) {
+    if (Array.isArray(mutedUsers) && mutedUsers.length > 0) {
       try {
         const senderJid = senderRaw.endsWith("@lid")
           ? await resolveLidToRealJid(senderRaw, sock, remoteJid)
@@ -269,12 +261,7 @@ export async function handleMessage(sock, m, db, saveDB) {
           });
           return;
         }
-      } catch (e) {
-        console.error(
-          "[handleMessage] Error al verificar/borrar usuario silenciado:",
-          e,
-        );
-      }
+      } catch (e) {}
     }
   }
 
@@ -294,9 +281,7 @@ export async function handleMessage(sock, m, db, saveDB) {
     ) {
       await resolveMessageLids(m, sock, remoteJid);
     }
-  } catch (e) {
-    console.error("[handleMessage] Error resolving message LIDs:", e);
-  }
+  } catch (e) {}
 
   if (!esComando) {
     if (isGroup && !m.key.fromMe) {
@@ -360,6 +345,11 @@ export async function handleMessage(sock, m, db, saveDB) {
   const isOwner =
     Boolean(m.key.fromMe) ||
     [...senderIdentities].some((identity) => ownerIdentities.has(identity));
+
+  if (!isOwner) {
+    if (userCooldowns.has(sender)) return;
+    userCooldowns.set(sender, true);
+  }
 
   const groupSelfValue = isGroup ? db.groups?.[remoteJid]?.selfMode : undefined;
   const hasExplicitGroupSelf =
@@ -430,7 +420,7 @@ export async function handleMessage(sock, m, db, saveDB) {
       argsForCheck[1]?.toLowerCase() === "on"
     ) {
     } else if (esComando) {
-      await sock.sendPresenceUpdate("paused", remoteJid);
+      sock.sendPresenceUpdate("paused", remoteJid).catch(() => {});
       return await sock.sendMessage(
         remoteJid,
         {
@@ -439,7 +429,7 @@ export async function handleMessage(sock, m, db, saveDB) {
         { quoted: m },
       );
     } else {
-      await sock.sendPresenceUpdate("paused", remoteJid);
+      sock.sendPresenceUpdate("paused", remoteJid).catch(() => {});
       return;
     }
   }
@@ -557,7 +547,7 @@ export async function handleMessage(sock, m, db, saveDB) {
     !isAdmin &&
     !isOwner
   ) {
-    await sock.sendPresenceUpdate("paused", remoteJid);
+    sock.sendPresenceUpdate("paused", remoteJid).catch(() => {});
     return;
   }
 
@@ -574,9 +564,7 @@ export async function handleMessage(sock, m, db, saveDB) {
         groupMetadata,
         text,
       });
-  } catch (e) {
-    console.error(e);
-  }
+  } catch (e) {}
 
   if (!esComando) {
     cmdLog({
@@ -589,7 +577,7 @@ export async function handleMessage(sock, m, db, saveDB) {
       m,
       sock,
     });
-    await sock.sendPresenceUpdate("paused", remoteJid);
+    sock.sendPresenceUpdate("paused", remoteJid).catch(() => {});
   } else {
     const args = text.slice(prefix.length).trim().split(/ +/);
     const commandName = args.shift().toLowerCase();
@@ -619,7 +607,7 @@ export async function handleMessage(sock, m, db, saveDB) {
         const requiresOwner =
           cmd.ownerOnly !== false && cmd.category === "owner";
         if (requiresOwner && !isOwner) {
-          await sock.sendPresenceUpdate("paused", remoteJid);
+          sock.sendPresenceUpdate("paused", remoteJid).catch(() => {});
           return await sock.sendMessage(
             remoteJid,
             { text: Rstr.onlyOwner },
@@ -630,7 +618,7 @@ export async function handleMessage(sock, m, db, saveDB) {
           (cmd.category === "group" || cmd.category === "economy") &&
           !isGroup
         ) {
-          await sock.sendPresenceUpdate("paused", remoteJid);
+          sock.sendPresenceUpdate("paused", remoteJid).catch(() => {});
           return await sock.sendMessage(
             remoteJid,
             { text: Rstr.onlyGroup },
@@ -638,7 +626,7 @@ export async function handleMessage(sock, m, db, saveDB) {
           );
         }
         if (isGroup && !isCategoryEnabled(remoteJid, cmd.category, db)) {
-          await sock.sendPresenceUpdate("paused", remoteJid);
+          sock.sendPresenceUpdate("paused", remoteJid).catch(() => {});
           return await sock.sendMessage(
             remoteJid,
             { text: catOff({ CAT_CMD: cmd.category, prefix }) },
@@ -646,7 +634,7 @@ export async function handleMessage(sock, m, db, saveDB) {
           );
         }
         if (cmd.adminOnly && !isAdmin && !isOwner) {
-          await sock.sendPresenceUpdate("paused", remoteJid);
+          sock.sendPresenceUpdate("paused", remoteJid).catch(() => {});
           return await sock.sendMessage(
             remoteJid,
             { text: Rstr.onlyAdmin },
@@ -671,7 +659,7 @@ export async function handleMessage(sock, m, db, saveDB) {
           (groupRestrictedCommands.has(normalizedCommand) ||
             globalRestrictedCommands.has(normalizedCommand))
         ) {
-          await sock.sendPresenceUpdate("paused", remoteJid);
+          sock.sendPresenceUpdate("paused", remoteJid).catch(() => {});
           return await sock.sendMessage(
             remoteJid,
             {
@@ -681,7 +669,7 @@ export async function handleMessage(sock, m, db, saveDB) {
           );
         }
 
-      await sock.sendPresenceUpdate("composing", remoteJid);
+        sock.sendPresenceUpdate("composing", remoteJid).catch(() => {});
 
         try {
           await runWithGachaDatabase(sock, () =>
@@ -709,27 +697,26 @@ export async function handleMessage(sock, m, db, saveDB) {
           await sock.sendMessage(
             remoteJid,
             {
-              text: `╭〔 ❌ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ⚠️ 𝐄𝐑𝐑𝐎𝐑 𝐄𝐍 𝐂𝐎𝐌𝐀𝐍𝐃𝐎\n╰━━━━━━━━━━━━⬣\n\n┃ > Ocurrió un error al ejecutar el comando *${prefix}${commandName}*.\n> *Detalle del error:*\n> ${err}`,
+              text: `╭〔 ❌ ${fytBold("AURA REED")} 〕⬣\n┃ ⚠️ ${fytBold("ERROR EN COMANDO")}\n╰━━━━━━━━━━━━⬣\n\n┃ > Ocurrió un error al ejecutar el comando *${prefix}${commandName}*.\n> *Detalle del error:*\n> ${err.message || err}`,
             },
             { quoted: m },
           );
         } finally {
-          await sock.sendPresenceUpdate("paused", remoteJid);
+          sock.sendPresenceUpdate("paused", remoteJid).catch(() => {});
         }
         return;
       }
-    }
+      }
 
     if (!commandFound) {
-      await sock.sendPresenceUpdate("paused", remoteJid);
+      sock.sendPresenceUpdate("paused", remoteJid).catch(() => {});
       return await sock.sendMessage(
         remoteJid,
         {
-          text: `╭〔 ⚠️ 𝐀𝐔𝐑𝐀 𝐑𝐄𝐄𝐃 〕⬣\n┃ ❌ 𝐂𝐎𝐌𝐀𝐍𝐃𝐎 𝐍𝐎 𝐄𝐗𝐈𝐒𝐓𝐄\n╰━━━━━━━━━━━━⬣\n┃ > El comando \`${commandName}\` no existe\n┃ > o esta mal escrito.\n┃ > Ejecuta \`${prefix}menu\` para ver\n┃ > los comandos disponibles.`,
+          text: `╭〔 ⚠️ ${fytBold("AURA REED")} 〕⬣\n┃ ❌ ${fytBold("COMANDO NO EXISTE")}\n╰━━━━━━━━━━━━⬣\n┃ > El comando \`${commandName}\` no existe\n┃ > o esta mal escrito.\n┃ > Ejecuta \`${prefix}menu\` para ver\n┃ > los comandos disponibles.`,
         },
         { quoted: m },
       );
     }
   }
 }
-  
