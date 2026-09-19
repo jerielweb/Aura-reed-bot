@@ -12,7 +12,7 @@ import { activeHangmanGames, gameKey } from "../models/gameState.js";
 import { processHangmanGuess } from "../commands/games/ahorcado.js";
 import { getDBSync } from "../models/db.js";
 import { runWithGachaDatabase } from "../models/gachaDb.js";
-import { fytBold } from "../models/TextStyle.js;
+import { fytBold } from "../models/TextStyle.js";
 
 const groupMetadataCache = new NodeCache({ stdTTL: 600, checkperiod: 120 });
 const userCooldowns = new NodeCache({ stdTTL: 3, checkperiod: 4 });
