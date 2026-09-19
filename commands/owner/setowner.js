@@ -6,7 +6,7 @@ export default {
   description: "Añade un nuevo owner al bot con un rol opcional.",
   ownerOnly: true,
 
-  execute: async (sock, m, args, { db, saveDB }) => {
+  execute: async (sock, m, args, { db, saveDB, owners }) => {
     const remoteJid = m.key.remoteJid;
     const ctx = m.message?.extendedTextMessage?.contextInfo || {};
     const replied = ctx.participant;
@@ -15,8 +15,14 @@ export default {
 
     let targetJid = replied || mentioned || (rawArg?.length >= 7 ? `${rawArg}@s.whatsapp.net` : null);
 
+    // SANITIZACIÓN ESTRICTA: Purga espacios y símbolos para arreglar el tag
     if (targetJid) {
-      targetJid = `${targetJid.split("@")[0].split(":")[0]}@s.whatsapp.net`;
+      const cleanNumbers = targetJid.replace(/[^0-9]/g, "");
+      if (cleanNumbers.length >= 7) {
+        targetJid = `${cleanNumbers}@s.whatsapp.net`;
+      } else {
+        targetJid = null;
+      }
     }
 
     if (!targetJid) {
@@ -24,13 +30,13 @@ export default {
       return await sock.sendMessage(remoteJid, { text }, { quoted: m });
     }
 
-    const cleanArgs = args.filter((a) => !/^@?\d{5,}$/.test(a) && a.replace(/\D/g, "") !== targetJid.split("@")[0]);
+    const targetNum = targetJid.split("@")[0];
+    const cleanArgs = args.filter((a) => !/^@?\d{5,}$/.test(a.replace(/\D/g, "")) && a.replace(/\D/g, "") !== targetNum);
     const role = cleanArgs.length > 0 ? cleanArgs.join(" ") : "Propietario";
 
     db.owners = db.owners || [];
     db.ownerRoles = db.ownerRoles || {};
 
-    const targetNum = targetJid.split("@")[0];
     const isAlreadyOwner = db.owners.includes(targetJid) || db.owners.includes(targetNum);
 
     if (isAlreadyOwner) {
@@ -54,6 +60,12 @@ export default {
     
     db.ownerRoles[targetJid] = role;
     db.ownerRoles[targetNum] = role;
+
+    // SINCRONIZACIÓN DE RAM: Inyecta el permiso para uso instantáneo
+    if (owners && Array.isArray(owners)) {
+        if (!owners.includes(targetNum)) owners.push(targetNum);
+        if (!owners.includes(targetJid)) owners.push(targetJid);
+    }
     
     await saveDB(db, { immediate: true });
 
