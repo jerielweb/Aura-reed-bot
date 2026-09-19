@@ -35,7 +35,7 @@ import {
 
 const logger = pino({ level: "silent" });
 
-// no lo toques oboe
+// Caché con límite de tiempo para evitar fuga de memoria en reintentos de Baileys
 const msgRetryCounterCache = new NodeCache({ stdTTL: 300, useClones: false });
 
 let db;
@@ -68,7 +68,8 @@ async function validateCommandsIntegrity() {
     const files = fs.readdirSync(path.join(commandsDir, cat)).filter(f => f.endsWith(".js"));
     for (const file of files) {
       try {
-        await import(`../commands/${cat}/${file}?chk=${Date.now()}`);
+        // Ruta corregida: de ../ a ./ y se eliminó el ?chk= para evitar crasheos de módulo no encontrado
+        await import(`./commands/${cat}/${file}`);
       } catch (e) {
         console.error(chalk.red(`❌ Error de sintaxis en [${cat}/${file}]:`), e.message);
         errors++;
