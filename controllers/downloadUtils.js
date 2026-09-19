@@ -4,10 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { pipeline } from "stream/promises";
 
-const projectRoot = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "..",
-);
+const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const defaultDownloadCacheDir = path.join(projectRoot, "cache");
 
 export function getDownloadCacheDir() {
@@ -17,7 +14,8 @@ export function getDownloadCacheDir() {
 }
 
 export function getDownloadCachePath(fileName) {
-  return path.join(getDownloadCacheDir(), fileName);
+  const safeFileName = path.basename(fileName);
+  return path.join(getDownloadCacheDir(), safeFileName);
 }
 
 export function setDownloadCacheEnv() {
@@ -29,57 +27,43 @@ export function setDownloadCacheEnv() {
 }
 
 export function ensureDirectory(dirPath) {
-  if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true });
-  }
+  fs.mkdirSync(dirPath, { recursive: true });
 }
 
 export async function fetchJson(url, timeout = 30000) {
-  const res = await axios.get(url, {
-    timeout,
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    },
-  });
-  return res.data;
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const res = await axios.get(url, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      },
+    });
+    return res.data;
+  } finally {
+    clearTimeout(id);
+  }
 }
 
 export async function firstSuccessfulPromise(promises) {
-  return new Promise((resolve, reject) => {
-    const errors = [];
-    let completed = 0;
+  if (!Array.isArray(promises) || promises.length === 0) {
+    throw new Error("No hay tareas disponibles para procesar.");
+  }
 
-    if (!Array.isArray(promises) || promises.length === 0) {
-      reject(new Error("No hay tareas disponibles para procesar."));
-      return;
-    }
-
-    promises.forEach((promise) => {
-      Promise.resolve(promise)
-        .then((result) => {
-          if (result) {
-            resolve(result);
-          } else {
-            throw new Error("Respuesta vacía o inválida");
-          }
-        })
-        .catch((error) => {
-          errors.push(error);
-        })
-        .finally(() => {
-          completed += 1;
-          if (completed === promises.length) {
-            reject(
-              new Error(
-                "Todos los servidores fallaron: " +
-                  errors.map((e) => e.message).join(" | "),
-              ),
-            );
-          }
-        });
-    });
-  });
+  try {
+    return await Promise.any(
+      promises.map(async (p) => {
+        const result = await p;
+        if (!result) throw new Error("Respuesta vacía o inválida");
+        return result;
+      })
+    );
+  } catch (error) {
+    const errorMessages = error.errors ? error.errors.map(e => e.message).join(" | ") : error.message;
+    throw new Error(`Todos los servidores fallaron: ${errorMessages}`);
+  }
 }
 
 class Semaphore {
@@ -94,7 +78,6 @@ class Semaphore {
       this.current += 1;
       return;
     }
-
     await new Promise((resolve) => this.queue.push(resolve));
     this.current += 1;
   }
@@ -117,33 +100,32 @@ class Semaphore {
   }
 }
 
-export const downloadSemaphore = new Semaphore(
-  Number(process.env.DOWNLOAD_CONCURRENCY || 3),
-);
-export const ffmpegSemaphore = new Semaphore(
-  Number(process.env.FFMPEG_CONCURRENCY || 1),
-);
+export const downloadSemaphore = new Semaphore(Number(process.env.DOWNLOAD_CONCURRENCY || 3));
+export const ffmpegSemaphore = new Semaphore(Number(process.env.FFMPEG_CONCURRENCY || 1));
 
 export async function downloadStreamToFile(url, filePath, options = {}) {
-  const {
-    timeout = 60000,
-    headers = {},
-    semaphore = downloadSemaphore,
-  } = options;
+  const { timeout = 60000, headers = {}, semaphore = downloadSemaphore } = options;
 
   return semaphore.run(async () => {
-    const response = await axios.get(url, {
-      url,
-      method: "GET",
-      responseType: "stream",
-      timeout,
-      headers: {
-        "User-Agent": `AuraReedBot/${global.version} (https://github.com/this-xys/baileys)`,
-        ...headers,
-      },
-    });
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
 
-    await pipeline(response.data, fs.createWriteStream(filePath));
-    return filePath;
+    try {
+      const response = await axios({
+        url,
+        method: "GET",
+        responseType: "stream",
+        signal: controller.signal,
+        headers: {
+          "User-Agent": `AuraReedBot/${global.version || "1.0"} (https://github.com/this-xys/baileys)`,
+          ...headers,
+        },
+      });
+
+      await pipeline(response.data, fs.createWriteStream(filePath));
+      return filePath;
+    } finally {
+      clearTimeout(id);
+    }
   });
 }
