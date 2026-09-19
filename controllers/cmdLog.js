@@ -1,55 +1,48 @@
 import chalk from "chalk";
 
+const timeFormatter = new Intl.DateTimeFormat("es-CR", {
+  timeZone: "America/Costa_Rica",
+  dateStyle: "short",
+  timeStyle: "medium"
+});
+
 export function cmdLog({
   numeroReal,
   rango,
   commandName,
   isGroup,
-  text,
+  text = "",
   jidRemitente,
   pushName,
   groupMetadata,
-  prefix, // Lo recibimos en el objeto de parámetros
+  prefix = "#",
   sock,
 }) {
-  // Si no hay comando, detenemos la ejecución aquí para mejorar rendimiento
   if (!commandName) return;
 
-  // Aseguramos que prefix tenga un valor por defecto si no llega nada
-  const cmdPrefix = prefix || "#";
-
-  const fecha = new Date().toLocaleString("es-CR", {
-    timeZone: "America/Costa_Rica",
-  });
-  const senderNumber = jidRemitente ? jidRemitente.split("@")[0] : numeroReal;
-
-  const tipoAccion = chalk.cyan.bold(" COMANDO ");
-  const contenido = chalk.yellow.bold(`${commandName}`);
-
-  const chatTipo = isGroup ? chalk.green("Grupo") : chalk.magenta("Privado");
-  const rolRango = rango ? rango.toUpperCase() : "USUARIO 👤";
-  const nombreUsuario = pushName || "Usuario Desconocido";
-
+  const dateStr = timeFormatter.format(new Date());
+  const sender = (jidRemitente || numeroReal || "").split("@")[0].split(":")[0];
+  const user = pushName || "Desconocido";
+  const role = rango?.toUpperCase() || "USUARIO 👤";
   const botType = sock?.isSubBot ? `Sub-Bot (+${sock.subBotId})` : "Principal";
 
-  let lineasDinamicas = `${chalk.blue.bold("│")} ${chalk.white("🤖 ")} ${chalk.bold("Bot:")}       ${chalk.cyan(botType)}\n`;
-  lineasDinamicas += `${chalk.blue.bold("│")} ${chalk.white("👤 ")} ${chalk.bold("Usuario:")}   ${chalk.white(nombreUsuario)}\n`;
-  lineasDinamicas += `${chalk.blue.bold("│")} ${chalk.white("🎖️ ")} ${chalk.bold("Rango:")}     ${chalk.magenta(rolRango)}\n`;
+  const rawArgs = text.slice(prefix.length + commandName.length).trim();
+  const safeArgs = rawArgs.length > 45 ? `${rawArgs.substring(0, 45)}...` : rawArgs;
+  const argsDisplay = safeArgs ? chalk.gray(safeArgs) : chalk.dim("{Sin argumentos}");
 
-  if (isGroup) {
-    const nombreGrupo = groupMetadata?.subject || "Grupo Desconocido";
-    lineasDinamicas += `${chalk.blue.bold("│")} ${chalk.white("🏠 ")} ${chalk.bold("Grupo:")}     ${chalk.white(nombreGrupo)}\n`;
-  }
-
-  lineasDinamicas += `${chalk.blue.bold("│")} ${chalk.white("🕒 ")} ${chalk.bold("Fecha:")}     ${chalk.white(fecha)}\n`;
-  lineasDinamicas += `${chalk.blue.bold("│")} ${chalk.white("📱 ")} ${chalk.bold("Número:")}    +${chalk.white(senderNumber)}\n`;
-  lineasDinamicas += `${chalk.blue.bold("│")} ${chalk.white("💬 ")} ${chalk.bold("Chat:")}      ${chatTipo}\n`;
+  const chatInfo = isGroup
+    ? `${chalk.blue.bold("│")} ${chalk.white("🏠 Grupo:  ")} ${chalk.green(groupMetadata?.subject || "Desconocido")}`
+    : `${chalk.blue.bold("│")} ${chalk.white("💬 Chat:   ")} ${chalk.magenta("Privado")}`;
 
   console.log(
-    chalk.blue.bold(`╭──────────────────────────────────────────────────⬣\n`) +
-      lineasDinamicas +
-      `${chalk.blue.bold("├──────────────────────────────────────────────────⬣\n")}` +
-      `${chalk.blue.bold("│")}${tipoAccion} ➤  ${contenido}\n` +
-      chalk.blue.bold(`╰──────────────────────────────────────────────────⬣`),
+`${chalk.blue.bold("╭──────────────────────────────────────────────────⬣")}
+${chalk.blue.bold("│")} ${chalk.white("🤖 Bot:    ")} ${chalk.cyan(botType)}
+${chalk.blue.bold("│")} ${chalk.white("👤 Usuario:")} ${chalk.white(user)} ${chalk.gray(`(+${sender})`)}
+${chalk.blue.bold("│")} ${chalk.white("🎖️ Rango:  ")} ${chalk.magenta(role)}
+${chatInfo}
+${chalk.blue.bold("│")} ${chalk.white("🕒 Fecha:  ")} ${chalk.white(dateStr)}
+${chalk.blue.bold("├──────────────────────────────────────────────────⬣")}
+${chalk.blue.bold("│")} ${chalk.cyan.bold(" COMANDO ")} ➤ ${chalk.yellow.bold(prefix + commandName)} ${argsDisplay}
+${chalk.blue.bold("╰──────────────────────────────────────────────────⬣")}`
   );
 }
