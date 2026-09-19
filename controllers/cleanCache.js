@@ -1,126 +1,76 @@
 import fs from "fs/promises";
 import path from "path";
 import chalk from "chalk";
+import { fileURLToPath } from "url";
 
-const DEFAULT_TTL_MS = 30 * 60 * 1000;
-const CACHE_TTL_MS = Number(process.env.AURA_CACHE_TTL_MS || DEFAULT_TTL_MS);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const projectRoot = path.resolve(__dirname, "..");
+
+const CACHE_TTL_MS = Number(process.env.AURA_CACHE_TTL_MS || 1800000);
+let cleaningCache = false;
+let cacheTimer = null;
 
 function getCleanDirs() {
   const configuredCacheDir = process.env.AURA_DOWNLOAD_CACHE;
-  const dirs = ["cache", "scratch"];
+  const dirs = ["cache", "scratch", "tmp", "temp"];
 
-  if (configuredCacheDir) {
-    dirs.push(configuredCacheDir);
-  }
+  if (configuredCacheDir) dirs.push(configuredCacheDir);
 
-  return [...new Set(dirs.map((dir) => path.resolve(dir)))];
+  return [...new Set(dirs.map(dir => {
+    const resolved = path.resolve(projectRoot, dir);
+    return resolved.startsWith(projectRoot) ? resolved : null;
+  }).filter(Boolean))];
 }
 
-function isStale(mtimeMs) {
-  return Date.now() - mtimeMs >= CACHE_TTL_MS;
-}
-
-async function removeOldEntries(folderPath) {
+async function removeOldEntries(folderPath, threshold) {
   try {
     const entries = await fs.readdir(folderPath, { withFileTypes: true });
-    for (const entry of entries) {
+
+    await Promise.all(entries.map(async (entry) => {
       const entryPath = path.join(folderPath, entry.name);
       try {
-        const stats = await fs.stat(entryPath);
-
         if (entry.isDirectory()) {
-          await removeOldEntries(entryPath);
-          const remaining = await fs.readdir(entryPath);
+          await removeOldEntries(entryPath, threshold);
+          const remaining = await fs.readdir(entryPath).catch(() => []);
           if (remaining.length === 0) {
-            await fs.rmdir(entryPath);
-            console.log(
-              chalk.gray(`[cleanCache] Removed empty folder: ${entryPath}`),
-            );
+            await fs.rm(entryPath, { recursive: true, force: true });
           }
-        } else if (isStale(stats.mtimeMs)) {
-          await fs.rm(entryPath, { force: true });
-          console.log(
-            chalk.gray(`[cleanCache] Removed stale file: ${entryPath}`),
-          );
+        } else {
+          const stats = await fs.stat(entryPath);
+          if (stats.mtimeMs < threshold) {
+            await fs.rm(entryPath, { force: true });
+          }
         }
-      } catch (err) {
-        if (err.code !== "ENOENT") {
-          console.error(
-            chalk.red(`[cleanCache] Error procesando ${entryPath}:`),
-            err.message,
-          );
-        }
-      }
-    }
-  } catch (err) {
-    if (err.code !== "ENOENT") {
-      console.error(
-        chalk.red(`[cleanCache] Error leyendo carpeta ${folderPath}:`),
-        err.message,
-      );
-    }
-  }
-}
-
-let cleaningCache = false;
-let cacheTimer = null;
-const MAX_TIMEOUT_MS = 2 ** 31 - 1;
-
-async function cleanCache() {
-  console.log(
-    chalk.gray(
-      `[cleanCache] Iniciando limpieza de cache (TTL: ${CACHE_TTL_MS} ms)...`,
-    ),
-  );
-  for (const folderPath of getCleanDirs()) {
-    await removeOldEntries(folderPath);
-  }
-  console.log(chalk.gray("[cleanCache] Limpieza de cache completada."));
+      } catch (err) {}
+    }));
+  } catch (err) {}
 }
 
 export async function runCleanCacheIfNeeded(db, saveDB) {
-  if (cleaningCache) {
-    return;
-  }
-
+  if (cleaningCache) return;
+  
   const now = Date.now();
-  const lastRun = db.cleanCacheLastRun || 0;
-
-  if (now - lastRun < CACHE_TTL_MS) {
-    return;
-  }
+  if (now - (db.cleanCacheLastRun || 0) < CACHE_TTL_MS) return;
 
   cleaningCache = true;
   try {
-    await cleanCache();
-    db.cleanCacheLastRun = now;
+    const threshold = Date.now() - CACHE_TTL_MS;
+    await Promise.all(getCleanDirs().map(dir => removeOldEntries(dir, threshold)));
+    
+    db.cleanCacheLastRun = Date.now();
     await saveDB(db, { immediate: true });
-    console.log(
-      chalk.gray("[cleanCache] Registro de última ejecución actualizado."),
-    );
   } catch (err) {
-    console.error(
-      chalk.red("[cleanCache] Error durante la limpieza:"),
-      err.message,
-    );
+    console.error(chalk.red("[cleanCache] Error:"), err.message);
   } finally {
     cleaningCache = false;
   }
 }
 
 function scheduleNextRun(db, saveDB) {
-  const now = Date.now();
-  const lastRun = db.cleanCacheLastRun || 0;
-  let delay = Math.max(0, CACHE_TTL_MS - (now - lastRun));
-
-  if (delay > MAX_TIMEOUT_MS) {
-    delay = MAX_TIMEOUT_MS;
-  }
-
-  if (cacheTimer) {
-    clearTimeout(cacheTimer);
-  }
-
+  const delay = Math.min(Math.max(0, CACHE_TTL_MS - (Date.now() - (db.cleanCacheLastRun || 0))), 2147483647);
+  
+  if (cacheTimer) clearTimeout(cacheTimer);
+  
   cacheTimer = setTimeout(async () => {
     await runCleanCacheIfNeeded(db, saveDB);
     scheduleNextRun(db, saveDB);
